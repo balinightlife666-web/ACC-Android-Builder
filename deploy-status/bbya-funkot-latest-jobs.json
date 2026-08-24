@@ -1,0 +1,135 @@
+{
+  "runId": "32742606387",
+  "jobs": [
+    {
+      "id": 97480655565,
+      "name": "serial_funkot",
+      "status": "completed",
+      "conclusion": "failure",
+      "started_at": "2026-08-24T15:05:07Z",
+      "completed_at": "2026-08-24T15:05:38Z",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1
+        },
+        {
+          "name": "Checkout cadangan control repo",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2
+        },
+        {
+          "name": "Checkout BBYA Source of Truth",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3
+        },
+        {
+          "name": "Safety gate - writable source and audio scopes",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4
+        },
+        {
+          "name": "Plan exactly one safe Funkot action",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5
+        },
+        {
+          "name": "Install audio tools",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 6
+        },
+        {
+          "name": "Download one original source and hash it",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 7
+        },
+        {
+          "name": "Create at most one new Roblox Funkot asset",
+          "status": "completed",
+          "conclusion": "failure",
+          "number": 8
+        },
+        {
+          "name": "Recheck existing Funkot asset only",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 9
+        },
+        {
+          "name": "Normalize result and recovery receipt",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 10
+        },
+        {
+          "name": "Stage approved Funkot playlist",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 11
+        },
+        {
+          "name": "Prepare Rojo for live Funkot publish",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 12
+        },
+        {
+          "name": "Build and publish BBYA with approved Funkot track",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 13
+        },
+        {
+          "name": "Mark approved Funkot track live after publish receipt",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 14
+        },
+        {
+          "name": "Persist canonical BBYA Funkot state",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 15
+        },
+        {
+          "name": "Persist cadangan Funkot plan and receipt",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 16
+        },
+        {
+          "name": "Final Funkot serial result",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 17
+        },
+        {
+          "name": "Post Checkout BBYA Source of Truth",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 33
+        },
+        {
+          "name": "Post Checkout cadangan control repo",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 34
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 35
+        }
+      ]
+    }
+  ]
+}
