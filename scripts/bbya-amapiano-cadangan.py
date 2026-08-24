@@ -77,13 +77,29 @@ def preflight(args):
     reg_path = source / "maps/bbya-social-hub/audio-playlists/vip-amapiano.json"
     extra_path = source / "maps/bbya-social-hub/audio-playlists/vip-amapiano-extra.json"
     blacklist_path = source / "maps/bbya-social-hub/audio-blacklist.json"
+    rights_path = source / "maps/bbya-social-hub/audio-rights-confirmation.json"
     plan_path = control / "state/bbya-amapiano-plan.json"
 
     reg = load(reg_path)
     extra = load(extra_path)
     blacklist = load(blacklist_path, {"version": 1, "items": {}})
+    rights = load(rights_path, {})
     if not reg.get("tracks") or not extra.get("tracks"):
         raise SystemExit("Missing Amapiano registry/extra queue")
+
+    required_folder = sval(extra.get("sourceFolderId"))
+    confirmed_folder = sval(rights.get("driveFolderId"))
+    if rights.get("confirmed") is not True or not required_folder or confirmed_folder != required_folder:
+        plan = {
+            "action": "RIGHTS_CONFIRMATION_REQUIRED",
+            "requiredFolderId": required_folder,
+            "confirmedFolderId": confirmed_folder or None,
+            "confirmed": rights.get("confirmed") is True,
+            "queue": QUEUE,
+        }
+        save(plan_path, plan)
+        print(json.dumps(plan))
+        return
 
     ensure_extra_in_main(reg, extra)
     by = {int(t.get("index", 0)): t for t in reg.get("tracks", [])}
