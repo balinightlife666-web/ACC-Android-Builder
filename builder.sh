@@ -13,26 +13,30 @@ usage() {
 ACC Local Roblox Publisher
 
 Usage:
-  ./builder.sh setup
-  ./builder.sh pull
-  ./builder.sh list
-  ./builder.sh publish <map-id>
-  ./builder.sh bbya
-  ./builder.sh bbyavatar
-  ./builder.sh becak
-  ./builder.sh status
+  acc setup
+  acc pull
+  acc list
+  acc <map-id>
+  acc publish <map-id>
+  acc all
+  acc build-all
+  acc status
 
-Primary target:
-  ./builder.sh bbya
+Examples:
+  acc a-club
+  acc bbyavatar
+  acc becak-e-bike
+  acc all
 
-Map IDs are read from maps/registry.json in ACC-Roblox-maps.
-No GitHub Actions hosted runner is used.
+Every enabled map in maps/registry.json is supported automatically.
+Disabled/incomplete targets are skipped by `acc all`.
+No GitHub-hosted Actions runner is used.
 EOF
 }
 
 need_maps_repo() {
   if [ ! -d "$MAPS_DIR/.git" ]; then
-    echo "Maps repo is not cloned yet. Run: ./builder.sh setup"
+    echo "Maps repo is not cloned yet. Run: acc setup"
     exit 2
   fi
 }
@@ -82,7 +86,10 @@ cmd_list() {
 const fs=require('fs'); const path=require('path');
 const root=process.argv[2];
 const r=JSON.parse(fs.readFileSync(path.join(root,'maps/registry.json'),'utf8'));
-for (const [id,m] of Object.entries(r.maps)) console.log(id+'\t'+(m.enabled?'ENABLED':'disabled')+'\t'+m.name);
+for (const [id,m] of Object.entries(r.maps)) {
+  const complete=/^\d+$/.test(String(m.universeId)) && /^\d+$/.test(String(m.placeId));
+  console.log(id+'\t'+(m.enabled&&complete?'READY':m.enabled?'INCOMPLETE':'disabled')+'\t'+m.name);
+}
 NODE
 }
 
@@ -103,19 +110,13 @@ console.log('File: '+t.file);
 NODE
 }
 
-cmd_publish() {
-  local map_id="$1"
-  need_maps_repo
-  load_secret
-  cmd_pull
+publish_one_no_pull() {
+  local map_id="$1" stamp logfile
   validate_target "$map_id"
-
-  local stamp logfile
   stamp=$(date +%Y%m%d-%H%M%S)
   logfile="$LOGS/${map_id}-${stamp}.log"
   echo "Publishing $map_id"
   echo "Log: $logfile"
-
   (
     cd "$MAPS_DIR"
     export ROBLOX_API_KEY
@@ -123,9 +124,56 @@ cmd_publish() {
     export GITHUB_SHA="$(git rev-parse HEAD)"
     node scripts/publish-map.js "$map_id"
   ) 2>&1 | tee "$logfile"
-
-  echo
   echo "PUBLISH COMPLETE: $map_id"
+}
+
+cmd_publish() {
+  local map_id="$1"
+  need_maps_repo
+  load_secret
+  cmd_pull
+  publish_one_no_pull "$map_id"
+}
+
+ready_map_ids() {
+  node - "$MAPS_DIR" <<'NODE'
+const fs=require('fs'); const path=require('path');
+const root=process.argv[2];
+const r=JSON.parse(fs.readFileSync(path.join(root,'maps/registry.json'),'utf8'));
+for (const [id,t] of Object.entries(r.maps)) {
+  if (!t.enabled) continue;
+  if (!/^\d+$/.test(String(t.universeId)) || !/^\d+$/.test(String(t.placeId))) continue;
+  const f=path.join(root,t.file || '');
+  if (!fs.existsSync(f)) continue;
+  console.log(id);
+}
+NODE
+}
+
+cmd_all() {
+  need_maps_repo
+  load_secret
+  cmd_pull
+  mapfile -t ids < <(ready_map_ids)
+  if [ "${#ids[@]}" -eq 0 ]; then
+    echo "No READY maps found."
+    exit 4
+  fi
+  echo "Publishing ${#ids[@]} READY map(s) sequentially: ${ids[*]}"
+  local ok=0 fail=0 id
+  for id in "${ids[@]}"; do
+    echo
+    echo "===== $id ====="
+    if publish_one_no_pull "$id"; then
+      ok=$((ok+1))
+    else
+      fail=$((fail+1))
+      echo "FAILED: $id"
+    fi
+  done
+  echo
+  echo "ALL DONE — success=$ok failed=$fail total=${#ids[@]}"
+  [ "$fail" -eq 0 ]
 }
 
 cmd_status() {
@@ -135,7 +183,23 @@ cmd_status() {
   echo "Branch: $(git -C "$MAPS_DIR" branch --show-current)"
   echo "Secrets: $([ -f "$SECRETS" ] && echo configured || echo missing)"
   echo "Recent logs:"
-  ls -1t "$LOGS" 2>/dev/null | head -n 5 || true
+  ls -1t "$LOGS" 2>/dev/null | head -n 10 || true
+}
+
+cmd_dynamic() {
+  local requested="$1"
+  need_maps_repo
+  if node - "$MAPS_DIR" "$requested" <<'NODE' >/dev/null 2>&1
+const fs=require('fs'); const path=require('path');
+const r=JSON.parse(fs.readFileSync(path.join(process.argv[2],'maps/registry.json'),'utf8'));
+process.exit(r.maps?.[process.argv[3]] ? 0 : 1);
+NODE
+  then
+    cmd_publish "$requested"
+  else
+    usage
+    exit 1
+  fi
 }
 
 case "${1:-}" in
@@ -143,9 +207,9 @@ case "${1:-}" in
   pull) cmd_pull ;;
   list) cmd_list ;;
   publish) [ $# -eq 2 ] || { usage; exit 1; }; cmd_publish "$2" ;;
+  all|build-all|publish-all) cmd_all ;;
   bbya) cmd_publish a-club ;;
-  bbyavatar) cmd_publish bbyavatar ;;
-  becak) cmd_publish becak-e-bike ;;
   status) cmd_status ;;
-  *) usage ;;
+  "") usage ;;
+  *) cmd_dynamic "$1" ;;
 esac
