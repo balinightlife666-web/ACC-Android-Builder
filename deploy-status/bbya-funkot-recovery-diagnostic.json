@@ -1,0 +1,18 @@
+{
+  "status": "RECOVERY_DIAGNOSTIC_ONLY_NO_UPLOAD",
+  "authorizedUserId": "9296030038",
+  "uploaderUsername": "GudangPet88",
+  "uploaderDisplayName": "GudangPet88",
+  "keyEnabled": "true",
+  "keyExpired": "null",
+  "expectedUploaderUsername": "gudangpet88",
+  "uploaderMatchesExpected": true,
+  "trackIndex": 1,
+  "title": "Zinyo Funkytone - Siapa Benar - Garam Cina 2025.mp3",
+  "registryAssetId": null,
+  "registryStatus": "PREPARED_LOCAL",
+  "inventoryHttp": "200",
+  "catalogHttp": "200",
+  "possibleMatchingAssets": [],
+  "recordedAt": "2026-08-24T15:07:23.113806+00:00"
+}
