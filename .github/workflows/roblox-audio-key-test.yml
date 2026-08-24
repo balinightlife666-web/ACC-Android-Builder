@@ -20,12 +20,17 @@ jobs:
         shell: bash
         run: |
           set +e
-          result="FAIL_AUDIO_KEY"
-          if [ -n "$AUDIO_KEY" ]; then
-            response=$(curl -fsS -X POST 'https://apis.roblox.com/api-keys/v1/introspect' \
+          if [ -z "$AUDIO_KEY" ]; then
+            result="SECRET_MISSING"
+          else
+            tmp=$(mktemp)
+            code=$(curl -sS -o "$tmp" -w '%{http_code}' -X POST 'https://apis.roblox.com/api-keys/v1/introspect' \
               -H 'Content-Type: application/json' \
-              --data "{\"apiKey\":\"$AUDIO_KEY\"}" 2>/dev/null)
-            if [ $? -eq 0 ] && [ -n "$response" ]; then
+              --data "{\"apiKey\":\"$AUDIO_KEY\"}")
+            if [ "$code" != "200" ]; then
+              result="INTROSPECT_HTTP_$code"
+            else
+              response=$(cat "$tmp")
               result=$(python3 - "$response" <<'PY'
           import json,sys
           try:
@@ -33,13 +38,22 @@ jobs:
               scopes=d.get('scopes') or []
               asset=any(s.get('name')=='asset' and {'read','write'}.issubset(set(s.get('operations') or [])) for s in scopes)
               perm=any(s.get('name')=='asset-permissions:write' or (s.get('name')=='asset-permissions' and 'write' in (s.get('operations') or [])) for s in scopes)
-              ok=d.get('enabled') is not False and d.get('expired') is not True and asset and perm
-              print('PASS_AUDIO_KEY' if ok else 'FAIL_AUDIO_SCOPE')
+              if d.get('expired') is True:
+                  print('KEY_EXPIRED')
+              elif d.get('enabled') is False:
+                  print('KEY_DISABLED')
+              elif not asset:
+                  print('MISSING_ASSET_RW_SCOPE')
+              elif not perm:
+                  print('MISSING_ASSET_PERMISSION_SCOPE')
+              else:
+                  print('PASS_AUDIO_KEY')
           except Exception:
-              print('FAIL_AUDIO_KEY')
+              print('INVALID_INTROSPECT_RESPONSE')
           PY
           )
             fi
+            rm -f "$tmp"
           fi
           echo "result=$result" >> "$GITHUB_OUTPUT"
           echo "$result"
