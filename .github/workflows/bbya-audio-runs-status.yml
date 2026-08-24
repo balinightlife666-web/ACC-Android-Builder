@@ -1,0 +1,65 @@
+name: BBYA Audio Runs Cadangan Status
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/bbya-audio-runs-status.yml'
+      - '.bbya-audio-runs-status-trigger'
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: write
+
+jobs:
+  status:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Record active and recent BBYA audio runs
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          runs=$(curl -fsSL \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H 'Accept: application/vnd.github+json' \
+            -H 'X-GitHub-Api-Version: 2022-11-28' \
+            "https://api.github.com/repos/$REPO/actions/runs?per_page=100")
+          mkdir -p deploy-status
+          python3 - "$runs" <<'PY' > deploy-status/bbya-audio-runs-status.json
+          import json,sys,time
+          data=json.loads(sys.argv[1])
+          names=(
+            'BBYA Main Club Audio Cadangan 01',
+            'BBYA Amapiano Audio Cadangan 01',
+            'BBYA Underground Audio Cadangan 01',
+            'BBYA Funkot Audio Cadangan 01',
+            'BBYA Audio Runs Cadangan Status',
+          )
+          rows=[]
+          for x in data.get('workflow_runs',[]):
+              name=x.get('name','')
+              if name in names:
+                  rows.append({k:x.get(k) for k in ('id','name','status','conclusion','event','head_sha','created_at','run_started_at','updated_at')})
+          active=[x for x in rows if x.get('status') in ('queued','in_progress','waiting','pending')]
+          print(json.dumps({'recordedAt':time.strftime('%Y-%m-%dT%H:%M:%SZ',time.gmtime()),'active':active,'recent':rows[:40]},indent=2))
+          PY
+          cat deploy-status/bbya-audio-runs-status.json
+          git config user.name 'BBYA Audio Queue Diagnostic'
+          git config user.email 'actions@users.noreply.github.com'
+          git add deploy-status/bbya-audio-runs-status.json
+          git commit -m 'Record BBYA audio run queue [skip ci]' || true
+          git config rebase.autoStash true
+          for attempt in 1 2 3; do
+            git pull --rebase origin main || { git rebase --abort || true; sleep "$attempt"; continue; }
+            git push origin HEAD:main && exit 0
+            sleep "$attempt"
+          done
+          exit 20
