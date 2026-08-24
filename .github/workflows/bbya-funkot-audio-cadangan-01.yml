@@ -1,0 +1,237 @@
+name: BBYA Funkot Audio Cadangan 01
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/bbya-funkot-audio-cadangan-01.yml'
+      - '.bbya-funkot-audio-trigger'
+  workflow_dispatch:
+    inputs:
+      track_index:
+        description: "auto or exact Funkot registry index"
+        required: false
+        default: "auto"
+        type: string
+  schedule:
+    - cron: '7,37 * * * *'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: bbya-funkot-audio-cadangan-01
+  cancel-in-progress: false
+
+jobs:
+  serial_funkot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 22
+    env:
+      SOURCE_REPO: ardarawk-cloud/ACC-Roblox-maps
+      BBYA_UNIVERSE: '8116636513'
+      AUDIO_KEY: ${{ secrets.ROBLOX_PUBLISH_CADANGAN_AUDII_01 }}
+      SOURCE_TOKEN: ${{ secrets.ACC_ROBLOX_MAPS_WRITE_TOKEN || secrets.ACC_ROBLOX_MAPS_READ_TOKEN }}
+
+    steps:
+      - name: Checkout cadangan control repo
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Checkout BBYA Source of Truth
+        uses: actions/checkout@v4
+        with:
+          repository: ardarawk-cloud/ACC-Roblox-maps
+          ref: main
+          token: ${{ env.SOURCE_TOKEN }}
+          path: source
+          fetch-depth: 0
+
+      - name: Safety gate - writable source and audio scopes
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ -n "${SOURCE_TOKEN:-}" ]] || { echo SOURCE_TOKEN_MISSING; exit 10; }
+          tmp=$(mktemp)
+          code=$(curl -sS -o "$tmp" -w '%{http_code}' -H "Authorization: Bearer $SOURCE_TOKEN" -H 'Accept: application/vnd.github+json' "https://api.github.com/repos/$SOURCE_REPO")
+          [[ "$code" == 200 ]] || { echo SOURCE_TOKEN_HTTP_$code; exit 11; }
+          [[ $(jq -r '.permissions.push // false' "$tmp") == true ]] || { echo SOURCE_WRITE_TOKEN_REQUIRED; exit 12; }
+          rm -f "$tmp"
+          [[ -n "${AUDIO_KEY:-}" ]] || { echo SECRET_MISSING_ROBLOX_PUBLISH_CADANGAN_AUDII_01; exit 13; }
+          tmp=$(mktemp)
+          code=$(curl -sS -o "$tmp" -w '%{http_code}' -X POST 'https://apis.roblox.com/api-keys/v1/introspect' -H 'Content-Type: application/json' --data "{\"apiKey\":\"$AUDIO_KEY\"}")
+          [[ "$code" == 200 ]] || { echo INTROSPECT_HTTP_$code; exit 14; }
+          python3 - "$tmp" <<'PY'
+          import json,sys
+          d=json.load(open(sys.argv[1])); scopes=d.get('scopes') or []
+          asset=any(s.get('name')=='asset' and {'read','write'}.issubset(set(s.get('operations') or [])) for s in scopes)
+          perm=any(s.get('name')=='asset-permissions:write' or (s.get('name')=='asset-permissions' and 'write' in (s.get('operations') or [])) for s in scopes)
+          if d.get('expired') is True or d.get('enabled') is False or not asset or not perm: raise SystemExit('AUDIO_KEY_SCOPE_FAILED')
+          print('PASS_AUDIO_KEY')
+          PY
+          rm -f "$tmp"
+
+      - name: Plan exactly one safe Funkot action
+        id: plan
+        shell: bash
+        env:
+          REQUESTED_TRACK: ${{ github.event.inputs.track_index || 'auto' }}
+        run: |
+          set -euo pipefail
+          python3 scripts/bbya-funkot-cadangan.py preflight --source source --control . --requested "${REQUESTED_TRACK:-auto}"
+          plan=state/bbya-funkot-plan.json
+          echo "action=$(jq -r '.action' "$plan")" >> "$GITHUB_OUTPUT"
+          echo "track_index=$(jq -r '.trackIndex // empty' "$plan")" >> "$GITHUB_OUTPUT"
+          echo "drive_file_id=$(jq -r '.driveFileId // empty' "$plan")" >> "$GITHUB_OUTPUT"
+          echo "source_sha256=$(jq -r '.sourceSha256 // empty' "$plan")" >> "$GITHUB_OUTPUT"
+          cat "$plan"
+
+      - name: Install audio tools
+        if: steps.plan.outputs.action == 'UPLOAD_NEW'
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq ffmpeg
+          python3 -m pip install --quiet gdown
+
+      - name: Download one original source and hash it
+        if: steps.plan.outputs.action == 'UPLOAD_NEW'
+        id: audio
+        shell: bash
+        env:
+          TRACK_INDEX: ${{ steps.plan.outputs.track_index }}
+          DRIVE_FILE_ID: ${{ steps.plan.outputs.drive_file_id }}
+          EXPECTED_SHA256: ${{ steps.plan.outputs.source_sha256 }}
+        run: |
+          set -euo pipefail
+          raw="$RUNNER_TEMP/bbya-funkot-${TRACK_INDEX}.source"
+          upload="$RUNNER_TEMP/bbya-funkot-${TRACK_INDEX}.mp3"
+          gdown "https://drive.google.com/uc?id=${DRIVE_FILE_ID}" -O "$raw"
+          [[ -s "$raw" ]] || { echo SOURCE_DOWNLOAD_EMPTY; exit 30; }
+          actual=$(sha256sum "$raw" | awk '{print $1}')
+          if [[ -n "${EXPECTED_SHA256:-}" && "$actual" != "$EXPECTED_SHA256" ]]; then echo SOURCE_SHA256_MISMATCH; exit 31; fi
+          codec=$(ffprobe -v error -select_streams a:0 -show_entries stream=codec_name -of default=nw=1:nk=1 "$raw" | head -n1)
+          if [[ "$codec" == mp3 ]]; then cp "$raw" "$upload"; else ffmpeg -y -hide_banner -loglevel error -i "$raw" -vn -ac 2 -ar 44100 -codec:a libmp3lame -b:a 192k "$upload"; fi
+          [[ -s "$upload" ]] || { echo UPLOAD_FILE_MISSING; exit 32; }
+          echo "audio_path=$upload" >> "$GITHUB_OUTPUT"
+          echo "source_sha256=$actual" >> "$GITHUB_OUTPUT"
+
+      - name: Create at most one new Roblox Funkot asset
+        if: steps.plan.outputs.action == 'UPLOAD_NEW'
+        shell: bash
+        working-directory: source
+        env:
+          TRACK_INDEX: ${{ steps.plan.outputs.track_index }}
+          AUDIO_PATH: ${{ steps.audio.outputs.audio_path }}
+          SOURCE_SHA256: ${{ steps.audio.outputs.source_sha256 }}
+          EXPECTED_UPLOADER_USERNAME: gudangpet88
+          MODERATION_WAIT_SECONDS: '0'
+        run: python3 scripts/bbya-funkot-single-inject.py
+
+      - name: Recheck existing Funkot asset only
+        if: steps.plan.outputs.action == 'RECHECK_EXISTING'
+        shell: bash
+        working-directory: source
+        env:
+          TRACK_INDEX: ${{ steps.plan.outputs.track_index }}
+          AUDIO_PATH: ${{ runner.temp }}/bbya-funkot-placeholder.mp3
+          EXPECTED_UPLOADER_USERNAME: gudangpet88
+          MODERATION_WAIT_SECONDS: '420'
+        run: |
+          : > "$AUDIO_PATH"
+          python3 scripts/bbya-funkot-single-inject.py
+
+      - name: Normalize result and recovery receipt
+        if: steps.plan.outputs.action == 'UPLOAD_NEW' || steps.plan.outputs.action == 'RECHECK_EXISTING'
+        id: result
+        shell: bash
+        env:
+          TRACK_INDEX: ${{ steps.plan.outputs.track_index }}
+        run: |
+          set -euo pipefail
+          python3 scripts/bbya-funkot-cadangan.py postprocess --source source --control . --track "$TRACK_INDEX"
+          report="deploy-status/bbya-funkot-cadangan-track$(printf '%02d' "$TRACK_INDEX").json"
+          echo "status=$(jq -r '.status // empty' "$report")" >> "$GITHUB_OUTPUT"
+          echo "asset_id=$(jq -r '.assetId // empty' "$report")" >> "$GITHUB_OUTPUT"
+          cat "$report"
+
+      - name: Stage approved Funkot playlist
+        if: steps.result.outputs.status == 'READY_TO_INJECT'
+        working-directory: source
+        run: python3 scripts/bbya-funkot-build.py
+
+      - name: Prepare Rojo for live Funkot publish
+        if: steps.result.outputs.status == 'READY_TO_INJECT'
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/rojo"
+          curl -fsSL -o "$RUNNER_TEMP/rojo.zip" 'https://github.com/rojo-rbx/rojo/releases/download/v7.7.0/rojo-7.7.0-linux-x86_64.zip'
+          unzip -q -o "$RUNNER_TEMP/rojo.zip" -d "$RUNNER_TEMP/rojo"
+          rojo_bin=$(find "$RUNNER_TEMP/rojo" -type f -name rojo | head -n1)
+          chmod +x "$rojo_bin"
+          echo "ROJO_EXE=$rojo_bin" >> "$GITHUB_ENV"
+
+      - name: Build and publish BBYA with approved Funkot track
+        if: steps.result.outputs.status == 'READY_TO_INJECT'
+        shell: bash
+        working-directory: source
+        env:
+          ROBLOX_API_KEY: ${{ secrets.ROBLOX_PUBLISH_CADANGAN_01 }}
+          PUBLISH_RECEIPT_DIR: deploy-status-cadangan-funkot
+        run: |
+          set -euo pipefail
+          [[ -n "${ROBLOX_API_KEY:-}" ]] || { echo PUBLISH_SECRET_MISSING; exit 50; }
+          out="$RUNNER_TEMP/bbya-funkot-live.rbxl"
+          "$ROJO_EXE" build maps/bbya-social-hub/default.project.json -o "$out"
+          [[ -s "$out" ]] || { echo BUILD_MISSING; exit 51; }
+          PLACE_FILE_OVERRIDE="$out" node scripts/publish-map.js a-club
+          [[ -f deploy-status-cadangan-funkot/a-club.json ]] || { echo PUBLISH_RECEIPT_MISSING; exit 52; }
+
+      - name: Mark approved Funkot track live after publish receipt
+        if: steps.result.outputs.status == 'READY_TO_INJECT'
+        working-directory: source
+        env:
+          TRACK_INDEX: ${{ steps.plan.outputs.track_index }}
+        run: python3 ../scripts/bbya-funkot-cadangan.py mark-live --source . --track "$TRACK_INDEX"
+
+      - name: Persist canonical BBYA Funkot state
+        if: steps.plan.outputs.action == 'UPLOAD_NEW' || steps.plan.outputs.action == 'RECHECK_EXISTING'
+        shell: bash
+        working-directory: source
+        env:
+          TRACK_INDEX: ${{ steps.plan.outputs.track_index }}
+          RESULT_STATUS: ${{ steps.result.outputs.status }}
+        run: |
+          set -euo pipefail
+          git config user.name 'BBYA Funkot Audio Cadangan 01'
+          git config user.email 'actions@users.noreply.github.com'
+          git add maps/bbya-social-hub/audio-playlists/funkot.json maps/bbya-social-hub/audio-playlists/funkot-blacklist.json "deploy-status/bbya-funkot-track$(printf '%02d' "$TRACK_INDEX").json"
+          if [[ "$RESULT_STATUS" == READY_TO_INJECT ]]; then
+            git add maps/bbya-social-hub/103-music-ui-final.client.lua maps/bbya-social-hub/109-music-catalog-reset.server.lua maps/bbya-social-hub/121-funkot-playlist.server.lua maps/bbya-social-hub/default.project.json
+          fi
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m "Process BBYA Funkot track ${TRACK_INDEX} via cadangan [skip ci]"
+          git pull --rebase origin main
+          git push origin HEAD:main
+
+      - name: Persist cadangan Funkot plan and receipt
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'BBYA Funkot Audio Cadangan 01'
+          git config user.email 'actions@users.noreply.github.com'
+          git add state/bbya-funkot-plan.json deploy-status/bbya-funkot-cadangan-*.json 2>/dev/null || true
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m 'Record BBYA Funkot cadangan state [skip ci]'
+          git pull --rebase origin main
+          git push origin HEAD:main
+
+      - name: Final Funkot serial result
+        if: always()
+        run: |
+          echo "action=${{ steps.plan.outputs.action }}"
+          echo "track=${{ steps.plan.outputs.track_index }}"
+          echo "status=${{ steps.result.outputs.status }}"
+          echo 'At most one new Roblox audio asset is created per run.'
