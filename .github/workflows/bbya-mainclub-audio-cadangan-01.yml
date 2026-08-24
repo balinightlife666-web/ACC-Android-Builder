@@ -1,0 +1,147 @@
+name: BBYA Main Club Audio Cadangan 01
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.bbya-mainclub-audio-trigger'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+# Shares the same gudangpet88 lock used by Amapiano and Underground.
+# Main Club runs are intentionally short and process/recheck only the current safe item.
+concurrency:
+  group: bbya-amapiano-audio-cadangan-01
+  cancel-in-progress: false
+
+jobs:
+  mainclub_audio:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      SOURCE_REPO: ardarawk-cloud/ACC-Roblox-maps
+      SOURCE_BRANCH: main
+      DRIVE_FOLDER_URL: 'https://drive.google.com/drive/folders/1WdYH8ICus8WHPuVDvX0b4LOa9LbbBSCd'
+      DRIVE_FOLDER_ID: '1WdYH8ICus8WHPuVDvX0b4LOa9LbbBSCd'
+      EXPECTED_AUDIO_USERNAME: 'gudangpet88'
+      BBYA_UNIVERSE: '8116636513'
+      AUDIO_KEY: ${{ secrets.ROBLOX_PUBLISH_CADANGAN_AUDII_01 }}
+      ROBLOX_API_KEY: ${{ secrets.ROBLOX_PUBLISH_CADANGAN_01 }}
+      SOURCE_TOKEN: ${{ secrets.ACC_ROBLOX_MAPS_WRITE_TOKEN || secrets.ACC_ROBLOX_MAPS_READ_TOKEN }}
+      MAX_MODERATION_WAIT_SECONDS: '90'
+
+    steps:
+      - name: Checkout cadangan control repo
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Checkout BBYA Source of Truth
+        uses: actions/checkout@v4
+        with:
+          repository: ardarawk-cloud/ACC-Roblox-maps
+          ref: main
+          token: ${{ env.SOURCE_TOKEN }}
+          path: source
+          fetch-depth: 0
+
+      - name: Require exact-folder rights confirmation
+        shell: bash
+        working-directory: source
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json, pathlib, os
+          p=pathlib.Path('maps/bbya-social-hub/audio-rights-confirmation.json')
+          if not p.exists(): raise SystemExit('RIGHTS_CONFIRMATION_MISSING')
+          d=json.loads(p.read_text(encoding='utf-8'))
+          ok=(d.get('confirmed') is True and d.get('driveFolderId')==os.environ['DRIVE_FOLDER_ID'] and d.get('scope')=='ALL_AUDIO_IN_FOLDER')
+          if not ok: raise SystemExit('RIGHTS_CONFIRMATION_MISMATCH')
+          print('RIGHTS_CONFIRMATION_PASS')
+          PY
+
+      - name: Safety gate - writable source and Roblox keys
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ -n "${SOURCE_TOKEN:-}" ]] || { echo SOURCE_TOKEN_MISSING; exit 10; }
+          [[ -n "${AUDIO_KEY:-}" ]] || { echo SECRET_MISSING_ROBLOX_PUBLISH_CADANGAN_AUDII_01; exit 11; }
+          [[ -n "${ROBLOX_API_KEY:-}" ]] || { echo SECRET_MISSING_ROBLOX_PUBLISH_CADANGAN_01; exit 12; }
+          tmp=$(mktemp)
+          code=$(curl -sS -o "$tmp" -w '%{http_code}' -H "Authorization: Bearer $SOURCE_TOKEN" -H 'Accept: application/vnd.github+json' "https://api.github.com/repos/$SOURCE_REPO")
+          [[ "$code" == 200 ]] || { echo SOURCE_TOKEN_HTTP_$code; exit 13; }
+          [[ $(jq -r '.permissions.push // false' "$tmp") == true ]] || { echo SOURCE_WRITE_TOKEN_REQUIRED; exit 14; }
+          rm -f "$tmp"
+          tmp=$(mktemp)
+          code=$(curl -sS -o "$tmp" -w '%{http_code}' -X POST 'https://apis.roblox.com/api-keys/v1/introspect' -H 'Content-Type: application/json' --data "{\"apiKey\":\"$AUDIO_KEY\"}")
+          [[ "$code" == 200 ]] || { echo INTROSPECT_HTTP_$code; exit 15; }
+          python3 - "$tmp" <<'PY'
+          import json,sys
+          d=json.load(open(sys.argv[1])); scopes=d.get('scopes') or []
+          asset=any(s.get('name')=='asset' and {'read','write'}.issubset(set(s.get('operations') or [])) for s in scopes)
+          perm=any(s.get('name')=='asset-permissions:write' or (s.get('name')=='asset-permissions' and 'write' in (s.get('operations') or [])) for s in scopes)
+          uid=str(d.get('authorizedUserId') or '')
+          if d.get('expired') is True or d.get('enabled') is False or not asset or not perm: raise SystemExit('AUDIO_KEY_SCOPE_FAILED')
+          if uid != '9296030038': raise SystemExit('UPLOADER_ID_MISMATCH')
+          print('PASS_AUDIO_KEY')
+          PY
+          rm -f "$tmp"
+
+      - name: Mark cadangan runner boot in Source of Truth
+        shell: bash
+        working-directory: source
+        run: |
+          set -euo pipefail
+          mkdir -p deploy-status
+          printf '{"status":"BOOTED_CADANGAN_01","workflow":"BBYA Main Club Audio Cadangan 01","runId":"%s","triggerCommit":"%s"}\n' "$GITHUB_RUN_ID" "$GITHUB_SHA" > deploy-status/bbya-audio-safe-batch-boot.json
+          git config user.name 'BBYA Main Club Audio Cadangan 01'
+          git config user.email 'actions@users.noreply.github.com'
+          git add deploy-status/bbya-audio-safe-batch-boot.json
+          if ! git diff --cached --quiet; then
+            git commit -m 'Mark BBYA Main Club cadangan audio runner booted [skip ci]'
+            git pull --rebase origin main
+            git push origin HEAD:main
+          fi
+
+      - name: Setup Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install audio tools and Rojo 7.7.0
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq ffmpeg
+          python3 -m pip install --quiet 'gdown==6.1.0'
+          mkdir -p "$RUNNER_TEMP/rojo"
+          curl -fsSL -o "$RUNNER_TEMP/rojo.zip" 'https://github.com/rojo-rbx/rojo/releases/download/v7.7.0/rojo-7.7.0-linux-x86_64.zip'
+          unzip -q -o "$RUNNER_TEMP/rojo.zip" -d "$RUNNER_TEMP/rojo"
+          rojo_bin=$(find "$RUNNER_TEMP/rojo" -type f -name rojo | head -n1)
+          [[ -n "$rojo_bin" ]] || { echo ROJO_NOT_FOUND; exit 20; }
+          chmod +x "$rojo_bin"
+          echo "$(dirname "$rojo_bin")" >> "$GITHUB_PATH"
+          "$rojo_bin" --version
+          ffmpeg -version | head -1
+          gdown --version
+
+      - name: Run strict Main Club one-by-one pipeline
+        shell: bash
+        working-directory: source
+        run: |
+          set -euo pipefail
+          python3 scripts/bbya-audio-safe-batch.py
+
+      - name: Final checkpoint
+        if: always()
+        shell: bash
+        working-directory: source
+        run: |
+          echo '--- Main Club batch state ---'
+          cat deploy-status/bbya-audio-safe-batch.json 2>/dev/null || true
+          echo '--- latest BBYA publish receipt ---'
+          cat deploy-status/a-club.json 2>/dev/null || true
+          echo 'Cadangan run preserves Source of Truth in ardarawk-cloud/ACC-Roblox-maps.'
