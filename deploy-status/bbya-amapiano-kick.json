@@ -1,8 +1,13 @@
 {
   "status": "DISPATCHED",
   "http": "204",
-  "dispatcherRunId": "32742338932",
+  "dispatcherRunId": "32742535165",
   "event": "push",
   "response": "",
-  "recordedAt": "2026-08-24T15:01:48Z"
+  "dispatchStartedAt": "2026-08-24T15:03:43Z",
+  "targetRunId": "32742547660",
+  "targetStatus": "pending",
+  "targetConclusion": "",
+  "targetUrl": "https://github.com/balinightlife666-web/ACC-Android-Builder/actions/runs/32742547660",
+  "recordedAt": "2026-08-24T15:03:48Z"
 }
