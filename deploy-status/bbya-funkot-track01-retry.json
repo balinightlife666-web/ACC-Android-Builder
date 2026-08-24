@@ -1,0 +1,47 @@
+{
+  "status": "HALTED_ASSET_ID_MISSING",
+  "readyToInject": false,
+  "safeContinue": false,
+  "playlistId": "funkot",
+  "trackIndex": 1,
+  "title": "Zinyo Funkytone - Siapa Benar - Garam Cina 2025.mp3",
+  "driveFileId": "1ywtpqc6GsnQUTW4kJyHG76OVDnxEJ_i5",
+  "bbyaUniverseId": "8116636513",
+  "expectedUploaderUsername": "gudangpet88",
+  "assetId": null,
+  "uploadReused": false,
+  "sourceSha256": "a61ae24bfa273c9c4d5f40a441ddda5d8c2a8e8a50ee685e829cb806f70804a4",
+  "startedAt": "2026-08-24T15:09:02+00:00",
+  "key": {
+    "http": 200,
+    "keyName": "AMSTUDIO_AUDIO_UPLOADER_01",
+    "authorizedUserId": "9296030038",
+    "enabled": true,
+    "expired": false,
+    "assetReadWrite": true,
+    "assetPermissionsWrite": true
+  },
+  "uploader": {
+    "http": 200,
+    "userId": "9296030038",
+    "name": "GudangPet88",
+    "displayName": "GudangPet88"
+  },
+  "uploadHttp": 200,
+  "uploadResponse": {
+    "path": "operations/522c90d2-6256-4291-81e3-228e341c20d1",
+    "operationId": "522c90d2-6256-4291-81e3-228e341c20d1",
+    "done": false
+  },
+  "operationResult": {
+    "path": "operations/522c90d2-6256-4291-81e3-228e341c20d1",
+    "operationId": "522c90d2-6256-4291-81e3-228e341c20d1",
+    "done": true,
+    "error": {
+      "code": "InvalidArgument",
+      "message": "Audio duration too long",
+      "details": []
+    }
+  },
+  "updatedAt": "2026-08-24T15:09:13+00:00"
+}
