@@ -1,0 +1,7 @@
+{
+  "status": "RESTART_REQUEST_FAILED",
+  "http": "403",
+  "universeId": "8116636513",
+  "response": "{ \"code\": \"PERMISSION_DENIED\", \"message\": \"The required scope \\u003cuniverse:write\\u003e is missing.\" }",
+  "recordedAt": "2026-08-24T13:53:47Z"
+}
