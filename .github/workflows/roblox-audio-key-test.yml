@@ -2,32 +2,53 @@ name: Roblox Cadangan Audio Key Test
 
 on:
   workflow_dispatch:
-  push:
-    branches: [main]
-    paths:
-      - '.roblox-audio-key-test-trigger'
+  issues:
+    types: [opened]
+
+permissions:
+  issues: write
 
 jobs:
   test-key:
+    if: github.event_name == 'workflow_dispatch' || startsWith(github.event.issue.title, 'ROBLOX AUDIO KEY TEST')
     runs-on: ubuntu-latest
     env:
       AUDIO_KEY: ${{ secrets.ROBLOX_PUBLISH_CADANGAN_AUDIO_01 }}
     steps:
       - name: Check key availability and audio scopes
+        id: keycheck
         shell: bash
         run: |
-          set -euo pipefail
-          test -n "$AUDIO_KEY" || { echo 'SECRET_MISSING'; exit 2; }
-          response=$(curl -fsS -X POST 'https://apis.roblox.com/api-keys/v1/introspect' \
-            -H 'Content-Type: application/json' \
-            --data "{\"apiKey\":\"$AUDIO_KEY\"}")
-          python3 - "$response" <<'PY'
+          set +e
+          result="FAIL_AUDIO_KEY"
+          if [ -n "$AUDIO_KEY" ]; then
+            response=$(curl -fsS -X POST 'https://apis.roblox.com/api-keys/v1/introspect' \
+              -H 'Content-Type: application/json' \
+              --data "{\"apiKey\":\"$AUDIO_KEY\"}" 2>/dev/null)
+            if [ $? -eq 0 ] && [ -n "$response" ]; then
+              result=$(python3 - "$response" <<'PY'
           import json,sys
-          d=json.loads(sys.argv[1])
-          scopes=d.get('scopes') or []
-          asset=any(s.get('name')=='asset' and {'read','write'}.issubset(set(s.get('operations') or [])) for s in scopes)
-          perm=any(s.get('name')=='asset-permissions:write' or (s.get('name')=='asset-permissions' and 'write' in (s.get('operations') or [])) for s in scopes)
-          ok=d.get('enabled') is not False and d.get('expired') is not True and asset and perm
-          print('PASS_AUDIO_KEY' if ok else 'FAIL_AUDIO_SCOPE')
-          raise SystemExit(0 if ok else 3)
+          try:
+              d=json.loads(sys.argv[1])
+              scopes=d.get('scopes') or []
+              asset=any(s.get('name')=='asset' and {'read','write'}.issubset(set(s.get('operations') or [])) for s in scopes)
+              perm=any(s.get('name')=='asset-permissions:write' or (s.get('name')=='asset-permissions' and 'write' in (s.get('operations') or [])) for s in scopes)
+              ok=d.get('enabled') is not False and d.get('expired') is not True and asset and perm
+              print('PASS_AUDIO_KEY' if ok else 'FAIL_AUDIO_SCOPE')
+          except Exception:
+              print('FAIL_AUDIO_KEY')
           PY
+          )
+            fi
+          fi
+          echo "result=$result" >> "$GITHUB_OUTPUT"
+          echo "$result"
+
+      - name: Comment result on test issue
+        if: github.event_name == 'issues'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RESULT: ${{ steps.keycheck.outputs.result }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+          REPO: ${{ github.repository }}
+        run: gh issue comment "$ISSUE_NUMBER" --repo "$REPO" --body "$RESULT"
