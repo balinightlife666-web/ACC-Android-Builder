@@ -1,120 +1,149 @@
 #!/data/data/com.termux/files/usr/bin/bash
 set -euo pipefail
 
-source "${HOME}/acc-builder/env.sh" 2>/dev/null || true
-ACC_HOME=${ACC_HOME:-$HOME/acc-builder}
-PROJECTS="$ACC_HOME/projects"
-OUTPUT="$ACC_HOME/output"
+ACC_HOME=${ACC_HOME:-$HOME/acc-publisher}
+MAPS_DIR="$ACC_HOME/ACC-Roblox-maps"
 LOGS="$ACC_HOME/logs"
-mkdir -p "$PROJECTS" "$OUTPUT" "$LOGS"
+SECRETS="$ACC_HOME/secrets.env"
+REPO_URL="https://github.com/ardarawk-cloud/ACC-Roblox-maps.git"
+mkdir -p "$ACC_HOME" "$LOGS"
 
 usage() {
   cat <<'EOF'
-ACC Android Builder
+ACC Local Roblox Publisher
 
 Usage:
-  ./builder.sh add <name> <git-url> [branch]
-  ./builder.sh build <name>
-  ./builder.sh pull <name>
+  ./builder.sh setup
+  ./builder.sh pull
   ./builder.sh list
+  ./builder.sh publish <map-id>
+  ./builder.sh bbya
+  ./builder.sh bbyavatar
+  ./builder.sh becak
+  ./builder.sh status
 
-Examples:
-  ./builder.sh add content-hub https://github.com/OWNER/REPO.git main
-  ./builder.sh build content-hub
+Primary target:
+  ./builder.sh bbya
+
+Map IDs are read from maps/registry.json in ACC-Roblox-maps.
+No GitHub Actions hosted runner is used.
 EOF
 }
 
-cfg() { echo "$PROJECTS/$1/.acc-project"; }
-
-cmd_add() {
-  local name="$1" url="$2" branch="${3:-main}" dir="$PROJECTS/$name"
-  if [ -d "$dir/.git" ]; then
-    echo "Project already exists: $name"
-  else
-    git clone --branch "$branch" "$url" "$dir"
+need_maps_repo() {
+  if [ ! -d "$MAPS_DIR/.git" ]; then
+    echo "Maps repo is not cloned yet. Run: ./builder.sh setup"
+    exit 2
   fi
-  cat > "$(cfg "$name")" <<EOF
-NAME=$name
-URL=$url
-BRANCH=$branch
+}
+
+load_secret() {
+  if [ -f "$SECRETS" ]; then
+    # shellcheck disable=SC1090
+    source "$SECRETS"
+  fi
+  if [ -z "${ROBLOX_API_KEY:-}" ]; then
+    echo "Missing ROBLOX_API_KEY."
+    echo "Create $SECRETS with: ROBLOX_API_KEY='YOUR_ROBLOX_OPEN_CLOUD_KEY'"
+    echo "Keep that file only on this phone. Do not commit it."
+    exit 3
+  fi
+}
+
+cmd_setup() {
+  if [ -d "$MAPS_DIR/.git" ]; then
+    echo "Maps repo already present: $MAPS_DIR"
+  else
+    echo "Cloning ACC-Roblox-maps..."
+    git clone "$REPO_URL" "$MAPS_DIR"
+  fi
+  chmod 700 "$ACC_HOME" 2>/dev/null || true
+  if [ ! -f "$SECRETS" ]; then
+    cat > "$SECRETS" <<'EOF'
+# Local-only secret. Never commit this file.
+ROBLOX_API_KEY='PASTE_ROBLOX_OPEN_CLOUD_KEY_HERE'
 EOF
-  echo "Added: $name"
+    chmod 600 "$SECRETS"
+    echo "Created secret template: $SECRETS"
+  fi
+  echo "Setup complete."
 }
 
 cmd_pull() {
-  local name="$1" dir="$PROJECTS/$name"
-  [ -d "$dir/.git" ] || { echo "Unknown project: $name"; exit 2; }
-  git -C "$dir" fetch --all --prune
-  local branch
-  branch=$(awk -F= '/^BRANCH=/{print $2}' "$(cfg "$name")" 2>/dev/null || echo main)
-  git -C "$dir" checkout "$branch"
-  git -C "$dir" pull --ff-only origin "$branch"
-}
-
-copy_apks() {
-  local name="$1" dir="$2" stamp
-  stamp=$(date +%Y%m%d-%H%M%S)
-  local found=0
-  while IFS= read -r -d '' apk; do
-    found=1
-    local base
-    base=$(basename "$apk")
-    cp -f "$apk" "$OUTPUT/${name}-${stamp}-${base}"
-    echo "APK: $OUTPUT/${name}-${stamp}-${base}"
-  done < <(find "$dir" -type f -name '*.apk' -path '*/build/outputs/*' -print0 2>/dev/null)
-  [ "$found" -eq 1 ] || echo "No APK found in standard Gradle output paths."
-}
-
-cmd_build() {
-  local name="$1" dir="$PROJECTS/$name"
-  [ -d "$dir/.git" ] || { echo "Unknown project: $name"; exit 2; }
-  cmd_pull "$name"
-
-  local logfile="$LOGS/${name}-$(date +%Y%m%d-%H%M%S).log"
-  echo "Build log: $logfile"
-  (
-    cd "$dir"
-
-    if [ -f package.json ]; then
-      if [ -f package-lock.json ]; then npm ci; else npm install; fi
-      if node -e 'const p=require("./package.json");process.exit(p.scripts&&p.scripts.build?0:1)' 2>/dev/null; then
-        npm run build
-      fi
-      if [ -f capacitor.config.ts ] || [ -f capacitor.config.json ] || [ -f capacitor.config.js ]; then
-        npx cap sync android
-      fi
-    fi
-
-    if [ -x ./gradlew ]; then
-      ./gradlew --no-daemon assembleDebug
-    elif [ -f gradlew ]; then
-      chmod +x gradlew
-      ./gradlew --no-daemon assembleDebug
-    elif [ -d android ] && [ -f android/gradlew ]; then
-      chmod +x android/gradlew
-      (cd android && ./gradlew --no-daemon assembleDebug)
-    elif [ -f build.gradle ] || [ -f build.gradle.kts ]; then
-      gradle --no-daemon assembleDebug
-    else
-      echo "ERROR: No supported Android Gradle project detected."
-      exit 3
-    fi
-  ) 2>&1 | tee "$logfile"
-
-  copy_apks "$name" "$dir"
+  need_maps_repo
+  git -C "$MAPS_DIR" fetch --all --prune
+  git -C "$MAPS_DIR" checkout main
+  git -C "$MAPS_DIR" pull --ff-only origin main
 }
 
 cmd_list() {
-  echo "Registered projects:"
-  find "$PROJECTS" -mindepth 1 -maxdepth 1 -type d -printf '%f\n' 2>/dev/null | sort
+  need_maps_repo
+  node - <<NODE
+const r=require('${MAPS_DIR}/maps/registry.json');
+for (const [id,m] of Object.entries(r.maps)) console.log(`${id}\t${m.enabled?'ENABLED':'disabled'}\t${m.name}`);
+NODE
+}
+
+validate_target() {
+  local map_id="$1"
+  node - "$MAPS_DIR" "$map_id" <<'NODE'
+const fs=require('fs'); const path=require('path');
+const root=process.argv[2], id=process.argv[3];
+const r=JSON.parse(fs.readFileSync(path.join(root,'maps/registry.json'),'utf8'));
+const t=r.maps?.[id];
+if(!t) throw new Error(`Unknown map id: ${id}`);
+if(!t.enabled) throw new Error(`Target disabled: ${id}`);
+if(!/^\d+$/.test(String(t.universeId)) || !/^\d+$/.test(String(t.placeId))) throw new Error('Invalid universe/place id');
+const f=path.join(root,t.file);
+if(!fs.existsSync(f)) throw new Error(`Place file missing: ${t.file}`);
+console.log(`Target OK: ${t.name}`);
+console.log(`File: ${t.file}`);
+NODE
+}
+
+cmd_publish() {
+  local map_id="$1"
+  need_maps_repo
+  load_secret
+  cmd_pull
+  validate_target "$map_id"
+
+  local stamp logfile
+  stamp=$(date +%Y%m%d-%H%M%S)
+  logfile="$LOGS/${map_id}-${stamp}.log"
+  echo "Publishing $map_id"
+  echo "Log: $logfile"
+
+  (
+    cd "$MAPS_DIR"
+    export ROBLOX_API_KEY
+    export PUBLISH_RECEIPT_DIR="deploy-status/local-publisher"
+    export GITHUB_SHA="$(git rev-parse HEAD)"
+    node scripts/publish-map.js "$map_id"
+  ) 2>&1 | tee "$logfile"
+
   echo
-  echo "APK output: $OUTPUT"
+  echo "PUBLISH COMPLETE: $map_id"
+}
+
+cmd_status() {
+  need_maps_repo
+  echo "Repo: $MAPS_DIR"
+  echo "Commit: $(git -C "$MAPS_DIR" rev-parse --short HEAD)"
+  echo "Branch: $(git -C "$MAPS_DIR" branch --show-current)"
+  echo "Secrets: $([ -f "$SECRETS" ] && echo configured || echo missing)"
+  echo "Recent logs:"
+  ls -1t "$LOGS" 2>/dev/null | head -n 5 || true
 }
 
 case "${1:-}" in
-  add) [ $# -ge 3 ] || { usage; exit 1; }; cmd_add "$2" "$3" "${4:-main}" ;;
-  build) [ $# -eq 2 ] || { usage; exit 1; }; cmd_build "$2" ;;
-  pull) [ $# -eq 2 ] || { usage; exit 1; }; cmd_pull "$2" ;;
+  setup) cmd_setup ;;
+  pull) cmd_pull ;;
   list) cmd_list ;;
+  publish) [ $# -eq 2 ] || { usage; exit 1; }; cmd_publish "$2" ;;
+  bbya) cmd_publish a-club ;;
+  bbyavatar) cmd_publish bbyavatar ;;
+  becak) cmd_publish becak-e-bike ;;
+  status) cmd_status ;;
   *) usage ;;
 esac
