@@ -18,6 +18,7 @@ on:
 
 permissions:
   contents: write
+  actions: write
 
 concurrency:
   group: bbya-funkot-audio-cadangan-01
@@ -126,7 +127,7 @@ jobs:
           SOURCE_SHA256: ${{ steps.audio.outputs.source_sha256 }}
           EXPECTED_UPLOADER_USERNAME: gudangpet88
           MODERATION_WAIT_SECONDS: '0'
-        run: python3 scripts/bbya-funkot-single-inject.py
+        run: python3 scripts/bbya-funkot-safe-runner.py
 
       - name: Recheck existing Funkot asset only
         if: steps.plan.outputs.action == 'RECHECK_EXISTING'
@@ -139,7 +140,7 @@ jobs:
           MODERATION_WAIT_SECONDS: '420'
         run: |
           : > "$AUDIO_PATH"
-          python3 scripts/bbya-funkot-single-inject.py
+          python3 scripts/bbya-funkot-safe-runner.py
 
       - name: Normalize result and recovery receipt
         if: steps.plan.outputs.action == 'UPLOAD_NEW' || steps.plan.outputs.action == 'RECHECK_EXISTING'
@@ -214,6 +215,33 @@ jobs:
           git commit -m "Process BBYA Funkot track ${TRACK_INDEX} via cadangan [skip ci]"
           git pull --rebase origin main
           git push origin HEAD:main
+
+      - name: Dispatch next only after current track is safely terminal
+        if: steps.plan.outputs.action == 'UPLOAD_NEW' || steps.plan.outputs.action == 'RECHECK_EXISTING'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TRACK_INDEX: ${{ steps.plan.outputs.track_index }}
+        run: |
+          set -euo pipefail
+          status=$(jq -r --argjson idx "$TRACK_INDEX" '.tracks[]|select(.index==$idx)|.status // empty' source/maps/bbya-social-hub/audio-playlists/funkot.json)
+          echo "canonical_status=$status"
+          case "$status" in
+            LIVE_IN_PLAYLIST|BLACKLISTED_MODERATION_REJECTED|BLACKLISTED_DUPLICATE_SOURCE|BLACKLISTED_PLATFORM_DURATION_LIMIT)
+              code=$(curl -sS -o /tmp/next.out -w '%{http_code}' -X POST \
+                -H "Authorization: Bearer $GH_TOKEN" \
+                -H 'Accept: application/vnd.github+json' \
+                -H 'X-GitHub-Api-Version: 2022-11-28' \
+                "https://api.github.com/repos/${GITHUB_REPOSITORY}/actions/workflows/bbya-funkot-audio-cadangan-01.yml/dispatches" \
+                -d '{"ref":"main","inputs":{"track_index":"auto"}}')
+              cat /tmp/next.out || true
+              [[ "$code" == '204' ]] || { echo NEXT_DISPATCH_HTTP_$code; exit 60; }
+              echo NEXT_FUNKOT_TRACK_DISPATCHED
+              ;;
+            *)
+              echo "Queue hold: current track is not safely terminal/live."
+              ;;
+          esac
 
       - name: Persist cadangan Funkot plan and receipt
         if: always()
