@@ -1,5 +1,5 @@
 BBYA_MAINCLUB_AUDIO_CADANGAN_01
-requested_at=2026-08-25T06:26:00+08:00
+requested_at=2026-08-25T07:24:36+08:00
 source_folder=1WdYH8ICus8WHPuVDvX0b4LOa9LbbBSCd
 source_repo=ardarawk-cloud/ACC-Roblox-maps
 mode=SEQUENTIAL_APPROVED_ONLY
@@ -8,7 +8,7 @@ uploader=gudangpet88
 recovery_sequence=19
 recovery_asset=115774171488936
 recovery_rule=RECONCILE_PROVEN_PUBLISHED_DESCENDANT_NO_REUPLOAD
-published_version=424
-published_source=c950c3a69d630cb7bfd5737c79639398cfac0037
+published_version=420
+published_source=fcc201f444c364dca595aa65dd29e1bdfc79359a
 runtime_hardening=GIT_PUSH_RETRY_REJECTED_HASH_DEDUPE_PUBLISH_RECONCILE
-trigger=RECONCILE_SEQ19_THEN_CONTINUE_SEQ20
+trigger=RECONCILE_V420_NO_REUPLOAD_THEN_CONTINUE_SEQ20
