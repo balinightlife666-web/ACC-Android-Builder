@@ -1,0 +1,42 @@
+name: BBYA Studio Runner Cadangan Probe
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/bbya-studio-runner-cadangan-probe.yml'
+      - '.bbya-studio-runner-cadangan-trigger'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  probe:
+    runs-on: [self-hosted, windows, x64]
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v4
+      - name: Probe runner and Roblox Studio
+        shell: powershell
+        run: |
+          New-Item -ItemType Directory -Force deploy-status | Out-Null
+          $studio=Get-Process RobloxStudioBeta -ErrorAction SilentlyContinue | Where-Object {$_.MainWindowHandle -ne 0} | Select-Object -First 1
+          [ordered]@{
+            status='RUNNER_REACHED'
+            machine=$env:COMPUTERNAME
+            user=[Environment]::UserName
+            session=[System.Diagnostics.Process]::GetCurrentProcess().SessionId
+            studioVisible=[bool]$studio
+            studioPid=if($studio){$studio.Id}else{$null}
+            recordedAt=(Get-Date).ToUniversalTime().ToString('yyyy-MM-ddTHH:mm:ssZ')
+          } | ConvertTo-Json | Set-Content deploy-status/bbya-studio-runner-cadangan-probe.json -Encoding UTF8
+      - name: Persist
+        shell: powershell
+        run: |
+          git config user.name 'BBYA Studio Runner Probe'
+          git config user.email 'actions@users.noreply.github.com'
+          git add deploy-status/bbya-studio-runner-cadangan-probe.json
+          git commit -m 'Record BBYA Studio runner cadangan probe [skip ci]'
+          git pull --rebase origin main
+          git push origin HEAD:main
