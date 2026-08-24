@@ -2,6 +2,10 @@ name: Roblox Cadangan Audio Key Test
 
 on:
   workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.roblox-audio-key-test-trigger'
 
 jobs:
   test-key:
