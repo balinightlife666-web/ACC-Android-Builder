@@ -1,0 +1,64 @@
+name: BBYA Main Club Reconcile And Dispatch
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.bbya-mainclub-reconcile-trigger'
+  workflow_dispatch:
+  schedule:
+    - cron: '18,48 * * * *'
+
+permissions:
+  contents: write
+  actions: write
+
+concurrency:
+  group: bbya-mainclub-reconcile-dispatch
+  cancel-in-progress: false
+
+jobs:
+  reconcile:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    env:
+      SOURCE_TOKEN: ${{ secrets.ACC_ROBLOX_MAPS_WRITE_TOKEN || secrets.ACC_ROBLOX_MAPS_READ_TOKEN }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Checkout cadangan control repo
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Checkout BBYA Source of Truth
+        uses: actions/checkout@v4
+        with:
+          repository: ardarawk-cloud/ACC-Roblox-maps
+          ref: main
+          token: ${{ env.SOURCE_TOKEN }}
+          path: source
+          fetch-depth: 0
+      - name: Reconcile staged audio already included in cadangan publish receipt
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 scripts/bbya-mainclub-reconcile-publisher.py source deploy-status/bbya-publisher-cadangan-01.json
+      - name: Dispatch safe Main Club continuation
+        shell: bash
+        run: |
+          set -euo pipefail
+          state=$(jq -r '.status // empty' source/deploy-status/bbya-audio-safe-batch.json 2>/dev/null || true)
+          if [[ "$state" == 'FINISHED' ]]; then
+            echo MAINCLUB_ALREADY_FINISHED
+            exit 0
+          fi
+          body=$(mktemp)
+          http=$(curl -sS -o "$body" -w '%{http_code}' -X POST \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H 'Accept: application/vnd.github+json' \
+            -H 'X-GitHub-Api-Version: 2022-11-28' \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/actions/workflows/bbya-mainclub-audio-cadangan-01.yml/dispatches" \
+            -d '{"ref":"main"}')
+          cat "$body" || true
+          rm -f "$body"
+          [[ "$http" == '204' ]] || { echo "MAINCLUB_DISPATCH_HTTP_$http"; exit 30; }
+          echo MAINCLUB_DISPATCH_ACCEPTED
