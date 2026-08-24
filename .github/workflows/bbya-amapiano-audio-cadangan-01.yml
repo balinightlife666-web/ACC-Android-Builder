@@ -1,0 +1,321 @@
+name: BBYA Amapiano Audio Cadangan 01
+
+on:
+  workflow_dispatch:
+    inputs:
+      track_index:
+        description: "auto = safest next queue item; explicit track never bypasses pending asset"
+        required: false
+        default: "auto"
+        type: choice
+        options:
+          - auto
+          - "17"
+          - "18"
+          - "20"
+          - "21"
+          - "22"
+          - "24"
+  schedule:
+    - cron: "17,47 * * * *"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: bbya-amapiano-audio-cadangan-01
+  cancel-in-progress: false
+
+jobs:
+  serial_audio:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      SOURCE_REPO: ardarawk-cloud/ACC-Roblox-maps
+      SOURCE_BRANCH: main
+      BBYA_UNIVERSE: "8116636513"
+      AUDIO_KEY: ${{ secrets.ROBLOX_PUBLISH_CADANGAN_AUDII_01 }}
+      SOURCE_TOKEN: ${{ secrets.ACC_ROBLOX_MAPS_WRITE_TOKEN || secrets.ACC_ROBLOX_MAPS_READ_TOKEN }}
+
+    steps:
+      - name: Checkout cadangan control repo
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Checkout BBYA Source of Truth
+        uses: actions/checkout@v4
+        with:
+          repository: ardarawk-cloud/ACC-Roblox-maps
+          ref: main
+          token: ${{ env.SOURCE_TOKEN }}
+          path: source
+          fetch-depth: 0
+
+      - name: Safety gate - source token must be writable
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ -z "${SOURCE_TOKEN:-}" ]]; then
+            echo "SOURCE_TOKEN_MISSING"
+            exit 10
+          fi
+          repo_json=$(mktemp)
+          code=$(curl -sS -o "$repo_json" -w '%{http_code}' \
+            -H "Authorization: Bearer $SOURCE_TOKEN" \
+            -H 'Accept: application/vnd.github+json' \
+            -H 'X-GitHub-Api-Version: 2022-11-28' \
+            "https://api.github.com/repos/$SOURCE_REPO")
+          [[ "$code" == "200" ]] || { echo "SOURCE_TOKEN_HTTP_$code"; exit 11; }
+          can_push=$(jq -r '.permissions.push // false' "$repo_json")
+          rm -f "$repo_json"
+          if [[ "$can_push" != "true" ]]; then
+            echo "SOURCE_WRITE_TOKEN_REQUIRED"
+            echo "No Roblox audio call was made."
+            exit 12
+          fi
+          echo "SOURCE_WRITE_PATH_PASS"
+
+      - name: Safety gate - audio key and scopes
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ -z "${AUDIO_KEY:-}" ]]; then
+            echo "SECRET_MISSING: ROBLOX_PUBLISH_CADANGAN_AUDII_01"
+            exit 13
+          fi
+          tmp=$(mktemp)
+          code=$(curl -sS -o "$tmp" -w '%{http_code}' -X POST \
+            'https://apis.roblox.com/api-keys/v1/introspect' \
+            -H 'Content-Type: application/json' \
+            --data "{\"apiKey\":\"$AUDIO_KEY\"}")
+          [[ "$code" == "200" ]] || { echo "INTROSPECT_HTTP_$code"; exit 14; }
+          python3 - "$tmp" <<'PY'
+          import json,sys
+          d=json.load(open(sys.argv[1]))
+          scopes=d.get("scopes") or []
+          asset=any(s.get("name")=="asset" and {"read","write"}.issubset(set(s.get("operations") or [])) for s in scopes)
+          perm=any(s.get("name")=="asset-permissions:write" or (s.get("name")=="asset-permissions" and "write" in (s.get("operations") or [])) for s in scopes)
+          if d.get("expired") is True or d.get("enabled") is False or not asset or not perm:
+              raise SystemExit("AUDIO_KEY_SCOPE_FAILED")
+          print("PASS_AUDIO_KEY")
+          PY
+          rm -f "$tmp"
+
+      - name: Preflight queue, registries, per-track reports and recovery receipts
+        id: plan
+        shell: bash
+        env:
+          REQUESTED_TRACK: ${{ github.event.inputs.track_index || 'auto' }}
+        run: |
+          set -euo pipefail
+          python3 scripts/bbya-amapiano-cadangan.py preflight \
+            --source source \
+            --control . \
+            --requested "${REQUESTED_TRACK:-auto}"
+          plan=state/bbya-amapiano-plan.json
+          echo "action=$(jq -r '.action' "$plan")" >> "$GITHUB_OUTPUT"
+          echo "track_index=$(jq -r '.trackIndex // empty' "$plan")" >> "$GITHUB_OUTPUT"
+          echo "drive_file_id=$(jq -r '.driveFileId // empty' "$plan")" >> "$GITHUB_OUTPUT"
+          echo "source_sha256=$(jq -r '.sourceSha256 // empty' "$plan")" >> "$GITHUB_OUTPUT"
+          echo "asset_id=$(jq -r '.assetId // empty' "$plan")" >> "$GITHUB_OUTPUT"
+          cat "$plan"
+
+      - name: Stop on historical asset conflict
+        if: steps.plan.outputs.action == 'CONFLICT_STOP'
+        run: |
+          echo "Conflicting historical asset IDs detected. No upload allowed."
+          exit 20
+
+      - name: Persist recovery or blacklist-only normalization
+        if: steps.plan.outputs.action == 'RECOVERY_ONLY' || steps.plan.outputs.action == 'DONE' || steps.plan.outputs.action == 'BLACKLISTED_SKIP'
+        shell: bash
+        working-directory: source
+        run: |
+          set -euo pipefail
+          git config user.name 'BBYA Audio Cadangan 01'
+          git config user.email 'actions@users.noreply.github.com'
+          git add maps/bbya-social-hub/audio-playlists/vip-amapiano.json \
+                  maps/bbya-social-hub/audio-blacklist.json
+          if git diff --cached --quiet; then
+            echo "No recovery/normalization delta."
+            exit 0
+          fi
+          git commit -m "Normalize BBYA Amapiano safe state from cadangan [skip ci]"
+          git pull --rebase origin main
+          git push origin HEAD:main
+
+      - name: Recovery-only guard
+        if: steps.plan.outputs.action == 'RECOVERY_ONLY'
+        run: echo "Recovered prior asset ID/state; Roblox was deliberately not called in this cycle."
+
+      - name: Install audio compatibility tools
+        if: steps.plan.outputs.action == 'UPLOAD_NEW'
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq ffmpeg
+          python3 -m pip install --quiet gdown
+
+      - name: Download original source and verify SHA-256
+        if: steps.plan.outputs.action == 'UPLOAD_NEW'
+        id: audio
+        shell: bash
+        env:
+          TRACK_INDEX: ${{ steps.plan.outputs.track_index }}
+          DRIVE_FILE_ID: ${{ steps.plan.outputs.drive_file_id }}
+          EXPECTED_SHA256: ${{ steps.plan.outputs.source_sha256 }}
+        run: |
+          set -euo pipefail
+          raw="$RUNNER_TEMP/bbya-amapiano-${TRACK_INDEX}.source"
+          upload="$RUNNER_TEMP/bbya-amapiano-${TRACK_INDEX}.mp3"
+
+          gdown "https://drive.google.com/uc?id=${DRIVE_FILE_ID}" -O "$raw"
+          [[ -s "$raw" ]] || { echo "SOURCE_DOWNLOAD_EMPTY"; exit 30; }
+
+          actual=$(sha256sum "$raw" | awk '{print $1}')
+          if [[ -n "${EXPECTED_SHA256:-}" && "$actual" != "$EXPECTED_SHA256" ]]; then
+            echo "SOURCE_SHA256_MISMATCH expected=$EXPECTED_SHA256 actual=$actual"
+            exit 31
+          fi
+
+          codec=$(ffprobe -v error -select_streams a:0 \
+            -show_entries stream=codec_name -of default=nw=1:nk=1 "$raw" | head -n1)
+          duration=$(ffprobe -v error -show_entries format=duration \
+            -of default=nw=1:nk=1 "$raw" | head -n1)
+          echo "source codec=$codec duration=$duration sha256=$actual"
+
+          if [[ "$codec" == "mp3" ]]; then
+            cp "$raw" "$upload"
+            echo "Original MP3 bytes retained; no pitch/speed/key processing."
+          else
+            ffmpeg -y -hide_banner -loglevel error -i "$raw" \
+              -vn -ac 2 -ar 44100 -codec:a libmp3lame -b:a 192k "$upload"
+            echo "Compatibility transcode only; no pitch/speed/key processing."
+          fi
+
+          [[ -s "$upload" ]] || { echo "UPLOAD_FILE_MISSING"; exit 32; }
+          echo "audio_path=$upload" >> "$GITHUB_OUTPUT"
+
+      - name: Create at most one new Roblox asset and persist its local ID
+        if: steps.plan.outputs.action == 'UPLOAD_NEW'
+        shell: bash
+        working-directory: source
+        env:
+          TRACK_INDEX: ${{ steps.plan.outputs.track_index }}
+          AUDIO_PATH: ${{ steps.audio.outputs.audio_path }}
+          MODERATION_WAIT_SECONDS: "0"
+        run: |
+          set -euo pipefail
+          python3 scripts/bbya-vip-single-inject.py
+          echo "One-new-asset ceiling enforced for this workflow run."
+
+      - name: Recheck existing asset only
+        if: steps.plan.outputs.action == 'RECHECK_EXISTING'
+        shell: bash
+        working-directory: source
+        env:
+          TRACK_INDEX: ${{ steps.plan.outputs.track_index }}
+          AUDIO_PATH: ${{ runner.temp }}/bbya-recheck-placeholder.mp3
+          MODERATION_WAIT_SECONDS: "420"
+        run: |
+          set -euo pipefail
+          : > "$AUDIO_PATH"
+          python3 scripts/bbya-vip-single-inject.py
+          echo "Existing asset reused; upload endpoint was not called."
+
+      - name: Postprocess canonical state and permanent rejection blacklist
+        if: steps.plan.outputs.action == 'UPLOAD_NEW' || steps.plan.outputs.action == 'RECHECK_EXISTING'
+        id: result
+        shell: bash
+        env:
+          TRACK_INDEX: ${{ steps.plan.outputs.track_index }}
+        run: |
+          set -euo pipefail
+          python3 scripts/bbya-amapiano-cadangan.py postprocess \
+            --source source \
+            --control . \
+            --track "$TRACK_INDEX"
+          report="deploy-status/bbya-amapiano-cadangan-track$(printf '%02d' "$TRACK_INDEX").json"
+          echo "status=$(jq -r '.status // empty' "$report")" >> "$GITHUB_OUTPUT"
+          echo "asset_id=$(jq -r '.assetId // empty' "$report")" >> "$GITHUB_OUTPUT"
+          cat "$report"
+
+      - name: Persist cadangan recovery receipt before Source of Truth push
+        if: steps.result.outputs.asset_id != ''
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'BBYA Audio Cadangan 01'
+          git config user.email 'actions@users.noreply.github.com'
+          git add deploy-status/bbya-amapiano-cadangan-track*.json \
+                  deploy-status/bbya-amapiano-cadangan-last.json
+          if git diff --cached --quiet; then
+            echo "Recovery receipt already current."
+          else
+            git commit -m "Record BBYA Amapiano cadangan asset receipt [skip ci]"
+            git pull --rebase origin main
+            git push origin HEAD:main
+          fi
+
+      - name: Stage approved track into BBYA VIP playlist
+        if: steps.result.outputs.status == 'READY_TO_INJECT'
+        shell: bash
+        working-directory: source
+        run: |
+          set -euo pipefail
+          python3 scripts/bbya-vip-amapiano-build.py
+
+      - name: Persist canonical BBYA audio state
+        if: steps.plan.outputs.action == 'UPLOAD_NEW' || steps.plan.outputs.action == 'RECHECK_EXISTING'
+        shell: bash
+        working-directory: source
+        env:
+          TRACK_INDEX: ${{ steps.plan.outputs.track_index }}
+          RESULT_STATUS: ${{ steps.result.outputs.status }}
+        run: |
+          set -euo pipefail
+          git config user.name 'BBYA Audio Cadangan 01'
+          git config user.email 'actions@users.noreply.github.com'
+
+          git add maps/bbya-social-hub/audio-playlists/vip-amapiano.json \
+                  maps/bbya-social-hub/audio-playlists/vip-amapiano-extra.json \
+                  maps/bbya-social-hub/audio-blacklist.json \
+                  "deploy-status/bbya-vip-track$(printf '%02d' "$TRACK_INDEX").json"
+
+          if [[ "$RESULT_STATUS" == "READY_TO_INJECT" ]]; then
+            git add maps/bbya-social-hub/103-music-ui-final.client.lua \
+                    maps/bbya-social-hub/110-vip-track01.server.lua
+          fi
+
+          if git diff --cached --quiet; then
+            echo "No canonical state changes."
+            exit 0
+          fi
+
+          git commit -m "Process BBYA Amapiano track ${TRACK_INDEX} via cadangan [skip ci]"
+          for attempt in 1 2 3; do
+            if git pull --rebase origin main && git push origin HEAD:main; then
+              echo "SOURCE_OF_TRUTH_PERSISTED"
+              exit 0
+            fi
+            echo "Persist retry $attempt failed; recovery receipt remains in cadangan repo."
+            git rebase --abort >/dev/null 2>&1 || true
+            git fetch origin main
+            sleep $((attempt * 3))
+          done
+          echo "SOURCE_PERSIST_FAILED_RECOVERY_RECEIPT_AVAILABLE"
+          exit 40
+
+      - name: Final queue result
+        if: always()
+        shell: bash
+        run: |
+          action="${{ steps.plan.outputs.action }}"
+          status="${{ steps.result.outputs.status }}"
+          asset="${{ steps.result.outputs.asset_id }}"
+          echo "action=${action:-unknown}"
+          echo "track=${{ steps.plan.outputs.track_index }}"
+          echo "status=${status:-n/a}"
+          echo "assetId=${asset:-n/a}"
+          echo "This run never creates more than one new audio asset."
