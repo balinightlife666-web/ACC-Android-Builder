@@ -1,0 +1,154 @@
+name: BBYA Underground Playlist UI Hotfix
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.bbya-underground-ui-hotfix-trigger'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: bbya-publisher-cadangan-01
+  cancel-in-progress: false
+
+jobs:
+  patch_build_publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    env:
+      SOURCE_REPO: ardarawk-cloud/ACC-Roblox-maps
+      SOURCE_TOKEN: ${{ secrets.ACC_ROBLOX_MAPS_WRITE_TOKEN }}
+      ROBLOX_API_KEY: ${{ secrets.ROBLOX_PUBLISH_CADANGAN_01 }}
+
+    steps:
+      - name: Checkout cadangan control repo
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Checkout BBYA Source of Truth writable
+        uses: actions/checkout@v4
+        with:
+          repository: ardarawk-cloud/ACC-Roblox-maps
+          ref: main
+          token: ${{ env.SOURCE_TOKEN }}
+          path: source
+          fetch-depth: 0
+
+      - name: Patch Underground playlist UI and future builder guard
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+
+          ui=Path('source/maps/bbya-social-hub/103-music-ui-final.client.lua')
+          s=ui.read_text(encoding='utf-8')
+          old1='local v=currentVenue();if v=="MAIN" or v=="UNDERGROUND" then state[v].tracks=resetActive() and {} or data end'
+          new1='local v=currentVenue();if v=="MAIN" or v=="UNDERGROUND" then state[v].tracks=(resetActive() and v~="UNDERGROUND") and {} or data end'
+          old2='if resetActive() then for key,st in pairs(state) do if key~="VIP" then st.tracks={};st.title="";st.index=0;st.playing=false end end end'
+          new2='if resetActive() then for key,st in pairs(state) do if key~="VIP" and key~="UNDERGROUND" then st.tracks={};st.title="";st.index=0;st.playing=false end end end'
+          if old1 in s:
+              s=s.replace(old1,new1,1)
+          elif new1 not in s:
+              raise SystemExit('UNDERGROUND_PLAYLIST_INGEST_PATTERN_NOT_FOUND')
+          if old2 in s:
+              s=s.replace(old2,new2,1)
+          elif new2 not in s:
+              raise SystemExit('UNDERGROUND_RESET_PATTERN_NOT_FOUND')
+          s=s.replace('COMPACT MUSIC UI FINAL AUTHORITY v7','COMPACT MUSIC UI FINAL AUTHORITY v8',1)
+          s=s.replace('Compact Music UI v7 online:','Compact Music UI v8 online:',1)
+          ui.write_text(s,encoding='utf-8')
+
+          builder=Path('source/scripts/bbya-underground-build.py')
+          b=builder.read_text(encoding='utf-8')
+          guard='''    s=s.replace('local v=currentVenue();if v=="MAIN" or v=="UNDERGROUND" then state[v].tracks=resetActive() and {} or data end','local v=currentVenue();if v=="MAIN" or v=="UNDERGROUND" then state[v].tracks=(resetActive() and v~="UNDERGROUND") and {} or data end',1)\n    s=s.replace('if resetActive() then for key,st in pairs(state) do if key~="VIP" then st.tracks={};st.title="";st.index=0;st.playing=false end end end','if resetActive() then for key,st in pairs(state) do if key~="VIP" and key~="UNDERGROUND" then st.tracks={};st.title="";st.index=0;st.playing=false end end end',1)\n'''
+          anchor="    path.write_text(s,encoding='utf-8')"
+          if guard.strip() not in b:
+              if anchor not in b:
+                  raise SystemExit('UNDERGROUND_BUILDER_ANCHOR_NOT_FOUND')
+              b=b.replace(anchor,guard+anchor,1)
+              builder.write_text(b,encoding='utf-8')
+          print('UNDERGROUND_UI_HOTFIX_PATCH_PASS')
+          PY
+
+      - name: Persist hotfix to Source of Truth
+        shell: bash
+        working-directory: source
+        run: |
+          set -euo pipefail
+          git config user.name 'BBYA Underground UI Hotfix'
+          git config user.email 'actions@users.noreply.github.com'
+          git add maps/bbya-social-hub/103-music-ui-final.client.lua scripts/bbya-underground-build.py
+          if git diff --cached --quiet; then
+            echo 'Hotfix already present.'
+          else
+            git commit -m 'Fix Underground playlist UI reset handling [skip ci]'
+            git pull --rebase origin main
+            git push origin HEAD:main
+          fi
+          echo "SOURCE_HEAD=$(git rev-parse HEAD)" >> "$GITHUB_ENV"
+
+      - name: Setup Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Prepare Rojo 7.7.0
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/rojo"
+          curl -fsSL -o "$RUNNER_TEMP/rojo.zip" 'https://github.com/rojo-rbx/rojo/releases/download/v7.7.0/rojo-7.7.0-linux-x86_64.zip'
+          unzip -q -o "$RUNNER_TEMP/rojo.zip" -d "$RUNNER_TEMP/rojo"
+          rojo_bin=$(find "$RUNNER_TEMP/rojo" -type f -name rojo | head -n1)
+          chmod +x "$rojo_bin"
+          echo "ROJO_EXE=$rojo_bin" >> "$GITHUB_ENV"
+          "$rojo_bin" --version
+
+      - name: Build BBYA with UI hotfix
+        shell: bash
+        run: |
+          set -euo pipefail
+          out="$RUNNER_TEMP/bbya-underground-ui-hotfix.rbxl"
+          "$ROJO_EXE" build source/maps/bbya-social-hub/default.project.json -o "$out"
+          test -s "$out"
+          echo "PLACE_FILE=$out" >> "$GITHUB_ENV"
+
+      - name: Publish BBYA UI hotfix through cadangan key
+        shell: bash
+        working-directory: source
+        env:
+          PLACE_FILE_OVERRIDE: ${{ env.PLACE_FILE }}
+          PUBLISH_RECEIPT_DIR: deploy-status-ui-hotfix
+        run: |
+          set -euo pipefail
+          test -n "${ROBLOX_API_KEY:-}"
+          export GITHUB_SHA="$SOURCE_HEAD"
+          node scripts/publish-map.js a-club
+          test -s deploy-status-ui-hotfix/a-club.json
+          cat deploy-status-ui-hotfix/a-club.json
+
+      - name: Persist hotfix publish receipt
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p deploy-status
+          receipt='source/deploy-status-ui-hotfix/a-club.json'
+          if [[ -f "$receipt" ]]; then
+            cp "$receipt" deploy-status/bbya-underground-ui-hotfix.json
+          else
+            printf '{"status":"FAILED_BEFORE_RECEIPT","sourceHead":"%s"}\n' "${SOURCE_HEAD:-}" > deploy-status/bbya-underground-ui-hotfix.json
+          fi
+          git config user.name 'BBYA Underground UI Hotfix'
+          git config user.email 'actions@users.noreply.github.com'
+          git add deploy-status/bbya-underground-ui-hotfix.json
+          if ! git diff --cached --quiet; then
+            git commit -m 'Record BBYA Underground UI hotfix publish [skip ci]'
+            git pull --rebase origin main
+            git push origin HEAD:main
+          fi
