@@ -1,0 +1,45 @@
+{
+  "universeId": "8116636513",
+  "placeId": "131894120482837",
+  "audit": "MALL_LIVE_RUNTIME_GEOMETRY_V2",
+  "ok": false,
+  "http": {
+    "root": 200,
+    "Workspace": 200
+  },
+  "path": {
+    "Workspace": {
+      "name": "Workspace",
+      "id": "35ef0876-5e94-c713-0a9e-046400000002",
+      "className": null,
+      "hasChildren": true
+    },
+    "BBYA_ZERO_BUILD": null,
+    "BBYAMall": null
+  },
+  "mallChildren": [],
+  "targets": {},
+  "authority": {
+    "MallStorefrontAuthorityV4": {
+      "exists": false
+    },
+    "MallArchitectureV3": {
+      "exists": false
+    },
+    "MallRobuxCommerceV1": {
+      "exists": false
+    }
+  },
+  "scriptMarkers": [],
+  "errors": [
+    {
+      "stage": "find",
+      "name": "BBYA_ZERO_BUILD"
+    },
+    {
+      "stage": "find",
+      "name": "BBYAMall"
+    }
+  ],
+  "recordedAt": "2026-08-24T15:59:56Z"
+}
