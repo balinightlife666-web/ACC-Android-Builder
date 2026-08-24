@@ -5,7 +5,7 @@ ACC_HOME=${ACC_HOME:-$HOME/acc-publisher}
 MAPS_DIR="$ACC_HOME/ACC-Roblox-maps"
 LOGS="$ACC_HOME/logs"
 SECRETS="$ACC_HOME/secrets.env"
-REPO_URL="https://github.com/ardarawk-cloud/ACC-Roblox-maps.git"
+REPO_URL="git@github.com:ardarawk-cloud/ACC-Roblox-maps.git"
 mkdir -p "$ACC_HOME" "$LOGS"
 
 usage() {
@@ -48,8 +48,7 @@ load_secret() {
   fi
   if [ -z "${ROBLOX_API_KEY:-}" ] || [ "$ROBLOX_API_KEY" = "PASTE_ROBLOX_OPEN_CLOUD_KEY_HERE" ]; then
     echo "Missing ROBLOX_API_KEY."
-    echo "Edit $SECRETS and paste the Roblox Open Cloud key there."
-    echo "Keep that file only on this phone. Do not commit it."
+    echo "Run ./set-key.sh once to store the Roblox Open Cloud key locally."
     exit 3
   fi
 }
@@ -111,12 +110,14 @@ NODE
 }
 
 publish_one_no_pull() {
-  local map_id="$1" stamp logfile
-  validate_target "$map_id"
+  local map_id="$1" stamp logfile rc
+  validate_target "$map_id" || return $?
   stamp=$(date +%Y%m%d-%H%M%S)
   logfile="$LOGS/${map_id}-${stamp}.log"
   echo "Publishing $map_id"
   echo "Log: $logfile"
+
+  set +e
   (
     cd "$MAPS_DIR"
     export ROBLOX_API_KEY
@@ -124,6 +125,14 @@ publish_one_no_pull() {
     export GITHUB_SHA="$(git rev-parse HEAD)"
     node scripts/publish-map.js "$map_id"
   ) 2>&1 | tee "$logfile"
+  rc=${PIPESTATUS[0]}
+  set -e
+
+  if [ "$rc" -ne 0 ]; then
+    echo "PUBLISH FAILED: $map_id (exit=$rc)"
+    return "$rc"
+  fi
+
   echo "PUBLISH COMPLETE: $map_id"
 }
 
