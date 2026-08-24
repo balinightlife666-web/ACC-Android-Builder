@@ -20,45 +20,32 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Dispatch safest next Amapiano queue item
+      - name: Dispatch Amapiano Drive repair
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
           mkdir -p deploy-status
-          started=$(date -u +%Y-%m-%dT%H:%M:%SZ)
           code=$(curl -sS -o /tmp/dispatch.out -w '%{http_code}' -X POST \
             -H "Authorization: Bearer $GH_TOKEN" \
             -H 'Accept: application/vnd.github+json' \
             -H 'X-GitHub-Api-Version: 2022-11-28' \
-            "https://api.github.com/repos/${GITHUB_REPOSITORY}/actions/workflows/bbya-amapiano-audio-cadangan-01.yml/dispatches" \
-            -d '{"ref":"main","inputs":{"track_index":"auto"}}')
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/actions/workflows/bbya-amapiano-drive-download-fix.yml/dispatches" \
+            -d '{"ref":"main"}')
           body=$(cat /tmp/dispatch.out 2>/dev/null || true)
           status='FAILED'
-          [[ "$code" == "204" ]] && status='DISPATCHED'
-
-          sleep 4
-          curl -fsSL \
-            -H "Authorization: Bearer $GH_TOKEN" \
-            -H 'Accept: application/vnd.github+json' \
-            -H 'X-GitHub-Api-Version: 2022-11-28' \
-            "https://api.github.com/repos/${GITHUB_REPOSITORY}/actions/workflows/bbya-amapiano-audio-cadangan-01.yml/runs?per_page=10" \
-            > /tmp/runs.json
-
+          [[ "$code" == '204' ]] && status='REPAIR_DISPATCHED'
           jq -n \
             --arg status "$status" \
             --arg http "$code" \
             --arg dispatcherRunId "$GITHUB_RUN_ID" \
-            --arg event "$GITHUB_EVENT_NAME" \
             --arg body "$body" \
-            --arg started "$started" \
             --arg at "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
-            --slurpfile rawRuns /tmp/runs.json \
-            '{status:$status,http:$http,dispatcherRunId:$dispatcherRunId,event:$event,response:$body,dispatchStartedAt:$started,recordedAt:$at,runs:[$rawRuns[0].workflow_runs[] | {id,run_number,event,status,conclusion,created_at,run_started_at,updated_at,head_sha,html_url}]}' \
+            '{status:$status,http:$http,dispatcherRunId:$dispatcherRunId,response:$body,recordedAt:$at}' \
             > deploy-status/bbya-amapiano-kick.json
           cat deploy-status/bbya-amapiano-kick.json
-          [[ "$code" == "204" ]] || exit 1
+          [[ "$code" == '204' ]] || exit 1
 
       - name: Persist dispatcher receipt
         if: always()
@@ -69,6 +56,6 @@ jobs:
           git config user.email 'actions@users.noreply.github.com'
           git add deploy-status/bbya-amapiano-kick.json
           if git diff --cached --quiet; then exit 0; fi
-          git commit -m 'Record BBYA Amapiano dispatch [skip ci]'
+          git commit -m 'Record BBYA Amapiano repair dispatch [skip ci]'
           git pull --rebase origin main
           git push origin HEAD:main
