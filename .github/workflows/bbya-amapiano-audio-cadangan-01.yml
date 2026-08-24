@@ -170,8 +170,18 @@ jobs:
           raw="$RUNNER_TEMP/bbya-amapiano-${TRACK_INDEX}.source"
           upload="$RUNNER_TEMP/bbya-amapiano-${TRACK_INDEX}.mp3"
 
-          gdown "https://drive.google.com/uc?id=${DRIVE_FILE_ID}" -O "$raw"
-          [[ -s "$raw" ]] || { echo "SOURCE_DOWNLOAD_EMPTY"; exit 30; }
+          rm -f "$raw"
+          if gdown "https://drive.google.com/uc?id=${DRIVE_FILE_ID}" -O "$raw"; then
+            echo "DRIVE_DOWNLOAD_METHOD=gdown"
+          else
+            echo "gdown could not resolve the file; trying Google Drive direct-download endpoint."
+            rm -f "$raw"
+            curl -fL --retry 2 --retry-delay 2 \
+              --connect-timeout 20 --max-time 120 \
+              "https://drive.usercontent.google.com/download?id=${DRIVE_FILE_ID}&export=download&confirm=t" \
+              -o "$raw" || true
+          fi
+          [[ -s "$raw" ]] || { echo "SOURCE_DOWNLOAD_EMPTY_OR_INACCESSIBLE"; exit 30; }
 
           actual=$(sha256sum "$raw" | awk '{print $1}')
           if [[ -n "${EXPECTED_SHA256:-}" && "$actual" != "$EXPECTED_SHA256" ]]; then
