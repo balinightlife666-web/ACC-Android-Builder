@@ -1,0 +1,81 @@
+name: Check ACC Roblox Maps Write Token
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/check-acc-roblox-maps-write-token.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      SOURCE_REPO: ardarawk-cloud/ACC-Roblox-maps
+      SOURCE_TOKEN: ${{ secrets.ACC_ROBLOX_MAPS_WRITE_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check secret and target repository write permission
+        id: check
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p deploy-status
+          status='UNKNOWN'
+          http=''
+          push='false'
+          if [[ -z "${SOURCE_TOKEN:-}" ]]; then
+            status='SECRET_MISSING'
+          else
+            tmp=$(mktemp)
+            http=$(curl -sS -o "$tmp" -w '%{http_code}' \
+              -H "Authorization: Bearer $SOURCE_TOKEN" \
+              -H 'Accept: application/vnd.github+json' \
+              -H 'X-GitHub-Api-Version: 2022-11-28' \
+              "https://api.github.com/repos/$SOURCE_REPO")
+            if [[ "$http" == '200' ]]; then
+              push=$(jq -r '.permissions.push // false' "$tmp")
+              if [[ "$push" == 'true' ]]; then
+                status='PASS_WRITE_TOKEN'
+              else
+                status='TOKEN_READ_ONLY_OR_NO_PUSH'
+              fi
+            else
+              status="TOKEN_HTTP_${http}"
+            fi
+            rm -f "$tmp"
+          fi
+          jq -n \
+            --arg status "$status" \
+            --arg target "$SOURCE_REPO" \
+            --arg http "$http" \
+            --arg push "$push" \
+            --arg checkedAt "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+            '{status:$status,targetRepo:$target,http:$http,pushPermission:($push=="true"),checkedAt:$checkedAt}' \
+            > deploy-status/acc-roblox-maps-write-token-check.json
+          cat deploy-status/acc-roblox-maps-write-token-check.json
+
+      - name: Persist check result
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ ! -f deploy-status/acc-roblox-maps-write-token-check.json ]]; then
+            exit 1
+          fi
+          git config user.name 'ACC Token Check Bot'
+          git config user.email 'actions@users.noreply.github.com'
+          git add deploy-status/acc-roblox-maps-write-token-check.json
+          if git diff --cached --quiet; then
+            exit 0
+          fi
+          git commit -m 'Record ACC Roblox maps write token check [skip ci]'
+          git pull --rebase origin main
+          git push origin HEAD:main
