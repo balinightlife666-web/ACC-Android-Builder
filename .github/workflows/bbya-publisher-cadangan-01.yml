@@ -131,37 +131,69 @@ jobs:
           export GITHUB_SHA="$SOURCE_SHA"
           node scripts/publish-map.js a-club
 
-      - name: Persist publisher receipt and source checkpoint
-        if: steps.source.outputs.changed == 'true'
+      - name: Persist receipt, checkpoint and diagnostic
+        if: always()
         shell: bash
         env:
           HEAD_SHA: ${{ steps.source.outputs.head_sha }}
           BBYA_SHA: ${{ steps.source.outputs.bbya_sha }}
+          CHANGED: ${{ steps.source.outputs.changed }}
         run: |
           set -euo pipefail
-          receipt='source/deploy-status-cadangan/a-club.json'
-          [[ -f "$receipt" ]] || { echo 'Publish receipt missing'; exit 8; }
+
+          # On routine schedule checks with no source change, make no repository commit.
+          if [[ "${CHANGED:-}" != 'true' && "$GITHUB_EVENT_NAME" != 'push' ]]; then
+            echo 'No BBYA source change; no diagnostic commit required.'
+            exit 0
+          fi
 
           mkdir -p state deploy-status
-          cp "$receipt" deploy-status/bbya-publisher-cadangan-01.json
-          printf '%s\n' "$BBYA_SHA" > state/bbya-last-relevant-source.txt
-          printf '%s\n' "$HEAD_SHA" > state/bbya-last-published-head.txt
+          receipt='source/deploy-status-cadangan/a-club.json'
+          result='FAILED_BEFORE_RECEIPT'
+          if [[ -f "$receipt" ]]; then
+            result='PUBLISHED'
+            cp "$receipt" deploy-status/bbya-publisher-cadangan-01.json
+            printf '%s\n' "$BBYA_SHA" > state/bbya-last-relevant-source.txt
+            printf '%s\n' "$HEAD_SHA" > state/bbya-last-published-head.txt
+          elif [[ "${CHANGED:-}" == 'false' ]]; then
+            result='NO_CHANGE'
+          fi
+
+          jq -n \
+            --arg status "$result" \
+            --arg event "$GITHUB_EVENT_NAME" \
+            --arg runId "$GITHUB_RUN_ID" \
+            --arg headSha "${HEAD_SHA:-}" \
+            --arg bbyaSha "${BBYA_SHA:-}" \
+            --arg changed "${CHANGED:-}" \
+            --arg at "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+            '{status:$status,event:$event,runId:$runId,sourceHead:$headSha,bbyaRelevantCommit:$bbyaSha,changed:$changed,recordedAt:$at}' \
+            > deploy-status/bbya-publisher-cadangan-01-status.json
 
           git config user.name 'BBYA Publisher Cadangan 01'
           git config user.email 'actions@users.noreply.github.com'
-          git add state/bbya-last-relevant-source.txt state/bbya-last-published-head.txt deploy-status/bbya-publisher-cadangan-01.json
+          git add deploy-status/bbya-publisher-cadangan-01-status.json
+          [[ -f deploy-status/bbya-publisher-cadangan-01.json ]] && git add deploy-status/bbya-publisher-cadangan-01.json
+          [[ -f state/bbya-last-relevant-source.txt ]] && git add state/bbya-last-relevant-source.txt
+          [[ -f state/bbya-last-published-head.txt ]] && git add state/bbya-last-published-head.txt
+
           if git diff --cached --quiet; then
-            echo 'No receipt/state changes to persist.'
+            echo 'No diagnostic/state changes to persist.'
             exit 0
           fi
-          git commit -m "Record BBYA cadangan publish $HEAD_SHA [skip ci]"
+          git commit -m "Record BBYA cadangan publisher status [skip ci]"
           git pull --rebase origin main
           git push origin HEAD:main
 
-      - name: Summary
+      - name: Final result gate
         if: always()
         shell: bash
+        env:
+          CHANGED: ${{ steps.source.outputs.changed }}
         run: |
-          echo "BBYA relevant source: ${{ steps.source.outputs.bbya_sha }}"
-          echo "ACC source HEAD: ${{ steps.source.outputs.head_sha }}"
-          echo "Changed: ${{ steps.source.outputs.changed }}"
+          set -euo pipefail
+          if [[ "${CHANGED:-}" == 'true' && ! -f source/deploy-status-cadangan/a-club.json ]]; then
+            echo 'BBYA source changed but publish receipt was not produced.'
+            exit 20
+          fi
+          echo 'BBYA Publisher Cadangan 01 cycle complete.'
