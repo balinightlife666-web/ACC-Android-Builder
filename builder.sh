@@ -42,9 +42,9 @@ load_secret() {
     # shellcheck disable=SC1090
     source "$SECRETS"
   fi
-  if [ -z "${ROBLOX_API_KEY:-}" ]; then
+  if [ -z "${ROBLOX_API_KEY:-}" ] || [ "$ROBLOX_API_KEY" = "PASTE_ROBLOX_OPEN_CLOUD_KEY_HERE" ]; then
     echo "Missing ROBLOX_API_KEY."
-    echo "Create $SECRETS with: ROBLOX_API_KEY='YOUR_ROBLOX_OPEN_CLOUD_KEY'"
+    echo "Edit $SECRETS and paste the Roblox Open Cloud key there."
     echo "Keep that file only on this phone. Do not commit it."
     exit 3
   fi
@@ -78,9 +78,11 @@ cmd_pull() {
 
 cmd_list() {
   need_maps_repo
-  node - <<NODE
-const r=require('${MAPS_DIR}/maps/registry.json');
-for (const [id,m] of Object.entries(r.maps)) console.log(`${id}\t${m.enabled?'ENABLED':'disabled'}\t${m.name}`);
+  node - "$MAPS_DIR" <<'NODE'
+const fs=require('fs'); const path=require('path');
+const root=process.argv[2];
+const r=JSON.parse(fs.readFileSync(path.join(root,'maps/registry.json'),'utf8'));
+for (const [id,m] of Object.entries(r.maps)) console.log(id+'\t'+(m.enabled?'ENABLED':'disabled')+'\t'+m.name);
 NODE
 }
 
@@ -91,13 +93,13 @@ const fs=require('fs'); const path=require('path');
 const root=process.argv[2], id=process.argv[3];
 const r=JSON.parse(fs.readFileSync(path.join(root,'maps/registry.json'),'utf8'));
 const t=r.maps?.[id];
-if(!t) throw new Error(`Unknown map id: ${id}`);
-if(!t.enabled) throw new Error(`Target disabled: ${id}`);
+if(!t) throw new Error('Unknown map id: '+id);
+if(!t.enabled) throw new Error('Target disabled: '+id);
 if(!/^\d+$/.test(String(t.universeId)) || !/^\d+$/.test(String(t.placeId))) throw new Error('Invalid universe/place id');
 const f=path.join(root,t.file);
-if(!fs.existsSync(f)) throw new Error(`Place file missing: ${t.file}`);
-console.log(`Target OK: ${t.name}`);
-console.log(`File: ${t.file}`);
+if(!fs.existsSync(f)) throw new Error('Place file missing: '+t.file);
+console.log('Target OK: '+t.name);
+console.log('File: '+t.file);
 NODE
 }
 
