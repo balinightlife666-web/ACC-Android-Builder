@@ -1,13 +1,13 @@
 {
-  "runId": "32743413756",
+  "runId": "32743794187",
   "jobs": [
     {
-      "id": 97483057565,
+      "id": 97484338444,
       "name": "serial_funkot",
-      "status": "completed",
-      "conclusion": "failure",
-      "started_at": "2026-08-24T15:12:19Z",
-      "completed_at": "2026-08-24T15:12:58Z",
+      "status": "in_progress",
+      "conclusion": null,
+      "started_at": "2026-08-24T15:16:05Z",
+      "completed_at": null,
       "steps": [
         {
           "name": "Set up job",
@@ -41,93 +41,93 @@
         },
         {
           "name": "Install audio tools",
-          "status": "completed",
-          "conclusion": "success",
+          "status": "in_progress",
+          "conclusion": null,
           "number": 6
         },
         {
           "name": "Download one original source and hash it",
-          "status": "completed",
-          "conclusion": "success",
+          "status": "pending",
+          "conclusion": null,
           "number": 7
         },
         {
           "name": "Create at most one new Roblox Funkot asset",
-          "status": "completed",
-          "conclusion": "failure",
+          "status": "pending",
+          "conclusion": null,
           "number": 8
         },
         {
           "name": "Recheck existing Funkot asset only",
-          "status": "completed",
-          "conclusion": "skipped",
+          "status": "pending",
+          "conclusion": null,
           "number": 9
         },
         {
           "name": "Normalize result and recovery receipt",
-          "status": "completed",
-          "conclusion": "skipped",
+          "status": "pending",
+          "conclusion": null,
           "number": 10
         },
         {
           "name": "Stage approved Funkot playlist",
-          "status": "completed",
-          "conclusion": "skipped",
+          "status": "pending",
+          "conclusion": null,
           "number": 11
         },
         {
           "name": "Prepare Rojo for live Funkot publish",
-          "status": "completed",
-          "conclusion": "skipped",
+          "status": "pending",
+          "conclusion": null,
           "number": 12
         },
         {
           "name": "Build and publish BBYA with approved Funkot track",
-          "status": "completed",
-          "conclusion": "skipped",
+          "status": "pending",
+          "conclusion": null,
           "number": 13
         },
         {
           "name": "Mark approved Funkot track live after publish receipt",
-          "status": "completed",
-          "conclusion": "skipped",
+          "status": "pending",
+          "conclusion": null,
           "number": 14
         },
         {
           "name": "Persist canonical BBYA Funkot state",
-          "status": "completed",
-          "conclusion": "skipped",
+          "status": "pending",
+          "conclusion": null,
           "number": 15
         },
         {
-          "name": "Persist cadangan Funkot plan and receipt",
-          "status": "completed",
-          "conclusion": "success",
+          "name": "Dispatch next only after current track is safely terminal",
+          "status": "pending",
+          "conclusion": null,
           "number": 16
         },
         {
-          "name": "Final Funkot serial result",
-          "status": "completed",
-          "conclusion": "success",
+          "name": "Persist cadangan Funkot plan and receipt",
+          "status": "pending",
+          "conclusion": null,
           "number": 17
         },
         {
+          "name": "Final Funkot serial result",
+          "status": "pending",
+          "conclusion": null,
+          "number": 18
+        },
+        {
           "name": "Post Checkout BBYA Source of Truth",
-          "status": "completed",
-          "conclusion": "success",
-          "number": 33
+          "status": "pending",
+          "conclusion": null,
+          "number": 35
         },
         {
           "name": "Post Checkout cadangan control repo",
-          "status": "completed",
-          "conclusion": "success",
-          "number": 34
-        },
-        {
-          "name": "Complete job",
-          "status": "completed",
-          "conclusion": "success",
-          "number": 35
+          "status": "pending",
+          "conclusion": null,
+          "number": 36
         }
       ]
     }
