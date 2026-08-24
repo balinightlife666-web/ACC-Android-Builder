@@ -1,9 +1,9 @@
 {
-  "status": "FAILED_BEFORE_RECEIPT",
+  "status": "PUBLISHED",
   "event": "push",
-  "runId": "32722544775",
-  "sourceHead": "",
-  "bbyaRelevantCommit": "",
-  "changed": "",
-  "recordedAt": "2026-08-24T11:34:37Z"
+  "runId": "32723971019",
+  "sourceHead": "2fe03708e7e42e13d3f582c9aed4dbeeefbed824",
+  "bbyaRelevantCommit": "30c2a78ac59d528771bdb634ec47efbb8e3a0c9d",
+  "changed": "true",
+  "recordedAt": "2026-08-24T11:51:20Z"
 }
