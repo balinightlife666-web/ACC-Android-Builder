@@ -1,0 +1,59 @@
+name: BBYA Amapiano Drive Download Fix
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/bbya-amapiano-drive-download-fix.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: write
+
+jobs:
+  patch_and_dispatch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Add checksum-protected Drive fallback
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('.github/workflows/bbya-amapiano-audio-cadangan-01.yml')
+          s=p.read_text()
+          old='''          gdown "https://drive.google.com/uc?id=${DRIVE_FILE_ID}" -O "$raw"\n          [[ -s "$raw" ]] || { echo "SOURCE_DOWNLOAD_EMPTY"; exit 30; }\n\n          actual=$(sha256sum "$raw" | awk '{print $1}')\n'''
+          new='''          rm -f "$raw"\n          if gdown "https://drive.google.com/uc?id=${DRIVE_FILE_ID}" -O "$raw"; then\n            echo "DRIVE_DOWNLOAD_METHOD=gdown"\n          else\n            echo "gdown could not resolve the file; trying Google Drive direct-download endpoint."\n            rm -f "$raw"\n            curl -fL --retry 2 --retry-delay 2 \\\n              --connect-timeout 20 --max-time 120 \\\n              "https://drive.usercontent.google.com/download?id=${DRIVE_FILE_ID}&export=download&confirm=t" \\\n              -o "$raw" || true\n          fi\n          [[ -s "$raw" ]] || { echo "SOURCE_DOWNLOAD_EMPTY_OR_INACCESSIBLE"; exit 30; }\n\n          actual=$(sha256sum "$raw" | awk '{print $1}')\n'''
+          if old not in s:
+              raise SystemExit('TARGET_DOWNLOAD_BLOCK_NOT_FOUND')
+          p.write_text(s.replace(old,new,1))
+          PY
+
+          git diff -- .github/workflows/bbya-amapiano-audio-cadangan-01.yml
+          git config user.name 'BBYA Amapiano Repair'
+          git config user.email 'actions@users.noreply.github.com'
+          git add .github/workflows/bbya-amapiano-audio-cadangan-01.yml
+          git commit -m 'Fix BBYA Amapiano Drive download with SHA guard'
+          git pull --rebase origin main
+          git push origin HEAD:main
+
+      - name: Dispatch repaired Amapiano queue
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          code=$(curl -sS -o /tmp/out -w '%{http_code}' -X POST \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H 'Accept: application/vnd.github+json' \
+            -H 'X-GitHub-Api-Version: 2022-11-28' \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/actions/workflows/bbya-amapiano-audio-cadangan-01.yml/dispatches" \
+            -d '{"ref":"main","inputs":{"track_index":"auto"}}')
+          cat /tmp/out || true
+          [[ "$code" == '204' ]] || { echo "DISPATCH_HTTP_$code"; exit 1; }
+          echo AMAPIANO_REPAIRED_RUN_DISPATCHED
