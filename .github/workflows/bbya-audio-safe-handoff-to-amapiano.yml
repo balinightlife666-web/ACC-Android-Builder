@@ -1,0 +1,115 @@
+name: BBYA Safe Handoff To Amapiano
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/bbya-audio-safe-handoff-to-amapiano.yml'
+      - '.bbya-safe-handoff-amapiano'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: write
+
+jobs:
+  safe_handoff:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    env:
+      SOURCE_REPO: ardarawk-cloud/ACC-Roblox-maps
+      MAINCLUB_RUN_ID: '32741979360'
+      SOURCE_TOKEN: ${{ secrets.ACC_ROBLOX_MAPS_WRITE_TOKEN || secrets.ACC_ROBLOX_MAPS_READ_TOKEN }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Wait for persisted safe checkpoint then release shared audio lock
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p deploy-status
+          result='NO_SAFE_CHECKPOINT_FOUND'
+          safe_drive=''
+          safe_asset=''
+          safe_seq=''
+          cancel_http=''
+
+          for n in $(seq 1 300); do
+            run_json=$(mktemp)
+            code=$(curl -sS -o "$run_json" -w '%{http_code}' \
+              -H "Authorization: Bearer $GH_TOKEN" \
+              -H 'Accept: application/vnd.github+json' \
+              -H 'X-GitHub-Api-Version: 2022-11-28' \
+              "https://api.github.com/repos/${GITHUB_REPOSITORY}/actions/runs/${MAINCLUB_RUN_ID}")
+            run_status=$(jq -r '.status // empty' "$run_json" 2>/dev/null || true)
+            rm -f "$run_json"
+            if [[ "$code" != '200' ]]; then
+              result="MAINCLUB_RUN_HTTP_${code}"
+              break
+            fi
+            if [[ "$run_status" == 'completed' ]]; then
+              result='MAINCLUB_ALREADY_COMPLETED'
+              break
+            fi
+
+            state=$(mktemp)
+            code=$(curl -sS -o "$state" -w '%{http_code}' \
+              -H "Authorization: Bearer $SOURCE_TOKEN" \
+              -H 'Accept: application/vnd.github.raw+json' \
+              -H 'X-GitHub-Api-Version: 2022-11-28' \
+              "https://api.github.com/repos/${SOURCE_REPO}/contents/deploy-status/bbya-audio-safe-batch.json?ref=main")
+            if [[ "$code" == '200' ]]; then
+              safe=$(jq -c '[.items[] | select(.status=="PENDING_MODERATION" and ((.assetId // "")|tostring|length)>0 and ((.operationPath // "")|tostring|length)>0)] | sort_by(.sequence) | last // empty' "$state" 2>/dev/null || true)
+              if [[ -n "$safe" ]]; then
+                safe_drive=$(jq -r '.driveId' <<<"$safe")
+                safe_asset=$(jq -r '.assetId' <<<"$safe")
+                safe_seq=$(jq -r '.sequence' <<<"$safe")
+
+                out=$(mktemp)
+                cancel_http=$(curl -sS -o "$out" -w '%{http_code}' -X POST \
+                  -H "Authorization: Bearer $GH_TOKEN" \
+                  -H 'Accept: application/vnd.github+json' \
+                  -H 'X-GitHub-Api-Version: 2022-11-28' \
+                  "https://api.github.com/repos/${GITHUB_REPOSITORY}/actions/runs/${MAINCLUB_RUN_ID}/cancel")
+                cat "$out" || true
+                rm -f "$out"
+                if [[ "$cancel_http" == '202' ]]; then
+                  result='SAFE_HANDOFF_CANCEL_ACCEPTED'
+                else
+                  result="SAFE_HANDOFF_CANCEL_HTTP_${cancel_http}"
+                fi
+                rm -f "$state"
+                break
+              fi
+            fi
+            rm -f "$state"
+            sleep 1
+          done
+
+          jq -n \
+            --arg status "$result" \
+            --arg mainclubRunId "$MAINCLUB_RUN_ID" \
+            --arg sequence "$safe_seq" \
+            --arg driveId "$safe_drive" \
+            --arg assetId "$safe_asset" \
+            --arg cancelHttp "$cancel_http" \
+            --arg at "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+            '{status:$status,mainclubRunId:$mainclubRunId,safeCheckpoint:{sequence:$sequence,driveId:$driveId,assetId:$assetId},cancelHttp:$cancelHttp,recordedAt:$at}' \
+            > deploy-status/bbya-audio-safe-handoff-amapiano.json
+          cat deploy-status/bbya-audio-safe-handoff-amapiano.json
+
+      - name: Persist handoff receipt
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'BBYA Audio Safe Handoff'
+          git config user.email 'actions@users.noreply.github.com'
+          git add deploy-status/bbya-audio-safe-handoff-amapiano.json
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m 'Record BBYA safe audio handoff [skip ci]'
+          git pull --rebase origin main
+          git push origin HEAD:main
