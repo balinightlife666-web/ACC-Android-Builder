@@ -1,0 +1,102 @@
+name: BBYA Mall Live Inspect Cadangan
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.bbya-mall-live-inspect-trigger'
+      - '.github/workflows/bbya-mall-live-inspect-cadangan.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 7
+    env:
+      ROBLOX_API_KEY: ${{ secrets.ROBLOX_PUBLISH_CADANGAN_01 }}
+      U: '8116636513'
+      P: '131894120482837'
+    steps:
+      - uses: actions/checkout@v4
+      - name: Inspect published Mall scripts with Open Cloud Instance API
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json,os,time,urllib.request,urllib.error
+          key=os.environ['ROBLOX_API_KEY'];U=os.environ['U'];P=os.environ['P']
+          H={'x-api-key':key,'Accept':'application/json'}
+          out={'universeId':U,'placeId':P,'ok':False,'rootHttp':None,'serverHttp':None,'scripts':[],'mallHits':[],'errors':[]}
+          def get(url):
+            req=urllib.request.Request(url,headers=H,method='GET')
+            try:
+              with urllib.request.urlopen(req,timeout=25) as r:return r.status,json.loads(r.read().decode() or '{}')
+            except urllib.error.HTTPError as e:
+              b=e.read().decode(errors='replace')
+              try:d=json.loads(b)
+              except:d={'raw':b[:3000]}
+              return e.code,d
+          def poll(x):
+            path=x.get('path') if isinstance(x,dict) else None
+            if not path:return x
+            last={}
+            for _ in range(20):
+              st,last=get('https://apis.roblox.com/cloud/v2/'+path)
+              if st>=400:return {'http':st,'error':last}
+              if last.get('done'):return last
+              time.sleep(.5)
+            return {'error':'timeout','last':last}
+          def rows(done):
+            if not isinstance(done,dict):return []
+            p=done.get('response') or done
+            return p.get('instances') or [] if isinstance(p,dict) else []
+          def children(iid):
+            st,d=get(f'https://apis.roblox.com/cloud/v2/universes/{U}/places/{P}/instances/{iid}:listChildren')
+            return st,rows(poll(d)),d
+          def inst(iid):
+            st,d=get(f'https://apis.roblox.com/cloud/v2/universes/{U}/places/{P}/instances/{iid}')
+            p=poll(d);return st,(p.get('response') or p if isinstance(p,dict) else p)
+          def src(obj):
+            if isinstance(obj,dict):
+              for k,v in obj.items():
+                if k.lower()=='source' and isinstance(v,str):return v
+              for v in obj.values():
+                s=src(v)
+                if s:return s
+            return ''
+          st,root,raw=children('root');out['rootHttp']=st
+          if st>=400:
+            out['errors'].append({'stage':'root','http':st,'body':raw})
+          else:
+            sss=next((r for r in root if (r.get('engineInstance') or {}).get('Name')=='ServerScriptService'),None)
+            if not sss:out['errors'].append({'stage':'find ServerScriptService'})
+            else:
+              st2,items,raw2=children(sss['engineInstance']['Id']);out['serverHttp']=st2
+              for r in items:
+                e=r.get('engineInstance') or {};name=e.get('Name');iid=e.get('Id')
+                rec={'name':name,'id':iid,'hasChildren':r.get('hasChildren')}
+                # Read script details and search for Mall markers.
+                st3,d=inst(iid);s=src(d)
+                rec['http']=st3;rec['sourceLength']=len(s);out['scripts'].append(rec)
+                markers=['ACTIVE REAR MALL','MALL SAFE + STOREFRONT AUTHORITY v4','MallStorefrontAuthorityV4','MallRobuxCommerceV1','TRAVEL / ONE-TIME ACCESS v9']
+                hit=[m for m in markers if m in s]
+                if hit:
+                  out['mallHits'].append({'name':name,'id':iid,'markers':hit,'sourceLength':len(s)})
+              out['ok']=st2<400 and len(out['mallHits'])>0
+          os.makedirs('deploy-status',exist_ok=True)
+          open('deploy-status/bbya-mall-live-inspect-cadangan.json','w').write(json.dumps(out,indent=2)+'\n')
+          print(json.dumps(out,indent=2))
+          PY
+      - name: Persist result
+        if: always()
+        shell: bash
+        run: |
+          git config user.name 'BBYA Publisher Cadangan 01'
+          git config user.email 'actions@users.noreply.github.com'
+          git add deploy-status/bbya-mall-live-inspect-cadangan.json || true
+          git commit -m 'Record BBYA Mall live inspect cadangan [skip ci]' || true
+          git pull --rebase origin main
+          git push origin HEAD:main
