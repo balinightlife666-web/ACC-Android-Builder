@@ -1,13 +1,13 @@
 {
-  "runId": "32742606387",
+  "runId": "32743273730",
   "jobs": [
     {
-      "id": 97480655565,
+      "id": 97482593679,
       "name": "serial_funkot",
-      "status": "completed",
-      "conclusion": "failure",
-      "started_at": "2026-08-24T15:05:07Z",
-      "completed_at": "2026-08-24T15:05:38Z",
+      "status": "in_progress",
+      "conclusion": null,
+      "started_at": "2026-08-24T15:10:57Z",
+      "completed_at": null,
       "steps": [
         {
           "name": "Set up job",
@@ -53,81 +53,75 @@
         },
         {
           "name": "Create at most one new Roblox Funkot asset",
-          "status": "completed",
-          "conclusion": "failure",
+          "status": "in_progress",
+          "conclusion": null,
           "number": 8
         },
         {
           "name": "Recheck existing Funkot asset only",
-          "status": "completed",
-          "conclusion": "skipped",
+          "status": "pending",
+          "conclusion": null,
           "number": 9
         },
         {
           "name": "Normalize result and recovery receipt",
-          "status": "completed",
-          "conclusion": "skipped",
+          "status": "pending",
+          "conclusion": null,
           "number": 10
         },
         {
           "name": "Stage approved Funkot playlist",
-          "status": "completed",
-          "conclusion": "skipped",
+          "status": "pending",
+          "conclusion": null,
           "number": 11
         },
         {
           "name": "Prepare Rojo for live Funkot publish",
-          "status": "completed",
-          "conclusion": "skipped",
+          "status": "pending",
+          "conclusion": null,
           "number": 12
         },
         {
           "name": "Build and publish BBYA with approved Funkot track",
-          "status": "completed",
-          "conclusion": "skipped",
+          "status": "pending",
+          "conclusion": null,
           "number": 13
         },
         {
           "name": "Mark approved Funkot track live after publish receipt",
-          "status": "completed",
-          "conclusion": "skipped",
+          "status": "pending",
+          "conclusion": null,
           "number": 14
         },
         {
           "name": "Persist canonical BBYA Funkot state",
-          "status": "completed",
-          "conclusion": "skipped",
+          "status": "pending",
+          "conclusion": null,
           "number": 15
         },
         {
           "name": "Persist cadangan Funkot plan and receipt",
-          "status": "completed",
-          "conclusion": "success",
+          "status": "pending",
+          "conclusion": null,
           "number": 16
         },
         {
           "name": "Final Funkot serial result",
-          "status": "completed",
-          "conclusion": "success",
+          "status": "pending",
+          "conclusion": null,
           "number": 17
         },
         {
           "name": "Post Checkout BBYA Source of Truth",
-          "status": "completed",
-          "conclusion": "success",
+          "status": "pending",
+          "conclusion": null,
           "number": 33
         },
         {
           "name": "Post Checkout cadangan control repo",
-          "status": "completed",
-          "conclusion": "success",
+          "status": "pending",
+          "conclusion": null,
           "number": 34
-        },
-        {
-          "name": "Complete job",
-          "status": "completed",
-          "conclusion": "success",
-          "number": 35
         }
       ]
     }
