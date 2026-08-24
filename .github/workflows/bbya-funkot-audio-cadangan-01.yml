@@ -49,6 +49,34 @@ jobs:
           path: source
           fetch-depth: 0
 
+      - name: Convert old duration blacklists into trim retries
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json, pathlib
+          regp=pathlib.Path('source/maps/bbya-social-hub/audio-playlists/funkot.json')
+          blp=pathlib.Path('source/maps/bbya-social-hub/audio-playlists/funkot-blacklist.json')
+          reg=json.loads(regp.read_text(encoding='utf-8'))
+          changed=False
+          retry_indexes=set()
+          for t in reg.get('tracks',[]):
+              if t.get('status')=='BLACKLISTED_PLATFORM_DURATION_LIMIT' and not t.get('durationTrimApplied'):
+                  t['status']='RETRY_WITH_DURATION_TRIM'
+                  t['durationTrimRequired']=True
+                  retry_indexes.add(int(t.get('index',0)))
+                  changed=True
+          if changed:
+              regp.write_text(json.dumps(reg,indent=2,ensure_ascii=False)+'\n',encoding='utf-8')
+          if blp.exists() and retry_indexes:
+              bl=json.loads(blp.read_text(encoding='utf-8'))
+              before=len(bl.get('entries',[]))
+              bl['entries']=[x for x in bl.get('entries',[]) if not (int(x.get('index',0)) in retry_indexes and x.get('reason')=='ROBLOX_PLATFORM_AUDIO_DURATION_TOO_LONG')]
+              if len(bl['entries'])!=before:
+                  blp.write_text(json.dumps(bl,indent=2,ensure_ascii=False)+'\n',encoding='utf-8')
+          print('DURATION_TRIM_RETRY_INDEXES',sorted(retry_indexes))
+          PY
+
       - name: Safety gate - writable source and audio scopes
         shell: bash
         run: |
@@ -95,7 +123,7 @@ jobs:
           sudo apt-get install -y -qq ffmpeg
           python3 -m pip install --quiet gdown
 
-      - name: Download one original source and hash it
+      - name: Download and prepare one compliant original source
         if: steps.plan.outputs.action == 'UPLOAD_NEW'
         id: audio
         shell: bash
@@ -112,10 +140,40 @@ jobs:
           actual=$(sha256sum "$raw" | awk '{print $1}')
           if [[ -n "${EXPECTED_SHA256:-}" && "$actual" != "$EXPECTED_SHA256" ]]; then echo SOURCE_SHA256_MISMATCH; exit 31; fi
           codec=$(ffprobe -v error -select_streams a:0 -show_entries stream=codec_name -of default=nw=1:nk=1 "$raw" | head -n1)
-          if [[ "$codec" == mp3 ]]; then cp "$raw" "$upload"; else ffmpeg -y -hide_banner -loglevel error -i "$raw" -vn -ac 2 -ar 44100 -codec:a libmp3lame -b:a 192k "$upload"; fi
+          duration=$(ffprobe -v error -show_entries format=duration -of default=nw=1:nk=1 "$raw" | head -n1)
+          source_size=$(stat -c%s "$raw")
+          trim=false
+          needs_trim=$(python3 - "$duration" <<'PY'
+          import sys
+          try: print('1' if float(sys.argv[1]) > 415.0 else '0')
+          except Exception: print('1')
+          PY
+          )
+          if [[ "$needs_trim" == 1 ]]; then
+            ffmpeg -y -hide_banner -loglevel error -i "$raw" -t 415 -vn -ac 2 -ar 44100 -codec:a libmp3lame -b:a 192k "$upload"
+            trim=true
+          elif [[ "$codec" != mp3 || "$source_size" -ge 19000000 ]]; then
+            ffmpeg -y -hide_banner -loglevel error -i "$raw" -vn -ac 2 -ar 44100 -codec:a libmp3lame -b:a 192k "$upload"
+          else
+            cp "$raw" "$upload"
+          fi
           [[ -s "$upload" ]] || { echo UPLOAD_FILE_MISSING; exit 32; }
+          upload_size=$(stat -c%s "$upload")
+          upload_duration=$(ffprobe -v error -show_entries format=duration -of default=nw=1:nk=1 "$upload" | head -n1)
+          [[ "$upload_size" -lt 20000000 ]] || { echo UPLOAD_FILE_STILL_TOO_LARGE; exit 33; }
+          python3 - "$upload_duration" <<'PY'
+          import sys
+          if float(sys.argv[1]) > 419.0: raise SystemExit('UPLOAD_DURATION_STILL_TOO_LONG')
+          PY
+          normalized=$(sha256sum "$upload" | awk '{print $1}')
           echo "audio_path=$upload" >> "$GITHUB_OUTPUT"
           echo "source_sha256=$actual" >> "$GITHUB_OUTPUT"
+          echo "normalized_sha256=$normalized" >> "$GITHUB_OUTPUT"
+          echo "trim_applied=$trim" >> "$GITHUB_OUTPUT"
+          echo "source_duration_seconds=$duration" >> "$GITHUB_OUTPUT"
+          echo "upload_duration_seconds=$upload_duration" >> "$GITHUB_OUTPUT"
+          echo "upload_size_bytes=$upload_size" >> "$GITHUB_OUTPUT"
+          echo "source_duration=$duration upload_duration=$upload_duration source_size=$source_size upload_size=$upload_size trim=$trim"
 
       - name: Create at most one new Roblox Funkot asset
         if: steps.plan.outputs.action == 'UPLOAD_NEW'
@@ -125,6 +183,10 @@ jobs:
           TRACK_INDEX: ${{ steps.plan.outputs.track_index }}
           AUDIO_PATH: ${{ steps.audio.outputs.audio_path }}
           SOURCE_SHA256: ${{ steps.audio.outputs.source_sha256 }}
+          NORMALIZED_SHA256: ${{ steps.audio.outputs.normalized_sha256 }}
+          TRIM_APPLIED: ${{ steps.audio.outputs.trim_applied }}
+          UPLOAD_DURATION_SECONDS: ${{ steps.audio.outputs.upload_duration_seconds }}
+          UPLOAD_SIZE_BYTES: ${{ steps.audio.outputs.upload_size_bytes }}
           EXPECTED_UPLOADER_USERNAME: gudangpet88
           MODERATION_WAIT_SECONDS: '0'
         run: python3 scripts/bbya-funkot-safe-runner.py
@@ -227,7 +289,7 @@ jobs:
           status=$(jq -r --argjson idx "$TRACK_INDEX" '.tracks[]|select(.index==$idx)|.status // empty' source/maps/bbya-social-hub/audio-playlists/funkot.json)
           echo "canonical_status=$status"
           case "$status" in
-            LIVE_IN_PLAYLIST|BLACKLISTED_MODERATION_REJECTED|BLACKLISTED_DUPLICATE_SOURCE|BLACKLISTED_PLATFORM_DURATION_LIMIT)
+            LIVE_IN_PLAYLIST|BLACKLISTED_MODERATION_REJECTED|BLACKLISTED_DUPLICATE_SOURCE|BLACKLISTED_PLATFORM_DURATION_LIMIT_AFTER_TRIM)
               code=$(curl -sS -o /tmp/next.out -w '%{http_code}' -X POST \
                 -H "Authorization: Bearer $GH_TOKEN" \
                 -H 'Accept: application/vnd.github+json' \
