@@ -137,8 +137,12 @@ jobs:
           git add deploy-status/bbya-audio-safe-batch-boot.json
           if ! git diff --cached --quiet; then
             git commit -m 'Mark BBYA Main Club cadangan audio runner booted [skip ci]'
-            git pull --rebase origin main
-            git push origin HEAD:main
+            for attempt in 1 2 3 4 5; do
+              git pull --rebase origin main || { git rebase --abort || true; sleep $((attempt*2)); continue; }
+              git push origin HEAD:main && break
+              [[ "$attempt" == 5 ]] && exit 16
+              sleep $((attempt*2))
+            done
           fi
 
       - name: Setup Node 20
@@ -163,6 +167,12 @@ jobs:
           "$rojo_bin" --version
           ffmpeg -version | head -1
           gdown --version
+
+      - name: Apply Main Club runtime safety hardening
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 scripts/bbya-mainclub-runtime-hardening.py source/scripts/bbya-audio-safe-batch.py
 
       - name: Run strict Main Club one-by-one pipeline
         shell: bash
@@ -191,8 +201,12 @@ jobs:
             exit 0
           fi
           git commit -m 'Persist BBYA Main Club audio publish receipt [skip ci]'
-          git pull --rebase origin main
-          git push origin HEAD:main
+          for attempt in 1 2 3 4 5; do
+            git pull --rebase origin main || { git rebase --abort || true; sleep $((attempt*2)); continue; }
+            git push origin HEAD:main && break
+            [[ "$attempt" == 5 ]] && exit 17
+            sleep $((attempt*2))
+          done
 
       - name: Final checkpoint
         if: always()
