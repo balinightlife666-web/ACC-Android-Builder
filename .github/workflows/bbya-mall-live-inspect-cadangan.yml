@@ -14,22 +14,26 @@ permissions:
 jobs:
   inspect:
     runs-on: ubuntu-latest
-    timeout-minutes: 7
+    timeout-minutes: 9
     env:
       ROBLOX_API_KEY: ${{ secrets.ROBLOX_PUBLISH_CADANGAN_01 }}
       U: '8116636513'
       P: '131894120482837'
     steps:
       - uses: actions/checkout@v4
-      - name: Inspect published Mall scripts with Open Cloud Instance API
+      - name: Inspect published Mall runtime geometry with Open Cloud Instance API
         shell: bash
         run: |
           set -euo pipefail
           python3 - <<'PY'
-          import json,os,time,urllib.request,urllib.error
+          import json,os,time,urllib.request,urllib.error,re
           key=os.environ['ROBLOX_API_KEY'];U=os.environ['U'];P=os.environ['P']
           H={'x-api-key':key,'Accept':'application/json'}
-          out={'universeId':U,'placeId':P,'ok':False,'rootHttp':None,'serverHttp':None,'scripts':[],'mallHits':[],'errors':[]}
+          out={
+            'universeId':U,'placeId':P,'audit':'MALL_LIVE_RUNTIME_GEOMETRY_V2','ok':False,
+            'http':{},'path':{},'mallChildren':[],'targets':{},'authority':{},'scriptMarkers':[],
+            'errors':[],'recordedAt':time.strftime('%Y-%m-%dT%H:%M:%SZ',time.gmtime())
+          }
           def get(url):
             req=urllib.request.Request(url,headers=H,method='GET')
             try:
@@ -39,56 +43,130 @@ jobs:
               try:d=json.loads(b)
               except:d={'raw':b[:3000]}
               return e.code,d
+            except Exception as e:return 599,{'error':str(e)}
           def poll(x):
             path=x.get('path') if isinstance(x,dict) else None
             if not path:return x
             last={}
-            for _ in range(20):
+            for _ in range(24):
               st,last=get('https://apis.roblox.com/cloud/v2/'+path)
               if st>=400:return {'http':st,'error':last}
               if last.get('done'):return last
-              time.sleep(.5)
-            return {'error':'timeout','last':last}
+              time.sleep(.45)
+            return {'error':'operation timeout','last':last}
           def rows(done):
             if not isinstance(done,dict):return []
             p=done.get('response') or done
             return p.get('instances') or [] if isinstance(p,dict) else []
           def children(iid):
             st,d=get(f'https://apis.roblox.com/cloud/v2/universes/{U}/places/{P}/instances/{iid}:listChildren')
-            return st,rows(poll(d)),d
-          def inst(iid):
+            done=poll(d) if st<400 else d
+            return st,rows(done),done
+          def instance(iid):
             st,d=get(f'https://apis.roblox.com/cloud/v2/universes/{U}/places/{P}/instances/{iid}')
-            p=poll(d);return st,(p.get('response') or p if isinstance(p,dict) else p)
-          def src(obj):
+            done=poll(d) if st<400 else d
+            if isinstance(done,dict):return st,(done.get('response') or done)
+            return st,done
+          def eng(row):return (row.get('engineInstance') or {}) if isinstance(row,dict) else {}
+          def name(row):return eng(row).get('Name') or eng(row).get('name')
+          def iid(row):return eng(row).get('Id') or eng(row).get('id')
+          def cls(row):return eng(row).get('ClassName') or eng(row).get('className') or eng(row).get('Class') or eng(row).get('class')
+          def child_by(rows_,wanted):return next((r for r in rows_ if name(r)==wanted),None)
+          def flatten(obj,prefix='',dst=None,depth=0):
+            if dst is None:dst={}
+            if depth>6:return dst
             if isinstance(obj,dict):
               for k,v in obj.items():
-                if k.lower()=='source' and isinstance(v,str):return v
-              for v in obj.values():
-                s=src(v)
-                if s:return s
-            return ''
-          st,root,raw=children('root');out['rootHttp']=st
+                p=f'{prefix}.{k}' if prefix else str(k)
+                if isinstance(v,(dict,list)):flatten(v,p,dst,depth+1)
+                elif isinstance(v,(str,int,float,bool)) or v is None:dst[p]=v
+            elif isinstance(obj,list):
+              for n,v in enumerate(obj[:32]):flatten(v,f'{prefix}[{n}]',dst,depth+1)
+            return dst
+          def interesting(details):
+            flat=flatten(details)
+            keep={}
+            toks=('name','class','size','position','cframe','transparency','material','color','brickcolor','cancollide','cantouch','anchored','orientation')
+            for k,v in flat.items():
+              lk=k.lower()
+              if any(t in lk for t in toks):keep[k]=v
+            return keep
+          def rec_for(row,with_details=True):
+            e=eng(row);r={'name':name(row),'id':iid(row),'className':cls(row),'hasChildren':row.get('hasChildren') if isinstance(row,dict) else None}
+            if with_details and r['id']:
+              st,d=instance(r['id']);r['http']=st
+              if st<400:r['details']=interesting(d)
+            return r
+          def get_children_named(parent_row,label):
+            if not parent_row:
+              out['errors'].append({'stage':'find','name':label});return []
+            st,rs,raw=children(iid(parent_row));out['http'][label]=st
+            if st>=400:out['errors'].append({'stage':'children','name':label,'http':st,'body':raw})
+            return rs
+
+          # Root -> Workspace -> BBYA_ZERO_BUILD -> BBYAMall
+          st,root,raw=children('root');out['http']['root']=st
           if st>=400:
             out['errors'].append({'stage':'root','http':st,'body':raw})
           else:
-            sss=next((r for r in root if (r.get('engineInstance') or {}).get('Name')=='ServerScriptService'),None)
-            if not sss:out['errors'].append({'stage':'find ServerScriptService'})
-            else:
-              st2,items,raw2=children(sss['engineInstance']['Id']);out['serverHttp']=st2
-              for r in items:
-                e=r.get('engineInstance') or {};name=e.get('Name');iid=e.get('Id')
-                rec={'name':name,'id':iid,'hasChildren':r.get('hasChildren')}
-                # Read script details and search for Mall markers.
-                st3,d=inst(iid);s=src(d)
-                rec['http']=st3;rec['sourceLength']=len(s);out['scripts'].append(rec)
-                markers=['ACTIVE REAR MALL','MALL SAFE + STOREFRONT AUTHORITY v4','MallStorefrontAuthorityV4','MallRobuxCommerceV1','TRAVEL / ONE-TIME ACCESS v9']
-                hit=[m for m in markers if m in s]
-                if hit:
-                  out['mallHits'].append({'name':name,'id':iid,'markers':hit,'sourceLength':len(s)})
-              out['ok']=st2<400 and len(out['mallHits'])>0
+            ws=child_by(root,'Workspace');out['path']['Workspace']=rec_for(ws,False) if ws else None
+            wsChildren=get_children_named(ws,'Workspace')
+            zero=child_by(wsChildren,'BBYA_ZERO_BUILD');out['path']['BBYA_ZERO_BUILD']=rec_for(zero,False) if zero else None
+            zeroChildren=get_children_named(zero,'BBYA_ZERO_BUILD')
+            mall=child_by(zeroChildren,'BBYAMall');out['path']['BBYAMall']=rec_for(mall,True) if mall else None
+            mallChildren=get_children_named(mall,'BBYAMall')
+            out['mallChildren']=[rec_for(r,False) for r in mallChildren]
+
+            targetNames=['Tenant_luma','Tenant_stride','Tenant_muse','Tenant_north','Tenant_glow','MallStorefrontAuthorityV4','MallArchitectureV3','MallRobuxCommerceV1','ElevatorCore','Escalators','AtriumExperience','AutomaticEntrance']
+            for tn in targetNames:
+              row=child_by(mallChildren,tn)
+              if not row:continue
+              stc,kids,rawc=children(iid(row))
+              target={'self':rec_for(row,True),'childrenHttp':stc,'children':[]}
+              for kid in kids[:120]:
+                kr=rec_for(kid,True)
+                # One extra level for authority/commerce models so generated parts are visible.
+                if kid.get('hasChildren') and tn in ('MallStorefrontAuthorityV4','MallArchitectureV3','MallRobuxCommerceV1'):
+                  stg,gkids,_=children(iid(kid));kr['childrenHttp']=stg;kr['children']=[rec_for(g,True) for g in gkids[:80]]
+                target['children'].append(kr)
+              out['targets'][tn]=target
+
+            # Explicit runtime authority evidence.
+            for an in ('MallStorefrontAuthorityV4','MallArchitectureV3','MallRobuxCommerceV1'):
+              if an in out['targets']:
+                out['authority'][an]={'exists':True,'id':out['targets'][an]['self'].get('id'),'childCount':len(out['targets'][an]['children'])}
+              else:out['authority'][an]={'exists':False}
+
+            # Recursively inspect ServerScriptService up to depth 5 for source markers.
+            sss=child_by(root,'ServerScriptService')
+            if sss:
+              markers=['ACTIVE REAR MALL','MALL SAFE + STOREFRONT AUTHORITY v4','MallStorefrontAuthorityV4','MallRobuxCommerceV1','TRAVEL / ONE-TIME ACCESS v9']
+              queue=[(sss,0,'ServerScriptService')];seen=set();visited=0
+              while queue and visited<450:
+                pr,depth,path=queue.pop(0);pid=iid(pr)
+                if not pid or pid in seen or depth>5:continue
+                seen.add(pid);visited+=1
+                stx,rs,_=children(pid)
+                if stx>=400:continue
+                for r in rs:
+                  nm=name(r) or '?';rid=iid(r);p2=path+'/'+nm
+                  if rid:
+                    sti,d=instance(rid)
+                    if sti<400:
+                      flat=flatten(d);src=''
+                      for k,v in flat.items():
+                        if k.lower().endswith('source') and isinstance(v,str) and len(v)>20:src=v;break
+                      hits=[m for m in markers if m in src]
+                      if hits:out['scriptMarkers'].append({'path':p2,'id':rid,'markers':hits,'sourceLength':len(src)})
+                  if r.get('hasChildren') and depth<5:queue.append((r,depth+1,p2))
+
+            out['ok']=bool(mall) and 'Tenant_luma' in out['targets'] and out['http'].get('BBYAMall')==200
+
           os.makedirs('deploy-status',exist_ok=True)
-          open('deploy-status/bbya-mall-live-inspect-cadangan.json','w').write(json.dumps(out,indent=2)+'\n')
-          print(json.dumps(out,indent=2))
+          path='deploy-status/bbya-mall-live-inspect-cadangan-v2.json'
+          open(path,'w').write(json.dumps(out,indent=2,ensure_ascii=False)+'\n')
+          # concise console summary
+          print(json.dumps({'ok':out['ok'],'http':out['http'],'authority':out['authority'],'targets':list(out['targets']),'scriptMarkers':out['scriptMarkers'],'errors':out['errors']},indent=2))
           PY
       - name: Persist result
         if: always()
@@ -96,7 +174,7 @@ jobs:
         run: |
           git config user.name 'BBYA Publisher Cadangan 01'
           git config user.email 'actions@users.noreply.github.com'
-          git add deploy-status/bbya-mall-live-inspect-cadangan.json || true
-          git commit -m 'Record BBYA Mall live inspect cadangan [skip ci]' || true
+          git add deploy-status/bbya-mall-live-inspect-cadangan-v2.json || true
+          git commit -m 'Record BBYA Mall live geometry inspect v2 [skip ci]' || true
           git pull --rebase origin main
           git push origin HEAD:main
