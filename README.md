@@ -1,48 +1,52 @@
-# ACC Android Builder
+# ACC Local Roblox Publisher
 
-Local Android APK build fallback for ACC projects. GitHub stores the source; the Android phone performs the build locally in Termux, so this path does not depend on GitHub-hosted Actions minutes.
+Legacy repo name: `ACC-Android-Builder`. Its active purpose is now a **local Roblox maps publisher** running from an Android phone with Termux, so map publishing can continue when GitHub-hosted Actions minutes are unavailable.
 
-## First setup on the builder phone
+## What it does
 
-Install Termux, then in Termux run:
+- Keeps GitHub as the source of truth.
+- Pulls the latest `ardarawk-cloud/ACC-Roblox-maps` source.
+- Publishes an existing registered `.rbxl` / `.rbxlx` place directly through Roblox Open Cloud.
+- Uses the map registry for Universe ID, Place ID and place file path.
+- Retries transient Roblox API errors using the publisher already maintained in `ACC-Roblox-maps`.
+- Stores logs locally on the phone.
+- Does **not** require a GitHub-hosted Actions runner for direct publish.
 
-```bash
-pkg update -y && pkg install -y git
-git clone https://github.com/balinightlife666-web/ACC-Android-Builder.git ~/acc-builder
-chmod +x ~/acc-builder/*.sh
-~/acc-builder/setup-termux.sh
-source ~/acc-builder/env.sh
-~/acc-builder/doctor.sh
-```
+## One-time phone setup
 
-For this private repository, Git authentication must be configured on the phone before cloning/pulling.
-
-## Add a project
+From this repository folder in Termux:
 
 ```bash
-~/acc-builder/builder.sh add content-hub https://github.com/OWNER/REPO.git main
+git pull && ./install.sh
 ```
 
-## Build
+The installer creates the short `acc` command and asks once for the Roblox Open Cloud API key. The key is stored only on the phone under `~/acc-publisher/secrets.env` with restricted permissions. Never commit or send that key.
+
+Because `ACC-Roblox-maps` is private, the Git credential configured on the phone must have read access to `ardarawk-cloud/ACC-Roblox-maps`.
+
+## Daily commands
 
 ```bash
-~/acc-builder/builder.sh build content-hub
+acc bbya
+acc bbyavatar
+acc becak
 ```
 
-The builder automatically pulls the latest source, runs Node/Capacitor steps when detected, runs Gradle `assembleDebug`, and copies generated APK files to:
+Other commands:
 
-```text
-~/acc-builder/output/
+```bash
+acc list
+acc status
+acc pull
+acc publish <map-id>
 ```
 
-Logs are stored in:
+Current shortcuts resolve through `maps/registry.json`:
 
-```text
-~/acc-builder/logs/
-```
+- `bbya` → `a-club` → BBYA Social Hub
+- `bbyavatar` → BBYAVATAR
+- `becak` → BECAK E-BIKE
 
-## Important
+## Important limitation
 
-Android projects are not identical. Termux runs on the phone's ARM architecture, while some Android Gradle plugins/dependencies ship host tools that expect desktop Linux. `doctor.sh` checks the core toolchain, but each target project still needs one real test build before it can be marked compatible with this phone.
-
-No GitHub Actions workflow is included intentionally. This repository is the local-build fallback.
+This phone publisher can execute Node/Python/Open Cloud operations available on Android. Workflows that fundamentally require **Windows Roblox Studio, a live Studio/MCP session, or desktop-only tooling** cannot be reproduced by Termux alone. Direct place publishing of an already-built registered place file is supported.
