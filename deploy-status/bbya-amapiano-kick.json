@@ -1,7 +1,7 @@
 {
-  "status": "REPAIR_DISPATCHED",
+  "status": "DISPATCHED",
   "http": "204",
-  "dispatcherRunId": "32743523552",
+  "dispatcherRunId": "32743645926",
   "response": "",
-  "recordedAt": "2026-08-24T15:13:26Z"
+  "recordedAt": "2026-08-24T15:14:39Z"
 }
