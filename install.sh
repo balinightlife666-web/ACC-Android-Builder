@@ -2,33 +2,37 @@
 set -euo pipefail
 
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PREFIX_BIN="${PREFIX:-/data/data/com.termux/files/usr}/bin"
 ACC_HOME=${ACC_HOME:-$HOME/acc-publisher}
-TERMUX_BIN="${PREFIX:-/data/data/com.termux/files/usr}/bin"
 
 chmod +x "$HERE/builder.sh" "$HERE/set-key.sh" "$HERE/doctor.sh" 2>/dev/null || true
-mkdir -p "$TERMUX_BIN"
+mkdir -p "$ACC_HOME"
 
-cat > "$TERMUX_BIN/acc" <<EOF
+cat > "$PREFIX_BIN/acc" <<EOF
 #!/data/data/com.termux/files/usr/bin/bash
 exec "$HERE/builder.sh" "\$@"
 EOF
-chmod +x "$TERMUX_BIN/acc"
-hash -r 2>/dev/null || true
+chmod +x "$PREFIX_BIN/acc"
 
-# Prepare local publisher workspace and clone maps repo if credentials allow it.
-"$HERE/builder.sh" setup
-
-# Ask once for Roblox Open Cloud API key when not configured yet.
-if [ ! -s "$ACC_HOME/secrets.env" ] || grep -q 'PASTE_ROBLOX_OPEN_CLOUD_KEY_HERE' "$ACC_HOME/secrets.env"; then
-  "$HERE/set-key.sh"
+# Create local secret template without forcing a GitHub clone during install.
+if [ ! -f "$ACC_HOME/secrets.env" ]; then
+  cat > "$ACC_HOME/secrets.env" <<'EOF'
+# Local-only secret. Never commit this file.
+ROBLOX_API_KEY='PASTE_ROBLOX_OPEN_CLOUD_KEY_HERE'
+EOF
+  chmod 600 "$ACC_HOME/secrets.env"
 fi
 
 echo
-echo 'ACC LOCAL ROBLOX PUBLISHER READY'
-echo 'Commands:'
-echo '  acc bbya'
-echo '  acc bbyavatar'
-echo '  acc becak'
-echo '  acc list'
-echo '  acc all'
-echo '  acc status'
+echo 'ACC LOCAL ROBLOX PUBLISHER INSTALLED'
+echo 'Command installed: acc'
+echo
+echo 'Next required step:'
+echo '  1) Give GitHub user balinightlife666-web access to ardarawk-cloud/ACC-Roblox-maps'
+echo '  2) Run: acc setup'
+echo '  3) Run: acc key'
+echo '  4) Run: acc list'
+echo '  5) Publish one map with: acc <map-id>'
+echo '     or every READY map sequentially with: acc all'
+echo
+echo 'Installer will not repeatedly prompt for GitHub credentials anymore.'
