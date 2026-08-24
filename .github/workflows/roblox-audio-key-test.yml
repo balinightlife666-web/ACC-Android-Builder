@@ -1,0 +1,29 @@
+name: Roblox Cadangan Audio Key Test
+
+on:
+  workflow_dispatch:
+
+jobs:
+  test-key:
+    runs-on: ubuntu-latest
+    env:
+      AUDIO_KEY: ${{ secrets.ROBLOX_PUBLISH_CADANGAN_AUDIO_01 }}
+    steps:
+      - name: Check key availability and audio scopes
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$AUDIO_KEY" || { echo 'SECRET_MISSING'; exit 2; }
+          response=$(curl -fsS -X POST 'https://apis.roblox.com/api-keys/v1/introspect' \
+            -H 'Content-Type: application/json' \
+            --data "{\"apiKey\":\"$AUDIO_KEY\"}")
+          python3 - "$response" <<'PY'
+          import json,sys
+          d=json.loads(sys.argv[1])
+          scopes=d.get('scopes') or []
+          asset=any(s.get('name')=='asset' and {'read','write'}.issubset(set(s.get('operations') or [])) for s in scopes)
+          perm=any(s.get('name')=='asset-permissions:write' or (s.get('name')=='asset-permissions' and 'write' in (s.get('operations') or [])) for s in scopes)
+          ok=d.get('enabled') is not False and d.get('expired') is not True and asset and perm
+          print('PASS_AUDIO_KEY' if ok else 'FAIL_AUDIO_SCOPE')
+          raise SystemExit(0 if ok else 3)
+          PY
