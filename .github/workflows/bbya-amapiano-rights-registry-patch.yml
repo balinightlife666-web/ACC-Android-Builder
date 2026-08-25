@@ -1,0 +1,49 @@
+name: BBYA Amapiano Rights Registry Patch
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/bbya-amapiano-rights-registry-patch.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Patch Amapiano controller to accept multi-folder rights registry
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path('scripts/bbya-amapiano-cadangan.py')
+          s = p.read_text(encoding='utf-8')
+          old = '''    rights_path = source / "maps/bbya-social-hub/audio-rights-confirmation.json"\n    plan_path = control / "state/bbya-amapiano-plan.json"\n\n    reg = load(reg_path)\n    extra = load(extra_path)\n    blacklist = load(blacklist_path, {"version": 1, "items": {}})\n    rights = load(rights_path, {})\n    if not reg.get("tracks") or not extra.get("tracks"):\n        raise SystemExit("Missing Amapiano registry/extra queue")\n\n    required_folder = sval(extra.get("sourceFolderId"))\n    confirmed_folder = sval(rights.get("driveFolderId"))\n    if rights.get("confirmed") is not True or not required_folder or confirmed_folder != required_folder:\n        plan = {\n            "action": "RIGHTS_CONFIRMATION_REQUIRED",\n            "requiredFolderId": required_folder,\n            "confirmedFolderId": confirmed_folder or None,\n            "confirmed": rights.get("confirmed") is True,\n            "queue": QUEUE,\n        }\n        save(plan_path, plan)\n        print(json.dumps(plan))\n        return\n'''
+          new = '''    rights_path = source / "maps/bbya-social-hub/audio-rights-confirmation.json"\n    rights_registry_path = source / "maps/bbya-social-hub/audio-rights-confirmations.json"\n    plan_path = control / "state/bbya-amapiano-plan.json"\n\n    reg = load(reg_path)\n    extra = load(extra_path)\n    blacklist = load(blacklist_path, {"version": 1, "items": {}})\n    rights = load(rights_path, {})\n    rights_registry = load(rights_registry_path, {"confirmations": []})\n    if not reg.get("tracks") or not extra.get("tracks"):\n        raise SystemExit("Missing Amapiano registry/extra queue")\n\n    required_folder = sval(extra.get("sourceFolderId"))\n    confirmed_folder = sval(rights.get("driveFolderId"))\n    legacy_match = rights.get("confirmed") is True and confirmed_folder == required_folder\n    registry_matches = [\n        item for item in (rights_registry.get("confirmations") or [])\n        if item.get("confirmed") is True and sval(item.get("driveFolderId")) == required_folder\n    ]\n    rights_ok = bool(required_folder) and (legacy_match or bool(registry_matches))\n    if not rights_ok:\n        plan = {\n            "action": "RIGHTS_CONFIRMATION_REQUIRED",\n            "requiredFolderId": required_folder,\n            "confirmedFolderId": confirmed_folder or None,\n            "confirmed": rights.get("confirmed") is True,\n            "registryChecked": True,\n            "queue": QUEUE,\n        }\n        save(plan_path, plan)\n        print(json.dumps(plan))\n        return\n'''
+          if old not in s:
+              raise SystemExit('EXPECTED_RIGHTS_BLOCK_NOT_FOUND')
+          p.write_text(s.replace(old, new, 1), encoding='utf-8')
+          PY
+
+      - name: Commit patch
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'BBYA Amapiano Rights Patch'
+          git config user.email 'actions@users.noreply.github.com'
+          git add scripts/bbya-amapiano-cadangan.py
+          if git diff --cached --quiet; then
+            echo 'PATCH_ALREADY_APPLIED'
+            exit 0
+          fi
+          git commit -m 'Allow BBYA Amapiano rights registry [skip ci]'
+          git pull --rebase origin main
+          git push origin HEAD:main
