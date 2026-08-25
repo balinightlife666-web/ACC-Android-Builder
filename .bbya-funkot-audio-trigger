@@ -1,1 +1,1 @@
-2026-08-25T19:26:00+08:00 recover Track08 approved state; recheck existing asset only; publish if ready; no new asset
+2026-08-25T20:17:00+08:00 PRIORITY FUNKOT FAST CHAIN: recheck existing Track08 asset only; if Approved publish and persist LIVE; immediately self-dispatch next terminal-safe track; no duplicate upload; keep one outstanding moderation asset
