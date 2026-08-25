@@ -7,21 +7,20 @@ on:
       - '.bbya-underground-audio-trigger'
   workflow_dispatch:
   schedule:
-    - cron: '9,39 * * * *'
+    - cron: '14,44 * * * *'
 
 permissions:
   contents: write
 
-# Deliberately shares the Amapiano lock: only one gudangpet88 audio job can run
-# at a time in the cadangan repo.
+# Shared audio lock: only one gudangpet88 cadangan audio workflow can run at once.
 concurrency:
   group: bbya-amapiano-audio-cadangan-01
   cancel-in-progress: false
 
 jobs:
-  underground_one_track:
+  underground_serial_batch:
     runs-on: ubuntu-latest
-    timeout-minutes: 28
+    timeout-minutes: 90
     env:
       SOURCE_REPO: ardarawk-cloud/ACC-Roblox-maps
       SOURCE_BRANCH: main
@@ -30,7 +29,9 @@ jobs:
       AUDIO_KEY: ${{ secrets.ROBLOX_PUBLISH_CADANGAN_AUDII_01 }}
       MAP_KEY: ${{ secrets.ROBLOX_PUBLISH_CADANGAN_01 }}
       SOURCE_TOKEN: ${{ secrets.ACC_ROBLOX_MAPS_WRITE_TOKEN || secrets.ACC_ROBLOX_MAPS_READ_TOKEN }}
-      MODERATION_WAIT_SECONDS: '420'
+      BATCH_SIZE: '10'
+      MODERATION_WAIT_SECONDS: '180'
+      ROBLOX_AUDIO_MAX_SECONDS: '420'
 
     steps:
       - name: Checkout cadangan control repo
@@ -47,7 +48,7 @@ jobs:
           path: source
           fetch-depth: 0
 
-      - name: Safety gate - source token must be writable
+      - name: Safety gate - source write path and Underground rights confirmation
         shell: bash
         run: |
           set -euo pipefail
@@ -61,138 +62,95 @@ jobs:
           [[ "$code" == '200' ]] || { echo "SOURCE_TOKEN_HTTP_$code"; exit 11; }
           [[ "$(jq -r '.permissions.push // false' "$tmp")" == 'true' ]] || { echo SOURCE_WRITE_TOKEN_REQUIRED; exit 12; }
           rm -f "$tmp"
-          echo SOURCE_WRITE_PATH_PASS
+          rights='source/maps/bbya-social-hub/audio-rights-confirmation-underground.json'
+          [[ -f "$rights" ]] || { echo UNDERGROUND_RIGHTS_CONFIRMATION_MISSING; exit 13; }
+          [[ "$(jq -r '.confirmed // false' "$rights")" == 'true' ]] || { echo UNDERGROUND_RIGHTS_NOT_CONFIRMED; exit 14; }
+          [[ "$(jq -r '.driveFolderId // empty' "$rights")" == '1ukwoQNlDl7VMhA0BSg_DVUe3qwojfTJk' ]] || { echo UNDERGROUND_RIGHTS_FOLDER_MISMATCH; exit 15; }
+          echo SOURCE_AND_RIGHTS_PASS
 
-      - name: Safety gate - audio key and scopes
+      - name: Safety gate - Roblox audio key and scopes
         shell: bash
         run: |
           set -euo pipefail
-          [[ -n "${AUDIO_KEY:-}" ]] || { echo 'SECRET_MISSING: ROBLOX_PUBLISH_CADANGAN_AUDII_01'; exit 13; }
+          [[ -n "${AUDIO_KEY:-}" ]] || { echo 'SECRET_MISSING: ROBLOX_PUBLISH_CADANGAN_AUDII_01'; exit 16; }
           tmp=$(mktemp)
           code=$(curl -sS -o "$tmp" -w '%{http_code}' -X POST \
             'https://apis.roblox.com/api-keys/v1/introspect' \
             -H 'Content-Type: application/json' \
             --data "{\"apiKey\":\"$AUDIO_KEY\"}")
-          [[ "$code" == '200' ]] || { echo "INTROSPECT_HTTP_$code"; exit 14; }
+          [[ "$code" == '200' ]] || { echo "INTROSPECT_HTTP_$code"; exit 17; }
           python3 - "$tmp" <<'PY'
           import json,sys
           d=json.load(open(sys.argv[1]))
           scopes=d.get('scopes') or []
           asset=any(s.get('name')=='asset' and {'read','write'}.issubset(set(s.get('operations') or [])) for s in scopes)
           perm=any(s.get('name')=='asset-permissions:write' or (s.get('name')=='asset-permissions' and 'write' in (s.get('operations') or [])) for s in scopes)
-          uid=str(d.get('authorizedUserId') or '')
           if d.get('expired') is True or d.get('enabled') is False or not asset or not perm:
               raise SystemExit('AUDIO_KEY_SCOPE_FAILED')
-          if uid != '9296030038':
+          if str(d.get('authorizedUserId') or '') != '9296030038':
               raise SystemExit('UPLOADER_ID_MISMATCH')
           print('PASS_AUDIO_KEY')
           PY
           rm -f "$tmp"
 
-      - name: Select exactly one Underground track
-        shell: bash
-        working-directory: source
-        run: |
-          set -euo pipefail
-          python3 - <<'PY'
-          import json,pathlib,os
-          p=pathlib.Path('maps/bbya-social-hub/audio-playlists/underground.json')
-          reg=json.loads(p.read_text())
-          allowed={'PREPARED_LOCAL','UPLOADED_MODERATION_PENDING','MODERATION_PENDING','PERMISSION_FAILED','READY_TO_INJECT'}
-          cand=sorted([t for t in reg.get('tracks',[]) if t.get('status') in allowed and not t.get('blacklisted')],key=lambda t:int(t.get('index',999999)))
-          if not cand:
-              print('NO_PENDING_UNDERGROUND_TRACKS')
-              with open(os.environ['GITHUB_ENV'],'a') as f: f.write('NO_TRACK=true\n')
-              raise SystemExit(0)
-          t=cand[0]; idx=int(t['index']); has_asset=bool(str(t.get('assetId') or '').strip())
-          with open(os.environ['GITHUB_ENV'],'a') as f:
-              f.write('NO_TRACK=false\n')
-              f.write(f'TRACK_INDEX={idx}\n')
-              f.write(f'DRIVE_FILE_ID={t["driveFileId"]}\n')
-              f.write(f'AUDIO_PATH={os.environ["RUNNER_TEMP"]}/bbya-underground-track{idx:03d}.mp3\n')
-              f.write(f'REPORT_PATH=deploy-status/bbya-underground-track{idx:03d}.json\n')
-              f.write('HAS_ASSET=' + ('true' if has_asset else 'false') + '\n')
-          print(json.dumps({'selectedIndex':idx,'title':t.get('title'),'hasAsset':has_asset},indent=2))
-          PY
-
-      - name: Prepare one source file only when upload is needed
-        if: env.NO_TRACK != 'true' && env.HAS_ASSET != 'true'
+      - name: Install audio tools once
         shell: bash
         run: |
           set -euo pipefail
           sudo apt-get update -qq
           sudo apt-get install -y -qq ffmpeg
           python3 -m pip install --quiet gdown
-          raw="$RUNNER_TEMP/bbya-underground-${TRACK_INDEX}.source"
-          gdown "https://drive.google.com/uc?id=${DRIVE_FILE_ID}" -O "$raw"
-          [[ -s "$raw" ]] || { echo SOURCE_DOWNLOAD_EMPTY; exit 30; }
-          codec=$(ffprobe -v error -select_streams a:0 -show_entries stream=codec_name -of default=nw=1:nk=1 "$raw" | head -n1)
-          if [[ "$codec" == 'mp3' ]]; then
-            cp "$raw" "$AUDIO_PATH"
-            echo 'Original MP3 bytes retained; no pitch/speed/key processing.'
-          else
-            ffmpeg -y -hide_banner -loglevel error -i "$raw" -t 410 -vn -ac 2 -ar 44100 -codec:a libmp3lame -b:a 192k "$AUDIO_PATH"
-            echo 'Compatibility transcode only; no pitch/speed/key processing.'
-          fi
-          [[ -s "$AUDIO_PATH" ]] || { echo AUDIO_FILE_MISSING; exit 31; }
-          ffprobe -v error -show_entries format=duration,size -of json "$AUDIO_PATH"
 
-      - name: Recheck placeholder for existing asset
-        if: env.NO_TRACK != 'true' && env.HAS_ASSET == 'true'
-        run: |
-          : > "$AUDIO_PATH"
-          echo 'Existing asset: moderation/permission recheck only; upload endpoint will not be called.'
-
-      - name: Upload or recheck exactly one track
-        if: env.NO_TRACK != 'true'
+      - name: Configure Source of Truth git writer
         shell: bash
         working-directory: source
-        run: python3 scripts/bbya-underground-single-inject.py
+        run: |
+          git config user.name 'BBYA Underground Cadangan 01'
+          git config user.email 'actions@users.noreply.github.com'
 
-      - name: Persist moderation checkpoint to Source of Truth
-        if: env.NO_TRACK != 'true'
+      - name: Process up to 10 tracks serially
         shell: bash
         working-directory: source
         run: |
           set -euo pipefail
-          git config user.name 'BBYA Underground Cadangan 01'
-          git config user.email 'actions@users.noreply.github.com'
-          git add maps/bbya-social-hub/audio-playlists/underground.json "$REPORT_PATH"
+          python3 scripts/bbya-underground-serial-batch.py
+
+      - name: Persist batch summary
+        shell: bash
+        working-directory: source
+        run: |
+          set -euo pipefail
+          git add deploy-status/bbya-underground-serial-batch-last.json
           if ! git diff --cached --quiet; then
-            git commit -m "Checkpoint Underground Track ${TRACK_INDEX} via cadangan [skip ci]"
+            git commit -m 'Record Underground serial batch summary [skip ci]'
             git pull --rebase origin main
             git push origin HEAD:main
           fi
 
-      - name: Approval gate
-        if: env.NO_TRACK != 'true'
-        id: gate
+      - name: Detect approved tracks ready for playlist publish
+        id: ready
         shell: bash
         working-directory: source
         run: |
           set -euo pipefail
-          python3 - <<'PY'
-          import json,pathlib,os
-          p=pathlib.Path(os.environ['REPORT_PATH'])
-          d=json.loads(p.read_text())
-          ready=d.get('readyToInject') is True
-          print(json.dumps({k:d.get(k) for k in ['status','trackIndex','assetId','moderationState','readyToInject','blacklisted']},indent=2))
-          with open(os.environ['GITHUB_OUTPUT'],'a') as f: f.write('ready=' + ('true' if ready else 'false') + '\n')
-          PY
+          git pull --rebase origin main
+          count=$(jq '[.tracks[] | select(.status=="READY_TO_INJECT" and .bbyaPermission==true)] | length' maps/bbya-social-hub/audio-playlists/underground.json)
+          echo "count=$count" >> "$GITHUB_OUTPUT"
+          echo "READY_TO_INJECT=$count"
 
-      - name: Build Underground playlist from approved registry
-        if: steps.gate.outputs.ready == 'true'
+      - name: Build Underground playlist from all approved tracks
+        if: steps.ready.outputs.count != '0'
         working-directory: source
         run: python3 scripts/bbya-underground-build.py
 
       - name: Setup Node 20
-        if: steps.gate.outputs.ready == 'true'
+        if: steps.ready.outputs.count != '0'
         uses: actions/setup-node@v4
         with:
           node-version: '20'
 
       - name: Prepare Rojo 7.7.0
-        if: steps.gate.outputs.ready == 'true'
+        if: steps.ready.outputs.count != '0'
         shell: bash
         run: |
           set -euo pipefail
@@ -206,17 +164,17 @@ jobs:
           "$rojo_bin" --version
 
       - name: Full BBYA build
-        if: steps.gate.outputs.ready == 'true'
+        if: steps.ready.outputs.count != '0'
         shell: bash
         run: |
           set -euo pipefail
-          out="$RUNNER_TEMP/bbya-underground-cadangan.rbxl"
+          out="$RUNNER_TEMP/bbya-underground-batch.rbxl"
           "$ROJO_EXE" build 'source/maps/bbya-social-hub/default.project.json' -o "$out"
           [[ -s "$out" ]] || { echo BUILD_FILE_MISSING; exit 41; }
           echo "PLACE_FILE=$out" >> "$GITHUB_ENV"
 
-      - name: Publish BBYA Underground via cadangan publisher key
-        if: steps.gate.outputs.ready == 'true'
+      - name: Publish approved Underground batch once
+        if: steps.ready.outputs.count != '0'
         shell: bash
         working-directory: source
         env:
@@ -230,7 +188,7 @@ jobs:
           test -s deploy-status-cadangan-underground/a-club.json
 
       - name: Restart old BBYA servers if scope allows
-        if: steps.gate.outputs.ready == 'true'
+        if: steps.ready.outputs.count != '0'
         id: restart
         shell: bash
         run: |
@@ -244,8 +202,8 @@ jobs:
           cat "$body" || true
           exit 0
 
-      - name: Mark selected track live after publish receipt
-        if: steps.gate.outputs.ready == 'true'
+      - name: Mark every approved published track live
+        if: steps.ready.outputs.count != '0'
         shell: bash
         working-directory: source
         env:
@@ -254,36 +212,36 @@ jobs:
           set -euo pipefail
           python3 - <<'PY'
           import json,pathlib,os
-          idx=int(os.environ['TRACK_INDEX'])
           regp=pathlib.Path('maps/bbya-social-hub/audio-playlists/underground.json')
-          rep=pathlib.Path(os.environ['REPORT_PATH'])
           receipt=pathlib.Path('deploy-status-cadangan-underground/a-club.json')
-          if not receipt.exists(): raise SystemExit('PUBLISH_RECEIPT_MISSING')
-          reg=json.loads(regp.read_text()); d=json.loads(rep.read_text()); r=json.loads(receipt.read_text())
+          reg=json.loads(regp.read_text()); r=json.loads(receipt.read_text())
+          live=[]
           for t in reg.get('tracks',[]):
-              if int(t.get('index',0))==idx: t['status']='LIVE_IN_PLAYLIST'
-          d['status']='LIVE_PUBLISHED'; d['publishReceipt']=r; d['restartHttp']=os.environ.get('RESTART_HTTP','')
+              if t.get('status')=='READY_TO_INJECT' and t.get('bbyaPermission') is True:
+                  idx=int(t['index']); t['status']='LIVE_IN_PLAYLIST'; live.append(idx)
+                  rep=pathlib.Path(f'deploy-status/bbya-underground-track{idx:03d}.json')
+                  if rep.exists():
+                      d=json.loads(rep.read_text()); d['status']='LIVE_PUBLISHED'; d['publishReceipt']=r; d['restartHttp']=os.environ.get('RESTART_HTTP',''); rep.write_text(json.dumps(d,indent=2,ensure_ascii=False)+'\n')
           regp.write_text(json.dumps(reg,indent=2,ensure_ascii=False)+'\n')
-          rep.write_text(json.dumps(d,indent=2,ensure_ascii=False)+'\n')
+          pathlib.Path('deploy-status').mkdir(exist_ok=True)
+          pathlib.Path('deploy-status/bbya-underground-latest-publish.json').write_text(json.dumps(r,indent=2)+'\n')
+          print(json.dumps({'publishedTrackIndexes':live,'count':len(live)},indent=2))
           PY
 
-      - name: Persist live Underground source state
-        if: steps.gate.outputs.ready == 'true'
+      - name: Persist live Underground batch state
+        if: steps.ready.outputs.count != '0'
         shell: bash
         working-directory: source
         run: |
           set -euo pipefail
-          git config user.name 'BBYA Underground Cadangan 01'
-          git config user.email 'actions@users.noreply.github.com'
-          mkdir -p deploy-status
-          cp deploy-status-cadangan-underground/a-club.json deploy-status/bbya-underground-latest-publish.json
           git add maps/bbya-social-hub/85-basement-autodj.server.lua \
                   maps/bbya-social-hub/103-music-ui-final.client.lua \
                   maps/bbya-social-hub/109-music-catalog-reset.server.lua \
                   maps/bbya-social-hub/audio-playlists/underground.json \
-                  "$REPORT_PATH" deploy-status/bbya-underground-latest-publish.json
+                  deploy-status/bbya-underground-track*.json \
+                  deploy-status/bbya-underground-latest-publish.json
           if ! git diff --cached --quiet; then
-            git commit -m "Inject Underground Track ${TRACK_INDEX} and publish via cadangan [skip ci]"
+            git commit -m 'Publish approved Underground serial batch [skip ci]'
             git pull --rebase origin main
             git push origin HEAD:main
           fi
