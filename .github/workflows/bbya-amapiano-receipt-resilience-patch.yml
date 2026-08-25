@@ -1,0 +1,50 @@
+name: BBYA Amapiano Receipt Resilience Patch
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/bbya-amapiano-receipt-resilience-patch.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Make cadangan receipt persistence non-blocking
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path('.github/workflows/bbya-amapiano-audio-cadangan-01.yml')
+          s = p.read_text(encoding='utf-8')
+          old = "      - name: Persist cadangan recovery receipt before Source of Truth push\n        if: steps.result.outputs.asset_id != ''\n"
+          new = "      - name: Persist cadangan recovery receipt before Source of Truth push\n        continue-on-error: true\n        if: steps.result.outputs.asset_id != ''\n"
+          if new in s:
+              print('PATCH_ALREADY_APPLIED')
+          elif old in s:
+              p.write_text(s.replace(old, new, 1), encoding='utf-8')
+              print('PATCH_APPLIED')
+          else:
+              raise SystemExit('RECEIPT_STEP_NOT_FOUND')
+          PY
+
+      - name: Commit patch
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'BBYA Amapiano Receipt Patch'
+          git config user.email 'actions@users.noreply.github.com'
+          git add .github/workflows/bbya-amapiano-audio-cadangan-01.yml
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m 'Keep Amapiano canonical persistence after receipt conflict [skip ci]'
+          git pull --rebase origin main
+          git push origin HEAD:main
