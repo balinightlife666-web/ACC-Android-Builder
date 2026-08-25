@@ -252,6 +252,7 @@ jobs:
           cat "$report"
 
       - name: Persist cadangan recovery receipt before Source of Truth push
+        continue-on-error: true
         if: steps.result.outputs.asset_id != ''
         shell: bash
         run: |
