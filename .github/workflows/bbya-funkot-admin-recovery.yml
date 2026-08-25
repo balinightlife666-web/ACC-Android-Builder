@@ -1,0 +1,85 @@
+name: BBYA Funkot Admin Recovery
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/bbya-funkot-admin-recovery.yml'
+      - '.bbya-funkot-admin-recovery-trigger'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: write
+
+concurrency:
+  group: bbya-funkot-admin-recovery
+  cancel-in-progress: false
+
+jobs:
+  recover:
+    runs-on: ubuntu-latest
+    env:
+      SOURCE_TOKEN: ${{ secrets.ACC_ROBLOX_MAPS_WRITE_TOKEN || secrets.ACC_ROBLOX_MAPS_READ_TOKEN }}
+    steps:
+      - name: Checkout control repo
+        uses: actions/checkout@v4
+
+      - name: Checkout BBYA Source of Truth
+        uses: actions/checkout@v4
+        with:
+          repository: ardarawk-cloud/ACC-Roblox-maps
+          ref: main
+          token: ${{ env.SOURCE_TOKEN }}
+          path: source
+          fetch-depth: 0
+
+      - name: Recover Track08 canonical state after verified successful publish
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json, pathlib, datetime as dt
+          p=pathlib.Path('source/maps/bbya-social-hub/audio-playlists/funkot.json')
+          d=json.loads(p.read_text(encoding='utf-8'))
+          t=next(x for x in d['tracks'] if int(x.get('index',0))==8)
+          assert str(t.get('assetId'))=='128567852049551', 'TRACK08_ASSET_MISMATCH'
+          assert t.get('bbyaPermission') is True, 'TRACK08_PERMISSION_MISSING'
+          assert t.get('moderationLastKnown')=='Approved', 'TRACK08_NOT_APPROVED'
+          if t.get('status') not in {'READY_TO_INJECT','LIVE_IN_PLAYLIST'}:
+              raise SystemExit('TRACK08_UNSAFE_STATE_'+str(t.get('status')))
+          t['status']='LIVE_IN_PLAYLIST'
+          p.write_text(json.dumps(d,indent=2,ensure_ascii=False)+'\n',encoding='utf-8')
+          rp=pathlib.Path('source/deploy-status/bbya-funkot-track08.json')
+          if rp.exists():
+              r=json.loads(rp.read_text(encoding='utf-8'))
+              r['status']='LIVE_PUBLISHED'
+              r['livePublishedAt']=dt.datetime.now(dt.timezone.utc).isoformat()
+              r['recoveredFromSuccessfulWorkflowRun']='32877671455'
+              rp.write_text(json.dumps(r,indent=2,ensure_ascii=False)+'\n',encoding='utf-8')
+          PY
+          cd source
+          python3 scripts/bbya-funkot-build.py
+          git config user.name 'BBYA Funkot Admin Recovery'
+          git config user.email 'actions@users.noreply.github.com'
+          git add maps/bbya-social-hub/audio-playlists/funkot.json maps/bbya-social-hub/93-funkot-music.server.lua maps/bbya-social-hub/121-funkot-playlist.server.lua deploy-status/bbya-funkot-track08.json
+          if ! git diff --cached --quiet; then
+            git commit -m 'Recover published BBYA Funkot Track08 canonical state [skip ci]'
+            git pull --rebase origin main
+            git push origin HEAD:main
+          fi
+
+      - name: Resume Funkot serial queue
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          code=$(curl -sS -o /tmp/resume.out -w '%{http_code}' -X POST \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H 'Accept: application/vnd.github+json' \
+            -H 'X-GitHub-Api-Version: 2022-11-28' \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/actions/workflows/bbya-funkot-audio-cadangan-01.yml/dispatches" \
+            -d '{"ref":"main","inputs":{"track_index":"auto"}}')
+          cat /tmp/resume.out || true
+          [[ "$code" == 204 ]]
