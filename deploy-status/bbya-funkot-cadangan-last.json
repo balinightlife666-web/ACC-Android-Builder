@@ -1,12 +1,12 @@
 {
-  "status": "BLACKLISTED_MODERATION_REJECTED",
-  "trackIndex": 3,
-  "title": "Zinyo Funkytone - Betadine 2025.mp3",
-  "driveFileId": "1nwe8Kfyyprso686L7FaMqW4p1QCh20UT",
-  "sourceSha256": "da1cca15286804c7578fafc6192e85d6d5e1243efacdaa9444d68060066681fe",
-  "assetId": "98210407231982",
-  "bbyaPermission": false,
-  "moderationLastKnown": "Rejected",
-  "sourceReportStatus": "BLACKLISTED_MODERATION_REJECTED",
-  "recordedAt": "2026-08-25T05:18:11.875029+00:00"
+  "status": "READY_TO_INJECT",
+  "trackIndex": 4,
+  "title": "Zinyo Funky Tone_ Hatiku Bagai Terpenjara 2025.mp3",
+  "driveFileId": "1QhH5Vg59LjW9-oV1pOveT5diG6PVtJ3e",
+  "sourceSha256": "1241b906152cb9a9b94b51d4303a49d848e2053a60655623a5650fe5708102a8",
+  "assetId": "98536948000407",
+  "bbyaPermission": true,
+  "moderationLastKnown": "Approved",
+  "sourceReportStatus": "READY_TO_INJECT",
+  "recordedAt": "2026-08-25T06:22:43.364900+00:00"
 }

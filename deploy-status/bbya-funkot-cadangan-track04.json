@@ -1,12 +1,12 @@
 {
-  "status": "BLACKLISTED_PLATFORM_DURATION_LIMIT",
+  "status": "READY_TO_INJECT",
   "trackIndex": 4,
   "title": "Zinyo Funky Tone_ Hatiku Bagai Terpenjara 2025.mp3",
   "driveFileId": "1QhH5Vg59LjW9-oV1pOveT5diG6PVtJ3e",
   "sourceSha256": "1241b906152cb9a9b94b51d4303a49d848e2053a60655623a5650fe5708102a8",
-  "assetId": null,
-  "bbyaPermission": false,
-  "moderationLastKnown": null,
-  "sourceReportStatus": "BLACKLISTED_PLATFORM_DURATION_LIMIT",
-  "recordedAt": "2026-08-24T15:18:32.624770+00:00"
+  "assetId": "98536948000407",
+  "bbyaPermission": true,
+  "moderationLastKnown": "Approved",
+  "sourceReportStatus": "READY_TO_INJECT",
+  "recordedAt": "2026-08-25T06:22:43.364900+00:00"
 }
