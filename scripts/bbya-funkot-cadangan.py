@@ -1,7 +1,14 @@
 #!/usr/bin/env python3
 import argparse, datetime as dt, json, pathlib
 
-TERMINAL={"LIVE_IN_PLAYLIST","READY_TO_INJECT","BLACKLISTED_MODERATION_REJECTED","BLACKLISTED_DUPLICATE_SOURCE","BLACKLISTED_PLATFORM_DURATION_LIMIT"}
+TERMINAL={
+    "LIVE_IN_PLAYLIST",
+    "READY_TO_INJECT",
+    "BLACKLISTED_MODERATION_REJECTED",
+    "BLACKLISTED_DUPLICATE_SOURCE",
+    "BLACKLISTED_PLATFORM_DURATION_LIMIT",
+    "BLACKLISTED_PLATFORM_DURATION_LIMIT_AFTER_TRIM",
+}
 
 def load(path,default=None):
     p=pathlib.Path(path)
@@ -12,6 +19,41 @@ def save(path,data):
     p=pathlib.Path(path);p.parent.mkdir(parents=True,exist_ok=True);p.write_text(json.dumps(data,indent=2,ensure_ascii=False)+'\n',encoding='utf-8')
 
 def sval(v): return '' if v is None else str(v).strip()
+
+def reconcile_ready_receipts(reg_path,reg,control):
+    """Recover canonical state only from a matching, already persisted cadangan receipt.
+
+    This never creates/replaces a Roblox asset. It only repairs source-state drift when the
+    same asset/source has already been verified Approved and permissioned for BBYA.
+    """
+    changed=[]
+    for t in reg.get('tracks',[]):
+        idx=int(t.get('index',0) or 0)
+        if idx<=0 or sval(t.get('status')) in {
+            'LIVE_IN_PLAYLIST','BLACKLISTED_MODERATION_REJECTED','BLACKLISTED_DUPLICATE_SOURCE',
+            'BLACKLISTED_PLATFORM_DURATION_LIMIT','BLACKLISTED_PLATFORM_DURATION_LIMIT_AFTER_TRIM'
+        }:
+            continue
+        rp=control/'deploy-status'/f'bbya-funkot-cadangan-track{idx:02d}.json'
+        receipt=load(rp,{})
+        if receipt.get('status')!='READY_TO_INJECT':
+            continue
+        aid=sval(receipt.get('assetId'))
+        if not aid or aid!=sval(t.get('assetId')):
+            continue
+        rsha=sval(receipt.get('sourceSha256'));tsha=sval(t.get('sourceSha256'))
+        if tsha and rsha and rsha!=tsha:
+            continue
+        if receipt.get('bbyaPermission') is not True or receipt.get('moderationLastKnown')!='Approved':
+            continue
+        t['assetId']=aid
+        t['bbyaPermission']=True
+        t['moderationLastKnown']='Approved'
+        t['status']='READY_TO_INJECT'
+        changed.append(idx)
+    if changed:
+        save(reg_path,reg)
+    return changed
 
 def preflight(args):
     source=pathlib.Path(args.source);control=pathlib.Path(args.control)
@@ -25,6 +67,12 @@ def preflight(args):
     if rights.get('confirmed') is not True or not required or confirmed!=required:
         plan={'action':'RIGHTS_CONFIRMATION_REQUIRED','requiredFolderId':required,'confirmedFolderId':confirmed or None,'confirmed':rights.get('confirmed') is True,'queueCount':len(tracks)}
         save(plan_path,plan);print(json.dumps(plan));return
+
+    recovered=reconcile_ready_receipts(reg_path,reg,control)
+    if recovered:
+        print('RECOVERED_READY_RECEIPTS',recovered)
+    tracks=sorted(reg.get('tracks',[]),key=lambda t:int(t.get('index',0)))
+
     pending=[t for t in tracks if sval(t.get('assetId')) and sval(t.get('status')) not in TERMINAL]
     if pending:
         t=pending[0];plan={'action':'RECHECK_EXISTING','trackIndex':int(t['index']),'assetId':sval(t.get('assetId')),'driveFileId':t.get('driveFileId'),'sourceSha256':t.get('sourceSha256')}
@@ -64,13 +112,20 @@ def postprocess(args):
 def mark_live(args):
     source=pathlib.Path(args.source);idx=int(args.track)
     reg_path=source/'maps/bbya-social-hub/audio-playlists/funkot.json';reg=load(reg_path)
-    t=next((x for x in reg.get('tracks',[]) if int(x.get('index',0))==idx),None)
-    if not t: raise SystemExit('Track missing for live mark')
-    if t.get('status')!='READY_TO_INJECT' or not t.get('assetId') or t.get('bbyaPermission') is not True: raise SystemExit('Live mark gate failed')
-    t['status']='LIVE_IN_PLAYLIST';save(reg_path,reg)
-    report=source/'deploy-status'/f'bbya-funkot-track{idx:02d}.json';d=load(report,{})
-    if d: d['status']='LIVE_PUBLISHED';d['livePublishedAt']=dt.datetime.now(dt.timezone.utc).isoformat();save(report,d)
-    print(json.dumps({'trackIndex':idx,'status':'LIVE_IN_PLAYLIST','assetId':t.get('assetId')}))
+    current=next((x for x in reg.get('tracks',[]) if int(x.get('index',0))==idx),None)
+    if not current: raise SystemExit('Track missing for live mark')
+    if current.get('status')!='READY_TO_INJECT' or not current.get('assetId') or current.get('bbyaPermission') is not True:
+        raise SystemExit('Live mark gate failed')
+
+    now=dt.datetime.now(dt.timezone.utc).isoformat();live=[]
+    for t in reg.get('tracks',[]):
+        if t.get('status')=='READY_TO_INJECT' and t.get('assetId') and t.get('bbyaPermission') is True:
+            tidx=int(t.get('index',0));t['status']='LIVE_IN_PLAYLIST';live.append(tidx)
+            report=source/'deploy-status'/f'bbya-funkot-track{tidx:02d}.json';d=load(report,{})
+            if d:
+                d['status']='LIVE_PUBLISHED';d['livePublishedAt']=now;save(report,d)
+    save(reg_path,reg)
+    print(json.dumps({'triggerTrackIndex':idx,'status':'LIVE_IN_PLAYLIST','publishedTrackIndexes':live,'assetId':current.get('assetId')}))
 
 def main():
     p=argparse.ArgumentParser();sub=p.add_subparsers(dest='cmd',required=True)
