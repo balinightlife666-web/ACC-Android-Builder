@@ -1,1 +1,1 @@
-2026-08-25T21:21:52+08:00 AUTOMATION: recheck existing Funkot Track08 asset 128567852049551 only; if Approved publish + persist LIVE; then self-dispatch next terminal-safe track; no duplicate/new asset while Track08 unresolved
+2026-08-25T22:25:54+08:00 AUTOMATION: recover existing Funkot Track08 asset 128567852049551 only; cadangan receipt already says Approved + BBYA permission true; publish + persist LIVE if receipt/build succeeds; self-dispatch next; absolutely no new asset until Track08 canonical terminal
