@@ -1,12 +1,12 @@
 {
-  "status": "MODERATION_PENDING",
+  "status": "READY_TO_INJECT",
   "trackIndex": 18,
   "title": "ACC_Audio_1787515147552.mp3",
   "driveFileId": "1Mrtb3fPdEzFGxtLFUKgcApI8mxIEWaCh",
   "sourceSha256": "3cc200fc83e4c3f9ef9101a52468432ab8456e7aca8beaf0421e4a7109c4843a",
   "assetId": "135466870455541",
-  "bbyaPermission": false,
-  "moderationLastKnown": "Reviewing",
-  "sourceReportStatus": "MODERATION_PENDING",
-  "recordedAt": "2026-08-25T03:06:32.680397+00:00"
+  "bbyaPermission": true,
+  "moderationLastKnown": "Approved",
+  "sourceReportStatus": "READY_TO_INJECT",
+  "recordedAt": "2026-08-25T03:09:13.393607+00:00"
 }
