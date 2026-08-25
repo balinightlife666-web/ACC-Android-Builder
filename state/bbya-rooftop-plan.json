@@ -1,8 +1,8 @@
 {
-  "action": "UPLOAD_NEW",
+  "action": "RECHECK_EXISTING",
   "trackIndex": 1,
-  "assetId": null,
+  "assetId": "81739335079331",
   "driveFileId": "1cxEit3cEy6S1YfQr5W4eulorASQ0_ec3",
-  "sourceSha256": null,
+  "sourceSha256": "d00cbf14054d18dafa85fb74b9bcbf185edb9d29bdac5b0d1e04ed4dc2b4b010",
   "title": "Damon Empero ft. Veronica - Vacation | Tropical House | - Damon Empero"
 }
