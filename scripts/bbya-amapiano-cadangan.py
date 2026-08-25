@@ -78,23 +78,32 @@ def preflight(args):
     extra_path = source / "maps/bbya-social-hub/audio-playlists/vip-amapiano-extra.json"
     blacklist_path = source / "maps/bbya-social-hub/audio-blacklist.json"
     rights_path = source / "maps/bbya-social-hub/audio-rights-confirmation.json"
+    rights_registry_path = source / "maps/bbya-social-hub/audio-rights-confirmations.json"
     plan_path = control / "state/bbya-amapiano-plan.json"
 
     reg = load(reg_path)
     extra = load(extra_path)
     blacklist = load(blacklist_path, {"version": 1, "items": {}})
     rights = load(rights_path, {})
+    rights_registry = load(rights_registry_path, {"confirmations": []})
     if not reg.get("tracks") or not extra.get("tracks"):
         raise SystemExit("Missing Amapiano registry/extra queue")
 
     required_folder = sval(extra.get("sourceFolderId"))
     confirmed_folder = sval(rights.get("driveFolderId"))
-    if rights.get("confirmed") is not True or not required_folder or confirmed_folder != required_folder:
+    legacy_match = rights.get("confirmed") is True and confirmed_folder == required_folder
+    registry_matches = [
+        item for item in (rights_registry.get("confirmations") or [])
+        if item.get("confirmed") is True and sval(item.get("driveFolderId")) == required_folder
+    ]
+    rights_ok = bool(required_folder) and (legacy_match or bool(registry_matches))
+    if not rights_ok:
         plan = {
             "action": "RIGHTS_CONFIRMATION_REQUIRED",
             "requiredFolderId": required_folder,
             "confirmedFolderId": confirmed_folder or None,
             "confirmed": rights.get("confirmed") is True,
+            "registryChecked": True,
             "queue": QUEUE,
         }
         save(plan_path, plan)
