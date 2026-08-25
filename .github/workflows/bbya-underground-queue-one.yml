@@ -2,7 +2,9 @@ name: BBYA Underground Queue One
 on:
   push:
     branches: [main]
-    paths: ['.bbya-underground-queue-trigger']
+    paths:
+      - '.bbya-underground-queue-trigger'
+      - '.github/workflows/bbya-underground-queue-one.yml'
 permissions:
   contents: write
 jobs:
