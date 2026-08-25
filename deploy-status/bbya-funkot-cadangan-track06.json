@@ -1,12 +1,12 @@
 {
-  "status": "BLACKLISTED_PLATFORM_DURATION_LIMIT",
+  "status": "BLACKLISTED_MODERATION_REJECTED",
   "trackIndex": 6,
   "title": "SUWUNG X KICAU MANIAKS - Jordan L3 Ft Viosena.mp3",
   "driveFileId": "18u4O6XxkL4xbel9T7E9LuC13bUxe2vaK",
   "sourceSha256": "793acac4a4c6a8689e9f1df5cbe016265d549f9a20ca7ff2a96035e94169e9f0",
-  "assetId": null,
+  "assetId": "125981906836198",
   "bbyaPermission": false,
-  "moderationLastKnown": null,
-  "sourceReportStatus": "BLACKLISTED_PLATFORM_DURATION_LIMIT",
-  "recordedAt": "2026-08-24T15:20:48.823976+00:00"
+  "moderationLastKnown": "Rejected",
+  "sourceReportStatus": "BLACKLISTED_MODERATION_REJECTED",
+  "recordedAt": "2026-08-25T08:02:43.870287+00:00"
 }
