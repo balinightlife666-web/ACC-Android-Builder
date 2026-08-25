@@ -1,0 +1,206 @@
+name: BBYA Underground Audio Cadangan 02
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.bbya-underground-audio-cadangan02-trigger'
+  workflow_dispatch:
+  schedule:
+    - cron: '4,34 * * * *'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: bbya-amapiano-audio-cadangan-01
+  cancel-in-progress: false
+
+jobs:
+  underground_cadangan02_batch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    env:
+      SOURCE_REPO: ardarawk-cloud/ACC-Roblox-maps
+      SOURCE_BRANCH: main
+      BBYA_UNIVERSE: '8116636513'
+      EXPECTED_AUDIO_OWNER_USER_ID: '10001957153'
+      AUDIO_KEY: ${{ secrets.AM_STUDIO_AUDIO_CADANGAN_02 }}
+      MAP_KEY: ${{ secrets.ROBLOX_PUBLISH_CADANGAN_01 }}
+      SOURCE_TOKEN: ${{ secrets.ACC_ROBLOX_MAPS_WRITE_TOKEN || secrets.ACC_ROBLOX_MAPS_READ_TOKEN }}
+      BATCH_SIZE: '10'
+      MODERATION_WAIT_SECONDS: '180'
+      ROBLOX_AUDIO_MAX_SECONDS: '420'
+
+    steps:
+      - name: Checkout BBYA Source of Truth
+        uses: actions/checkout@v4
+        with:
+          repository: ardarawk-cloud/ACC-Roblox-maps
+          ref: main
+          token: ${{ env.SOURCE_TOKEN }}
+          path: source
+          fetch-depth: 0
+
+      - name: Safety gate source, rights, and cadangan 02 key
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ -n "${SOURCE_TOKEN:-}" ]] || { echo SOURCE_TOKEN_MISSING; exit 10; }
+          rights='source/maps/bbya-social-hub/audio-rights-confirmation-underground.json'
+          [[ -f "$rights" ]] || { echo UNDERGROUND_RIGHTS_CONFIRMATION_MISSING; exit 11; }
+          [[ "$(jq -r '.confirmed // false' "$rights")" == 'true' ]] || { echo UNDERGROUND_RIGHTS_NOT_CONFIRMED; exit 12; }
+          [[ "$(jq -r '.driveFolderId // empty' "$rights")" == '1ukwoQNlDl7VMhA0BSg_DVUe3qwojfTJk' ]] || { echo UNDERGROUND_RIGHTS_FOLDER_MISMATCH; exit 13; }
+          [[ -n "${AUDIO_KEY:-}" ]] || { echo SECRET_MISSING_AM_STUDIO_AUDIO_CADANGAN_02; exit 14; }
+          tmp=$(mktemp)
+          code=$(curl -sS -o "$tmp" -w '%{http_code}' -X POST \
+            'https://apis.roblox.com/api-keys/v1/introspect' \
+            -H 'Content-Type: application/json' \
+            --data "{\"apiKey\":\"$AUDIO_KEY\"}")
+          [[ "$code" == '200' ]] || { echo "INTROSPECT_HTTP_$code"; exit 15; }
+          python3 - "$tmp" <<'PY'
+          import json,sys
+          d=json.load(open(sys.argv[1]))
+          scopes=d.get('scopes') or []
+          asset=any(s.get('name')=='asset' and {'read','write'}.issubset(set(s.get('operations') or [])) for s in scopes)
+          perm=any(s.get('name')=='asset-permissions:write' or (s.get('name')=='asset-permissions' and 'write' in (s.get('operations') or [])) for s in scopes)
+          uid=str(d.get('authorizedUserId') or '')
+          if uid!='10001957153' or not asset or not perm or d.get('expired') is True or d.get('enabled') is False:
+              raise SystemExit(f'CADANGAN02_KEY_GATE_FAILED owner={uid}')
+          print('CADANGAN02_KEY_PASS owner='+uid)
+          PY
+
+      - name: Install audio tools once
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq ffmpeg
+          python3 -m pip install --quiet gdown
+
+      - name: Configure Source of Truth writer
+        shell: bash
+        working-directory: source
+        run: |
+          git config user.name 'BBYA Underground Cadangan 02'
+          git config user.email 'actions@users.noreply.github.com'
+
+      - name: Process up to 10 new assets serially with uploader 02
+        shell: bash
+        working-directory: source
+        run: |
+          set -euo pipefail
+          python3 scripts/bbya-underground-cadangan02-batch.py
+
+      - name: Persist cadangan 02 batch summary
+        shell: bash
+        working-directory: source
+        run: |
+          set -euo pipefail
+          git add deploy-status/bbya-underground-cadangan02-batch-last.json
+          if ! git diff --cached --quiet; then
+            git commit -m 'Record Underground cadangan 02 batch summary [skip ci]'
+            git pull --rebase origin main
+            git push origin HEAD:main
+          fi
+
+      - name: Detect approved tracks ready to publish
+        id: ready
+        shell: bash
+        working-directory: source
+        run: |
+          set -euo pipefail
+          git pull --rebase origin main
+          count=$(jq '[.tracks[] | select(.status=="READY_TO_INJECT" and .bbyaPermission==true)] | length' maps/bbya-social-hub/audio-playlists/underground.json)
+          echo "count=$count" >> "$GITHUB_OUTPUT"
+          echo "READY_TO_INJECT=$count"
+
+      - name: Build Underground playlist from approved registry
+        if: steps.ready.outputs.count != '0'
+        working-directory: source
+        run: python3 scripts/bbya-underground-build.py
+
+      - name: Setup Node 20
+        if: steps.ready.outputs.count != '0'
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Prepare Rojo 7.7.0
+        if: steps.ready.outputs.count != '0'
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/rojo"
+          curl -fsSL -o "$RUNNER_TEMP/rojo.zip" 'https://github.com/rojo-rbx/rojo/releases/download/v7.7.0/rojo-7.7.0-linux-x86_64.zip'
+          unzip -q -o "$RUNNER_TEMP/rojo.zip" -d "$RUNNER_TEMP/rojo"
+          rojo_bin=$(find "$RUNNER_TEMP/rojo" -type f -name rojo | head -n1)
+          [[ -n "$rojo_bin" ]] || { echo ROJO_NOT_FOUND; exit 40; }
+          chmod +x "$rojo_bin"
+          echo "ROJO_EXE=$rojo_bin" >> "$GITHUB_ENV"
+
+      - name: Full BBYA build
+        if: steps.ready.outputs.count != '0'
+        shell: bash
+        run: |
+          set -euo pipefail
+          out="$RUNNER_TEMP/bbya-underground-cadangan02.rbxl"
+          "$ROJO_EXE" build 'source/maps/bbya-social-hub/default.project.json' -o "$out"
+          [[ -s "$out" ]] || { echo BUILD_FILE_MISSING; exit 41; }
+          echo "PLACE_FILE=$out" >> "$GITHUB_ENV"
+
+      - name: Publish approved Underground tracks once
+        if: steps.ready.outputs.count != '0'
+        shell: bash
+        working-directory: source
+        env:
+          ROBLOX_API_KEY: ${{ env.MAP_KEY }}
+          PLACE_FILE_OVERRIDE: ${{ env.PLACE_FILE }}
+          PUBLISH_RECEIPT_DIR: deploy-status-cadangan-underground02
+        run: |
+          set -euo pipefail
+          [[ -n "${ROBLOX_API_KEY:-}" ]] || { echo SECRET_MISSING_MAP_KEY; exit 42; }
+          node scripts/publish-map.js a-club
+          test -s deploy-status-cadangan-underground02/a-club.json
+
+      - name: Mark approved published tracks live
+        if: steps.ready.outputs.count != '0'
+        shell: bash
+        working-directory: source
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json,pathlib
+          regp=pathlib.Path('maps/bbya-social-hub/audio-playlists/underground.json')
+          receiptp=pathlib.Path('deploy-status-cadangan-underground02/a-club.json')
+          reg=json.loads(regp.read_text()); receipt=json.loads(receiptp.read_text())
+          live=[]
+          for t in reg.get('tracks',[]):
+              if t.get('status')=='READY_TO_INJECT' and t.get('bbyaPermission') is True:
+                  idx=int(t['index']); t['status']='LIVE_IN_PLAYLIST'; live.append(idx)
+                  rp=pathlib.Path(f'deploy-status/bbya-underground-track{idx:03d}.json')
+                  if rp.exists():
+                      d=json.loads(rp.read_text()); d['status']='LIVE_PUBLISHED'; d['publishReceipt']=receipt
+                      rp.write_text(json.dumps(d,indent=2,ensure_ascii=False)+'\n')
+          regp.write_text(json.dumps(reg,indent=2,ensure_ascii=False)+'\n')
+          pathlib.Path('deploy-status/bbya-underground-latest-publish.json').write_text(json.dumps(receipt,indent=2)+'\n')
+          print(json.dumps({'publishedTrackIndexes':live,'count':len(live)},indent=2))
+          PY
+
+      - name: Persist live Underground state
+        if: steps.ready.outputs.count != '0'
+        shell: bash
+        working-directory: source
+        run: |
+          set -euo pipefail
+          git add maps/bbya-social-hub/85-basement-autodj.server.lua \
+                  maps/bbya-social-hub/103-music-ui-final.client.lua \
+                  maps/bbya-social-hub/109-music-catalog-reset.server.lua \
+                  maps/bbya-social-hub/audio-playlists/underground.json \
+                  deploy-status/bbya-underground-track*.json \
+                  deploy-status/bbya-underground-latest-publish.json
+          if ! git diff --cached --quiet; then
+            git commit -m 'Publish Underground cadangan 02 batch [skip ci]'
+            git pull --rebase origin main
+            git push origin HEAD:main
+          fi
