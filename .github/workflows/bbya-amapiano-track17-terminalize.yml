@@ -1,0 +1,115 @@
+name: BBYA Amapiano Track17 Terminalize
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/bbya-amapiano-track17-terminalize.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  terminalize:
+    runs-on: ubuntu-latest
+    env:
+      SOURCE_TOKEN: ${{ secrets.ACC_ROBLOX_MAPS_WRITE_TOKEN || secrets.ACC_ROBLOX_MAPS_READ_TOKEN }}
+    steps:
+      - name: Checkout BBYA Source of Truth
+        uses: actions/checkout@v4
+        with:
+          repository: ardarawk-cloud/ACC-Roblox-maps
+          ref: main
+          token: ${{ env.SOURCE_TOKEN }}
+          fetch-depth: 0
+
+      - name: Permanently terminalize rejected Amapiano track 17
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+
+          idx = 17
+          drive = '1VejyxYx2Ct56vvYLS9M_KROL_oqxv93y'
+          asset = '138963662106198'
+          sha = '2168181d1df05306cb56caa680c53ab02b0d30f99b3f1e9a24e6d479146ffbce'
+          title = 'ACC_Audio_1787515040799.mp3'
+          rejected_at = '2026-08-25T03:00:00.930815+00:00'
+
+          def load(path):
+              return json.loads(Path(path).read_text(encoding='utf-8'))
+          def save(path, obj):
+              Path(path).write_text(json.dumps(obj, indent=2, ensure_ascii=False) + '\n', encoding='utf-8')
+
+          main_p = 'maps/bbya-social-hub/audio-playlists/vip-amapiano.json'
+          extra_p = 'maps/bbya-social-hub/audio-playlists/vip-amapiano-extra.json'
+          black_p = 'maps/bbya-social-hub/audio-blacklist.json'
+          report_p = 'deploy-status/bbya-vip-track17.json'
+
+          main = load(main_p)
+          extra = load(extra_p)
+          black = load(black_p)
+          report = load(report_p)
+
+          for collection in (main.get('tracks', []), extra.get('tracks', [])):
+              for t in collection:
+                  if int(t.get('index', 0)) == idx:
+                      t['assetId'] = asset
+                      t['bbyaPermission'] = False
+                      t['status'] = 'MODERATION_REJECTED'
+                      t['moderationLastKnown'] = 'Rejected'
+
+          black.setdefault('items', {})[drive] = {
+              'driveId': drive,
+              'title': title,
+              'reason': 'ROBLOX_MODERATION_REJECTED_PERMANENT',
+              'previousAssetId': asset,
+              'sourceSha256': sha,
+              'blacklistedAt': rejected_at,
+              'moderationState': 'Rejected'
+          }
+
+          report['status'] = 'MODERATION_REJECTED'
+          report['readyToInject'] = False
+          report['assetId'] = asset
+          report['moderationState'] = 'Rejected'
+          if isinstance(report.get('operationResult'), dict):
+              response = report['operationResult'].get('response')
+              if isinstance(response, dict):
+                  response.setdefault('moderationResult', {})['moderationState'] = 'Rejected'
+
+          save(main_p, main)
+          save(extra_p, extra)
+          save(black_p, black)
+          save(report_p, report)
+          print('TRACK17_TERMINALIZED_PERMANENTLY')
+          PY
+
+      - name: Commit Source of Truth
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'BBYA Audio Cadangan 01'
+          git config user.email 'actions@users.noreply.github.com'
+          git add maps/bbya-social-hub/audio-playlists/vip-amapiano.json \
+                  maps/bbya-social-hub/audio-playlists/vip-amapiano-extra.json \
+                  maps/bbya-social-hub/audio-blacklist.json \
+                  deploy-status/bbya-vip-track17.json
+          if git diff --cached --quiet; then
+            echo 'TRACK17_ALREADY_TERMINALIZED'
+            exit 0
+          fi
+          git commit -m 'Blacklist rejected BBYA Amapiano track 17 [skip ci]'
+          for attempt in 1 2 3; do
+            if git pull --rebase origin main && git push origin HEAD:main; then
+              echo 'SOURCE_OF_TRUTH_TERMINALIZED'
+              exit 0
+            fi
+            git rebase --abort >/dev/null 2>&1 || true
+            git fetch origin main
+            sleep $((attempt * 2))
+          done
+          exit 1
