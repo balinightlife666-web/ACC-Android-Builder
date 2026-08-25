@@ -13,9 +13,9 @@ jobs:
     if: github.event_name == 'workflow_dispatch' || startsWith(github.event.issue.title, 'ROBLOX AUDIO KEY TEST')
     runs-on: ubuntu-latest
     env:
-      AUDIO_KEY: ${{ secrets.ROBLOX_PUBLISH_CADANGAN_AUDII_01 }}
+      AUDIO_KEY: ${{ secrets.AM_STUDIO_AUDIO_CADANGAN_02 }}
     steps:
-      - name: Check key availability and audio scopes
+      - name: Check key availability, owner, and audio scopes
         id: keycheck
         shell: bash
         run: |
@@ -38,16 +38,17 @@ jobs:
               scopes=d.get('scopes') or []
               asset=any(s.get('name')=='asset' and {'read','write'}.issubset(set(s.get('operations') or [])) for s in scopes)
               perm=any(s.get('name')=='asset-permissions:write' or (s.get('name')=='asset-permissions' and 'write' in (s.get('operations') or [])) for s in scopes)
+              uid=str(d.get('authorizedUserId') or '')
               if d.get('expired') is True:
-                  print('KEY_EXPIRED')
+                  print(f'KEY_EXPIRED owner={uid}')
               elif d.get('enabled') is False:
-                  print('KEY_DISABLED')
+                  print(f'KEY_DISABLED owner={uid}')
               elif not asset:
-                  print('MISSING_ASSET_RW_SCOPE')
+                  print(f'MISSING_ASSET_RW_SCOPE owner={uid}')
               elif not perm:
-                  print('MISSING_ASSET_PERMISSION_SCOPE')
+                  print(f'MISSING_ASSET_PERMISSION_SCOPE owner={uid}')
               else:
-                  print('PASS_AUDIO_KEY')
+                  print(f'PASS_AUDIO_KEY owner={uid}')
           except Exception:
               print('INVALID_INTROSPECT_RESPONSE')
           PY
