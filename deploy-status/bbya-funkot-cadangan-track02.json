@@ -1,12 +1,12 @@
 {
-  "status": "BLACKLISTED_PLATFORM_DURATION_LIMIT",
+  "status": "BLACKLISTED_MODERATION_REJECTED",
   "trackIndex": 2,
   "title": "Zinyo Funkytone - Dua Hati 2025.mp3",
   "driveFileId": "1VbCLgHOYQqrLQVVUCmfSB2m4xFCNZjNs",
   "sourceSha256": "e5e973a12894ee591dc8461fa294eba053651cce6e7902c8b67f9fc4c91b47d4",
-  "assetId": null,
+  "assetId": "135192682811125",
   "bbyaPermission": false,
-  "moderationLastKnown": null,
-  "sourceReportStatus": "BLACKLISTED_PLATFORM_DURATION_LIMIT",
-  "recordedAt": "2026-08-24T15:15:53.204550+00:00"
+  "moderationLastKnown": "Rejected",
+  "sourceReportStatus": "BLACKLISTED_MODERATION_REJECTED",
+  "recordedAt": "2026-08-25T04:21:26.508552+00:00"
 }

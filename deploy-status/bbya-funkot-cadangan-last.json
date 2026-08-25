@@ -1,12 +1,12 @@
 {
-  "status": "READY_TO_INJECT",
-  "trackIndex": 1,
-  "title": "Zinyo Funkytone - Siapa Benar - Garam Cina 2025.mp3",
-  "driveFileId": "1ywtpqc6GsnQUTW4kJyHG76OVDnxEJ_i5",
-  "sourceSha256": "a61ae24bfa273c9c4d5f40a441ddda5d8c2a8e8a50ee685e829cb806f70804a4",
-  "assetId": "128141893547516",
-  "bbyaPermission": true,
-  "moderationLastKnown": "Approved",
-  "sourceReportStatus": "READY_TO_INJECT",
-  "recordedAt": "2026-08-25T04:17:08.295424+00:00"
+  "status": "BLACKLISTED_MODERATION_REJECTED",
+  "trackIndex": 2,
+  "title": "Zinyo Funkytone - Dua Hati 2025.mp3",
+  "driveFileId": "1VbCLgHOYQqrLQVVUCmfSB2m4xFCNZjNs",
+  "sourceSha256": "e5e973a12894ee591dc8461fa294eba053651cce6e7902c8b67f9fc4c91b47d4",
+  "assetId": "135192682811125",
+  "bbyaPermission": false,
+  "moderationLastKnown": "Rejected",
+  "sourceReportStatus": "BLACKLISTED_MODERATION_REJECTED",
+  "recordedAt": "2026-08-25T04:21:26.508552+00:00"
 }
