@@ -1,0 +1,70 @@
+name: BBYA Underground Buffer 39-48
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.bbya-underground-buffer-39-48-trigger'
+
+permissions:
+  contents: read
+
+jobs:
+  buffer:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout BBYA Source of Truth
+        uses: actions/checkout@v4
+        with:
+          repository: ardarawk-cloud/ACC-Roblox-maps
+          ref: main
+          token: ${{ secrets.ACC_ROBLOX_MAPS_WRITE_TOKEN || secrets.ACC_ROBLOX_MAPS_READ_TOKEN }}
+          path: source
+          fetch-depth: 0
+
+      - name: Append next Underground Drive files idempotently
+        working-directory: source
+        env:
+          SOURCE_TOKEN: ${{ secrets.ACC_ROBLOX_MAPS_WRITE_TOKEN || secrets.ACC_ROBLOX_MAPS_READ_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ -n "${SOURCE_TOKEN:-}" ]] || { echo SOURCE_TOKEN_MISSING; exit 10; }
+          git config user.name 'BBYA Underground Buffer'
+          git config user.email 'actions@users.noreply.github.com'
+          python3 - <<'PY'
+          import json, pathlib
+          p=pathlib.Path('maps/bbya-social-hub/audio-playlists/underground.json')
+          d=json.loads(p.read_text())
+          entries=[
+            (39,'SOMEWHERE - RC BKB REMIX - (1)','1AvDlNjyRSTM0ZG_VzDS51B4CK7CprMlW','audio/mpeg',10249819),
+            (40,'So Sexy (Siva Remix)','1cwltAgMzldxaJtIqpfwxFou2x_VtWfIe','audio/x-wav',60884798),
+            (41,'SIK ASIK - Mail Alektra (BKB EDIT) - MAIL ALEKTRA','1mrmILqWbXyuI7Ww7m3yQQ-HF5raBOnjA','audio/mpeg',11813874),
+            (42,"She's Gone BKB 2025 (Donmixedit)",'1RAS8XsDHn6uTS3XkJLfF2IRjV866fymX','audio/mpeg',13073870),
+            (43,'SEDIA AKU SEBELUM HUJAN -QMUNK AMSTRONG #BKB','1ilwWk1GMLVhIH__1niKIW31GMEN9Qe4b','audio/mpeg',10488664),
+            (44,'RAIHANKHAIRI & DJ WRISABA - JUST ANOTHER NIGHT- (BKB EDIT)','1r08VaCYDRujNwjDkEoMyOcr4mc-xVUsH','audio/mpeg',10546356),
+            (45,'POK ANI ANI - DJ VINNIE PARGOY, BILLIE KOPLO','1lCL-aoHh5XdyCcvZhcTLgb8VjRPFEzE2','audio/mpeg',4865672),
+            (46,'Pimp - El kiyano (Bkb edit)','1ICVGOf1HdjTTVCOoRxKsgiXf2pSiNk47','audio/mpeg',10901444),
+            (47,'PICA PICA 2 - ARIEF RASIT (BKB EDIT)','14p8KyGMtiRLX7e2b1UH3dDyWgdUSMru7','audio/mpeg',11146483),
+            (48,'pararam-bkb-ipan-agstyan','1EsxlmIYAexZYlrGapH9jE3uZa459SqCt','audio/mpeg',3027695),
+          ]
+          ids={str(t.get('driveFileId')) for t in d.get('tracks',[])}
+          idxs={int(t.get('index',0)) for t in d.get('tracks',[])}
+          added=[]
+          for idx,title,fid,mime,size in entries:
+              if fid in ids or idx in idxs:
+                  continue
+              d['tracks'].append({'index':idx,'title':title,'driveFileId':fid,'sourceMimeType':mime,'sourceSizeBytes':size,'assetId':None,'bbyaPermission':False,'status':'PREPARED_LOCAL','moderationLastKnown':None})
+              ids.add(fid); idxs.add(idx); added.append(idx)
+          d['tracks'].sort(key=lambda x:int(x.get('index',999999)))
+          p.write_text(json.dumps(d,indent=2,ensure_ascii=False)+'\n')
+          print('ADDED',added)
+          PY
+          git add maps/bbya-social-hub/audio-playlists/underground.json
+          if ! git diff --cached --quiet; then
+            git commit -m 'Buffer Underground tracks 39-48 [skip ci]'
+            git pull --rebase origin main
+            git push origin HEAD:main
+          else
+            echo BUFFER_ALREADY_PRESENT
+          fi
