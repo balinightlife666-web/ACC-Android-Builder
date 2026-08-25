@@ -1,12 +1,12 @@
 {
-  "status": "BLACKLISTED_MODERATION_REJECTED",
-  "trackIndex": 7,
-  "title": "SUKA SAMA SUKA ( FREDY NRC ) 2026.mp3",
-  "driveFileId": "1LR8vlK1wA3Pr3oI88-vIBlnIXZ-NN5o0",
-  "sourceSha256": "56d83cb18851b2adc646dcbe18f98c6d007de175da458a42532bb8405e39ddcd",
-  "assetId": "95790294815690",
-  "bbyaPermission": false,
-  "moderationLastKnown": "Rejected",
-  "sourceReportStatus": "BLACKLISTED_MODERATION_REJECTED",
-  "recordedAt": "2026-08-25T08:23:56.518986+00:00"
+  "status": "READY_TO_INJECT",
+  "trackIndex": 8,
+  "title": "Space Melody '23 _ Dj Deri Rmx • Qiu-Qiu™️.mp3",
+  "driveFileId": "10jpTCLc9AAtLqT4TqT4BfuChy5uEEvO-",
+  "sourceSha256": "e7091b186285542326d5119aaf108005c48b7c7b5cd3ef1fcba228bc825184d4",
+  "assetId": "128567852049551",
+  "bbyaPermission": true,
+  "moderationLastKnown": "Approved",
+  "sourceReportStatus": "READY_TO_INJECT",
+  "recordedAt": "2026-08-25T09:26:37.762854+00:00"
 }

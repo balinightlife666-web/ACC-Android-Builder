@@ -1,12 +1,12 @@
 {
-  "status": "BLACKLISTED_PLATFORM_DURATION_LIMIT",
+  "status": "READY_TO_INJECT",
   "trackIndex": 8,
   "title": "Space Melody '23 _ Dj Deri Rmx • Qiu-Qiu™️.mp3",
   "driveFileId": "10jpTCLc9AAtLqT4TqT4BfuChy5uEEvO-",
   "sourceSha256": "e7091b186285542326d5119aaf108005c48b7c7b5cd3ef1fcba228bc825184d4",
-  "assetId": null,
-  "bbyaPermission": false,
-  "moderationLastKnown": null,
-  "sourceReportStatus": "BLACKLISTED_PLATFORM_DURATION_LIMIT",
-  "recordedAt": "2026-08-24T15:22:41.953637+00:00"
+  "assetId": "128567852049551",
+  "bbyaPermission": true,
+  "moderationLastKnown": "Approved",
+  "sourceReportStatus": "READY_TO_INJECT",
+  "recordedAt": "2026-08-25T09:26:37.762854+00:00"
 }
