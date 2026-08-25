@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 import argparse, datetime as dt, json, pathlib
 
+# READY_TO_INJECT is intentionally not terminal. A ready asset must be
+# staged/published and marked LIVE before another new asset may be created.
 TERMINAL={
     "LIVE_IN_PLAYLIST",
-    "READY_TO_INJECT",
     "BLACKLISTED_MODERATION_REJECTED",
     "BLACKLISTED_DUPLICATE_SOURCE",
     "BLACKLISTED_PLATFORM_DURATION_LIMIT",
