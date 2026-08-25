@@ -1,1 +1,1 @@
-2026-08-25T20:17:00+08:00 PRIORITY FUNKOT FAST CHAIN: recheck existing Track08 asset only; if Approved publish and persist LIVE; immediately self-dispatch next terminal-safe track; no duplicate upload; keep one outstanding moderation asset
+2026-08-25T21:21:52+08:00 AUTOMATION: recheck existing Funkot Track08 asset 128567852049551 only; if Approved publish + persist LIVE; then self-dispatch next terminal-safe track; no duplicate/new asset while Track08 unresolved
