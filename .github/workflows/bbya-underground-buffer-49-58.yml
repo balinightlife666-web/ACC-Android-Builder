@@ -1,0 +1,76 @@
+name: BBYA Underground Buffer 49-58
+
+on:
+  issues:
+    types: [opened]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  buffer:
+    if: github.event_name == 'workflow_dispatch' || startsWith(github.event.issue.title, 'BBYA UNDERGROUND BUFFER 49-58')
+    runs-on: ubuntu-latest
+    env:
+      SOURCE_TOKEN: ${{ secrets.ACC_ROBLOX_MAPS_WRITE_TOKEN || secrets.ACC_ROBLOX_MAPS_READ_TOKEN }}
+    steps:
+      - name: Checkout BBYA Source of Truth
+        uses: actions/checkout@v4
+        with:
+          repository: ardarawk-cloud/ACC-Roblox-maps
+          ref: main
+          token: ${{ env.SOURCE_TOKEN }}
+          path: source
+          fetch-depth: 0
+
+      - name: Append next unique Drive tracks 49-58
+        working-directory: source
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'BBYA Underground Buffer'
+          git config user.email 'actions@users.noreply.github.com'
+          python3 - <<'PY'
+          import json, pathlib
+          p=pathlib.Path('maps/bbya-social-hub/audio-playlists/underground.json')
+          reg=json.loads(p.read_text())
+          expected=[
+            (49,'Om Abidin - Ani Ani ( Club Mix )','1zujqtgLZr913D-xwHrFhqYU8dLuweBpX','audio/mpeg',13656874),
+            (50,'Ni De Wan Shui Qian Shan - Aldy alvaro, DJ U','1K3VHEZsdjFK8orw137UlRCDnSI0f5Kc7','audio/mpeg',9559830),
+            (51,'Ni De Da An - Aldy alvaro, Putra Crazy BKB e','1wOGgBUD2Wy2-x742AUhSrC0qr4l1dFIo','audio/mpeg',9476708),
+            (52,'NGAPAIN REPOT (RAYEN BKB EDIT)','1Mm_nVNHypVUX4X3-FWpPepRwgo41AERG','audio/mpeg',4097729),
+            (53,'NGAPAIN REPOT (DEKA EDIT)','1QnKdlY5DeF0quo_kmPNPrIhkjH56fiL3','audio/mpeg',6311219),
+            (54,'Ngapain Repot ( Aldy Alvaro BKB edit )','1l4uO8thTs8zXpk0ZnW0vqbtFMdMUe9sM','audio/mpeg',7340032),
+            (55,'MUGWANTI ( BKB ) - EVER SALIKARA (1)','1F8-0k9cAZf1ho1PEpM2hRv724NnbMhuG','audio/x-wav',28707652),
+            (56,'MORENA BKB (HARLY EDIT)','1dc7PFdQwxa1ecqTPIseammnYYymiIuZW','audio/x-wav',39410320),
+            (57,'MILLION STARS - SULVES BKB EDIT -','1liUohMETYRzAFRx9eKtusdLRatdiymDq','audio/x-wav',34849446),
+            (58,'MATTA BAND - KETAHUAN BKB (VIP LORDBOY EDIT)-1','1zTUr-rml-rQoQayB28IrblYy1Ry8JkMf','audio/mpeg',12176698),
+          ]
+          by_id={str(t.get('driveFileId')) for t in reg.get('tracks',[])}
+          by_idx={int(t.get('index',0)) for t in reg.get('tracks',[])}
+          added=[]
+          for idx,title,fid,mime,size in expected:
+              if idx in by_idx or fid in by_id:
+                  continue
+              reg['tracks'].append({'index':idx,'title':title,'driveFileId':fid,'sourceMimeType':mime,'sourceSizeBytes':size,'assetId':None,'bbyaPermission':False,'status':'PREPARED_LOCAL','moderationLastKnown':None})
+              added.append(idx)
+          reg['tracks']=sorted(reg.get('tracks',[]), key=lambda x:int(x.get('index',999999)))
+          p.write_text(json.dumps(reg,indent=2,ensure_ascii=False)+'\n')
+          print('ADDED',added)
+          PY
+          git add maps/bbya-social-hub/audio-playlists/underground.json
+          if ! git diff --cached --quiet; then
+            git commit -m 'Buffer Underground tracks 49-58 [skip ci]'
+            git pull --rebase origin main
+            git push origin HEAD:main
+          fi
+
+      - name: Comment completion
+        if: github.event_name == 'issues'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+          REPO: ${{ github.repository }}
+        run: gh issue comment "$ISSUE_NUMBER" --repo "$REPO" --body 'BUFFER_49_58_DONE'
