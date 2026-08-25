@@ -1,0 +1,175 @@
+name: BBYA Move Main Breakbeat to Underground
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.bbya-main-to-underground-trigger'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: bbya-main-to-underground-reclassify
+  cancel-in-progress: false
+
+jobs:
+  reclassify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      SOURCE_TOKEN: ${{ secrets.ACC_ROBLOX_MAPS_WRITE_TOKEN || secrets.ACC_ROBLOX_MAPS_READ_TOKEN }}
+    steps:
+      - name: Checkout fresh BBYA Source of Truth
+        uses: actions/checkout@v4
+        with:
+          repository: ardarawk-cloud/ACC-Roblox-maps
+          ref: main
+          token: ${{ env.SOURCE_TOKEN }}
+          fetch-depth: 0
+
+      - name: Move RUN AWAY asset from Main Club to Underground
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'BBYA Playlist Reclassifier'
+          git config user.email 'actions@users.noreply.github.com'
+
+          for attempt in 1 2 3 4 5; do
+            git fetch origin main
+            git reset --hard origin/main
+
+            python3 - <<'PY'
+          import json, pathlib, re, datetime
+
+          root=pathlib.Path('.')
+          target='99998363156285'
+          title='11A - 130 - RUN AWAY - Unknown Artist'
+          now=datetime.datetime.now(datetime.timezone.utc).isoformat().replace('+00:00','Z')
+
+          main_path=root/'maps/bbya-social-hub/30-club-systems.server.lua'
+          underground_path=root/'maps/bbya-social-hub/85-basement-autodj.server.lua'
+          registry_path=root/'maps/bbya-social-hub/audio-playlists/underground.json'
+          state_path=root/'deploy-status/bbya-audio-safe-batch.json'
+
+          # 1) MAIN runtime: remove this asset only from the Main PLAYLIST block.
+          src=main_path.read_text(encoding='utf-8')
+          m=re.search(r'(local PLAYLIST=\{)(.*?)(\n\}\n\nlocal SUPPORT_PRODUCTS=)',src,re.S)
+          if not m:
+              raise SystemExit('MAIN_PLAYLIST_BLOCK_NOT_FOUND')
+          block=m.group(2)
+          kept=[]; removed=0
+          for line in block.splitlines():
+              if target in line:
+                  removed+=1
+                  continue
+              kept.append(line)
+          if removed>1:
+              raise SystemExit(f'MAIN_DUPLICATE_TARGET_ROWS_{removed}')
+          new_block='\n'.join(kept)
+          src=src[:m.start(2)]+new_block+src[m.end(2):]
+          main_path.write_text(src,encoding='utf-8')
+
+          # 2) Underground registry: preserve same approved asset, no re-upload.
+          reg=json.loads(registry_path.read_text(encoding='utf-8'))
+          tracks=reg.setdefault('tracks',[])
+          matches=[t for t in tracks if str(t.get('assetId') or '')==target]
+          if len(matches)>1:
+              raise SystemExit('UNDERGROUND_REGISTRY_DUPLICATE_TARGET')
+          if matches:
+              t=matches[0]
+          else:
+              max_index=max([int(t.get('index') or 0) for t in tracks] or [0])
+              t={'index':max_index+1,'title':title,'assetId':target}
+              tracks.append(t)
+          t['title']=title
+          t['assetId']=target
+          t['bbyaPermission']=True
+          t['status']='LIVE_IN_PLAYLIST'
+          t['moderationLastKnown']='Approved'
+          t['movedFrom']='MAIN_CLUB'
+          t['movedTo']='UNDERGROUND'
+          t['genreClassification']='breakbeat'
+          t['movedAt']=now
+          t['doNotReinjectToMain']=True
+          t['reusedExistingAsset']=True
+          registry_path.write_text(json.dumps(reg,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
+
+          # 3) Underground runtime: add the same asset once, preserving current authority.
+          us=underground_path.read_text(encoding='utf-8')
+          um=re.search(r'(local PLAYLIST=\{)(.*?)(\n\}\n\nlocal MIX_SECONDS=)',us,re.S)
+          if not um:
+              raise SystemExit('UNDERGROUND_PLAYLIST_BLOCK_NOT_FOUND')
+          ublock=um.group(2)
+          # Remove accidental duplicates first, then append exactly once.
+          ulines=[ln for ln in ublock.splitlines() if target not in ln]
+          safe_title=title.replace('\\','\\\\').replace('"','\\"')
+          if ulines and ulines[-1].strip() and not ulines[-1].rstrip().endswith(','):
+              ulines[-1]=ulines[-1]+','
+          ulines.append(f' {{title="{safe_title}",id="{target}",style="underground"}}')
+          new_ublock='\n'.join(ulines)
+          us=us[:um.start(2)]+new_ublock+us[um.end(2):]
+          underground_path.write_text(us,encoding='utf-8')
+
+          # 4) Main batch state lock: keep future Main automation from reinjecting it.
+          state_changed=False
+          if state_path.exists():
+              state=json.loads(state_path.read_text(encoding='utf-8'))
+              def walk(x):
+                  nonlocal_state=[False]
+                  if isinstance(x,dict):
+                      values={str(v) for v in x.values() if isinstance(v,(str,int))}
+                      if target in values:
+                          x['status']='MOVED_TO_UNDERGROUND'
+                          x['movedFrom']='MAIN_CLUB'
+                          x['movedTo']='UNDERGROUND'
+                          x['genreClassification']='breakbeat'
+                          x['doNotReinjectToMain']=True
+                          x['movedAt']=now
+                          nonlocal_state[0]=True
+                      for v in x.values():
+                          if walk(v): nonlocal_state[0]=True
+                  elif isinstance(x,list):
+                      for v in x:
+                          if walk(v): nonlocal_state[0]=True
+                  return nonlocal_state[0]
+              state_changed=walk(state)
+              if state_changed:
+                  state_path.write_text(json.dumps(state,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
+
+          # Hard QC.
+          main_check=main_path.read_text(encoding='utf-8')
+          ug_check=underground_path.read_text(encoding='utf-8')
+          reg_check=json.loads(registry_path.read_text(encoding='utf-8'))
+          if target in re.search(r'local PLAYLIST=\{(.*?)\n\}\n\nlocal SUPPORT_PRODUCTS=',main_check,re.S).group(1):
+              raise SystemExit('QC_FAIL_TARGET_STILL_IN_MAIN')
+          if ug_check.count(target)!=1:
+              raise SystemExit(f'QC_FAIL_UNDERGROUND_RUNTIME_COUNT_{ug_check.count(target)}')
+          if sum(1 for t in reg_check.get('tracks',[]) if str(t.get('assetId') or '')==target)!=1:
+              raise SystemExit('QC_FAIL_UNDERGROUND_REGISTRY_COUNT')
+          print('RECLASSIFY_PASS',target,'removed_from_main',removed,'state_lock',state_changed)
+          PY
+
+            git add maps/bbya-social-hub/30-club-systems.server.lua \
+                    maps/bbya-social-hub/85-basement-autodj.server.lua \
+                    maps/bbya-social-hub/audio-playlists/underground.json
+            [[ -f deploy-status/bbya-audio-safe-batch.json ]] && git add deploy-status/bbya-audio-safe-batch.json
+
+            if git diff --cached --quiet; then
+              echo ALREADY_RECLASSIFIED
+              git rev-parse HEAD
+              exit 0
+            fi
+
+            git commit -m 'Move RUN AWAY breakbeat from Main Club to Underground [skip ci]'
+            if git push origin HEAD:main; then
+              echo RECLASSIFY_PUSH_PASS
+              git rev-parse HEAD
+              exit 0
+            fi
+            echo "Source moved during reclassification; retry $attempt/5 from fresh main"
+            sleep $((attempt*2))
+          done
+          echo RECLASSIFY_PUSH_FAILED_AFTER_RETRIES
+          exit 21
