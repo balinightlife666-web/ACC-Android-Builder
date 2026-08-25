@@ -1,0 +1,107 @@
+name: BBYA Underground Cadangan 02 Probe
+
+on:
+  issues:
+    types: [opened]
+
+permissions:
+  issues: write
+  contents: read
+
+concurrency:
+  group: bbya-amapiano-audio-cadangan-01
+  cancel-in-progress: false
+
+jobs:
+  probe:
+    if: startsWith(github.event.issue.title, 'UNDERGROUND CADANGAN02 TEST')
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      SOURCE_REPO: ardarawk-cloud/ACC-Roblox-maps
+      SOURCE_TOKEN: ${{ secrets.ACC_ROBLOX_MAPS_WRITE_TOKEN || secrets.ACC_ROBLOX_MAPS_READ_TOKEN }}
+      AUDIO_KEY: ${{ secrets.AM_STUDIO_AUDIO_CADANGAN_02 }}
+      BBYA_UNIVERSE: '8116636513'
+      EXPECTED_AUDIO_OWNER_USER_ID: '10001957153'
+      TRACK_INDEX: '33'
+      DRIVE_FILE_ID: '1aLXWtWlCpVAru0zwmsDDl2BcV_SV2LQF'
+      MODERATION_WAIT_SECONDS: '180'
+
+    steps:
+      - name: Checkout Source of Truth
+        uses: actions/checkout@v4
+        with:
+          repository: ardarawk-cloud/ACC-Roblox-maps
+          ref: main
+          token: ${{ env.SOURCE_TOKEN }}
+          path: source
+          fetch-depth: 0
+
+      - name: Validate key 02
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ -n "${AUDIO_KEY:-}" ]] || { echo SECRET_MISSING_AM_STUDIO_AUDIO_CADANGAN_02; exit 10; }
+          tmp=$(mktemp)
+          code=$(curl -sS -o "$tmp" -w '%{http_code}' -X POST \
+            'https://apis.roblox.com/api-keys/v1/introspect' \
+            -H 'Content-Type: application/json' \
+            --data "{\"apiKey\":\"$AUDIO_KEY\"}")
+          [[ "$code" == '200' ]] || { echo "INTROSPECT_HTTP_$code"; exit 11; }
+          python3 - "$tmp" <<'PY'
+          import json,sys
+          d=json.load(open(sys.argv[1]))
+          scopes=d.get('scopes') or []
+          asset=any(s.get('name')=='asset' and {'read','write'}.issubset(set(s.get('operations') or [])) for s in scopes)
+          perm=any(s.get('name')=='asset-permissions:write' or (s.get('name')=='asset-permissions' and 'write' in (s.get('operations') or [])) for s in scopes)
+          uid=str(d.get('authorizedUserId') or '')
+          if uid!='10001957153' or not asset or not perm or d.get('expired') is True or d.get('enabled') is False:
+              raise SystemExit(f'CADANGAN02_KEY_GATE_FAILED owner={uid}')
+          print('CADANGAN02_KEY_PASS owner='+uid)
+          PY
+
+      - name: Download Track 33 only
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m pip install --quiet gdown
+          out="$RUNNER_TEMP/underground-track033.mp3"
+          gdown "https://drive.google.com/uc?id=${DRIVE_FILE_ID}" -O "$out"
+          [[ -s "$out" ]] || { echo SOURCE_DOWNLOAD_EMPTY; exit 20; }
+          echo "AUDIO_PATH=$out" >> "$GITHUB_ENV"
+
+      - name: Upload and moderate Track 33 with cadangan 02
+        shell: bash
+        working-directory: source
+        run: python3 scripts/bbya-underground-single-inject.py
+
+      - name: Persist Track 33 checkpoint
+        shell: bash
+        working-directory: source
+        run: |
+          set -euo pipefail
+          git config user.name 'BBYA Underground Cadangan 02'
+          git config user.email 'actions@users.noreply.github.com'
+          git add maps/bbya-social-hub/audio-playlists/underground.json deploy-status/bbya-underground-track033.json
+          if ! git diff --cached --quiet; then
+            git commit -m 'Probe Underground Track 33 via cadangan 02 [skip ci]'
+            git pull --rebase origin main
+            git push origin HEAD:main
+          fi
+
+      - name: Comment probe result
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+          REPO: ${{ github.repository }}
+        shell: bash
+        run: |
+          result=$(python3 - <<'PY'
+          import json
+          d=json.load(open('source/deploy-status/bbya-underground-track033.json'))
+          print('status=%s assetId=%s moderation=%s ready=%s owner=%s' % (
+              d.get('status'), d.get('assetId'), d.get('moderationState'), d.get('readyToInject'),
+              ((d.get('key') or {}).get('authorizedUserId'))))
+          PY
+          )
+          gh issue comment "$ISSUE_NUMBER" --repo "$REPO" --body "$result"
