@@ -1,8 +1,8 @@
 {
-  "action": "RECHECK_EXISTING",
-  "trackIndex": 3,
-  "assetId": "80455951712097",
-  "driveFileId": "1R9ysfatoATX_JLqmPUTyeVde_wQ7Kq_W",
-  "sourceSha256": "1b67fb38de3ab64c25bc93346f3190dcf8f73ef6e98a40da00fa466cfd222d99",
-  "title": "Dovian - Starting Over (Lyrics) - Sensual Musique"
+  "action": "UPLOAD_NEW",
+  "trackIndex": 4,
+  "assetId": null,
+  "driveFileId": "1B3-Fl1dKWyTygaHZkO_7qN4SFjtP5bMr",
+  "sourceSha256": null,
+  "title": "The Beach, DANÊL - Tears On My Guitar (Lyrics) - Sensual Musique"
 }
