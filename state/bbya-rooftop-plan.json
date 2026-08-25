@@ -1,8 +1,8 @@
 {
-  "action": "UPLOAD_NEW",
+  "action": "RECHECK_EXISTING",
   "trackIndex": 5,
-  "assetId": null,
+  "assetId": "84789283615350",
   "driveFileId": "1k4wdb0bsO_pXM3LK6ZnFTMqCbWh7DYAr",
-  "sourceSha256": null,
+  "sourceSha256": "ed5942a4b4d2536e6796a9ce84b9345dfab9a70d90d9148b47d40ec3546f3e74",
   "title": "DALEXO, MCN2, KOOLKID - Criminal Love (Lyrics) - Sensual Musique"
 }
