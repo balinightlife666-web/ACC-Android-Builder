@@ -1,12 +1,12 @@
 {
-  "status": "MODERATION_PENDING",
+  "status": "READY_TO_INJECT",
   "trackIndex": 2,
   "title": "Rolipso - Come Around (Lyrics) - Sensual Musique",
   "driveFileId": "1rJD-vRTn5wr5C83mnyfS75pWoXIClSJC",
   "sourceSha256": "b121c3c38602311fe191ac7a233e5706ded2aa11d9e0086b1de17077a8bb796d",
   "assetId": "102905513042645",
-  "bbyaPermission": false,
-  "moderationLastKnown": "Reviewing",
-  "sourceReportStatus": "MODERATION_PENDING",
-  "recordedAt": "2026-08-25T09:41:22.652053+00:00"
+  "bbyaPermission": true,
+  "moderationLastKnown": "Approved",
+  "sourceReportStatus": "READY_TO_INJECT",
+  "recordedAt": "2026-08-25T09:43:50.643074+00:00"
 }
