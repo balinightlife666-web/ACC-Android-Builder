@@ -1,0 +1,65 @@
+name: BBYA Underground Queue One
+on:
+  push:
+    branches: [main]
+    paths: ['.bbya-underground-queue-trigger']
+permissions:
+  contents: write
+jobs:
+  queue_one:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/checkout@v4
+        with:
+          repository: ardarawk-cloud/ACC-Roblox-maps
+          ref: main
+          token: ${{ secrets.ACC_ROBLOX_MAPS_WRITE_TOKEN || secrets.ACC_ROBLOX_MAPS_READ_TOKEN }}
+          path: source
+          fetch-depth: 0
+      - name: Append Track 011 only if absent
+        working-directory: source
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json,pathlib
+          p=pathlib.Path('maps/bbya-social-hub/audio-playlists/underground.json')
+          d=json.loads(p.read_text())
+          if any(int(x.get('index',0))==11 for x in d.get('tracks',[])):
+              print('TRACK_011_ALREADY_PRESENT')
+              raise SystemExit(0)
+          d['tracks'].append({
+            'index':11,
+            'title':'KICAU MANIA (AMSTERBOY EDIT) -BKB HYPER-',
+            'driveFileId':'1EE1UWathKgwDSaECbc0rwZszoXGVVC17',
+            'sourceMimeType':'audio/x-wav',
+            'sourceSizeBytes':44925197,
+            'assetId':None,
+            'bbyaPermission':False,
+            'status':'PREPARED_LOCAL',
+            'moderationLastKnown':None
+          })
+          p.write_text(json.dumps(d,indent=2,ensure_ascii=False)+'\n')
+          PY
+          git config user.name 'BBYA Underground Queue One'
+          git config user.email 'actions@users.noreply.github.com'
+          git add maps/bbya-social-hub/audio-playlists/underground.json
+          if ! git diff --cached --quiet; then
+            git commit -m 'Queue Underground Track 011 from Drive [skip ci]'
+            git pull --rebase origin main
+            git push origin HEAD:main
+          fi
+      - name: Trigger existing one-track runner
+        shell: bash
+        run: |
+          set -euo pipefail
+          printf '%s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ) TRACK 011 CADANGAN_01 SHARED_AUDIO_LOCK" > .bbya-underground-audio-trigger
+          git config user.name 'BBYA Underground Queue One'
+          git config user.email 'actions@users.noreply.github.com'
+          git add .bbya-underground-audio-trigger
+          git commit -m 'Trigger BBYA Underground Track 011 on cadangan runner'
+          git pull --rebase origin main
+          git push origin HEAD:main
