@@ -1,8 +1,8 @@
 {
-  "action": "RECHECK_EXISTING",
-  "trackIndex": 4,
-  "assetId": "109110582528763",
-  "driveFileId": "1B3-Fl1dKWyTygaHZkO_7qN4SFjtP5bMr",
-  "sourceSha256": "fae0780f5f95388eed8b88f645aaa59ed2f2f12819836e1c09dc43450f498155",
-  "title": "The Beach, DANÊL - Tears On My Guitar (Lyrics) - Sensual Musique"
+  "action": "UPLOAD_NEW",
+  "trackIndex": 5,
+  "assetId": null,
+  "driveFileId": "1k4wdb0bsO_pXM3LK6ZnFTMqCbWh7DYAr",
+  "sourceSha256": null,
+  "title": "DALEXO, MCN2, KOOLKID - Criminal Love (Lyrics) - Sensual Musique"
 }
