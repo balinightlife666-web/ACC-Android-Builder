@@ -10,6 +10,7 @@ on:
 permissions:
   contents: write
 
+# trigger: 2026-08-25T10:54:00+08:00
 jobs:
   patch:
     runs-on: ubuntu-latest
