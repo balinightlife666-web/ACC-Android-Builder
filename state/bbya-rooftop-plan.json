@@ -1,8 +1,8 @@
 {
-  "action": "RECHECK_EXISTING",
-  "trackIndex": 2,
-  "assetId": "102905513042645",
-  "driveFileId": "1rJD-vRTn5wr5C83mnyfS75pWoXIClSJC",
-  "sourceSha256": "b121c3c38602311fe191ac7a233e5706ded2aa11d9e0086b1de17077a8bb796d",
-  "title": "Rolipso - Come Around (Lyrics) - Sensual Musique"
+  "action": "UPLOAD_NEW",
+  "trackIndex": 3,
+  "assetId": null,
+  "driveFileId": "1R9ysfatoATX_JLqmPUTyeVde_wQ7Kq_W",
+  "sourceSha256": null,
+  "title": "Dovian - Starting Over (Lyrics) - Sensual Musique"
 }
