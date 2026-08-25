@@ -1,0 +1,122 @@
+name: BBYA Move VIP Progressive to Main
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.bbya-vip-progressive-move-trigger'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: bbya-vip-progressive-reclassify
+  cancel-in-progress: false
+
+jobs:
+  move_tracks:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      SOURCE_TOKEN: ${{ secrets.ACC_ROBLOX_MAPS_WRITE_TOKEN || secrets.ACC_ROBLOX_MAPS_READ_TOKEN }}
+    steps:
+      - name: Checkout fresh BBYA Source of Truth
+        uses: actions/checkout@v4
+        with:
+          repository: ardarawk-cloud/ACC-Roblox-maps
+          ref: main
+          token: ${{ env.SOURCE_TOKEN }}
+          fetch-depth: 0
+
+      - name: Reclassify Utopia and Tiket from VIP to Main Progressive
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'BBYA Playlist Reclassifier'
+          git config user.email 'actions@users.noreply.github.com'
+
+          for attempt in 1 2 3 4 5; do
+            git fetch origin main
+            git reset --hard origin/main
+
+            python3 - <<'PY'
+          import json, pathlib, datetime
+
+          root=pathlib.Path('.')
+          reg_path=root/'maps/bbya-social-hub/audio-playlists/vip-amapiano.json'
+          main_path=root/'maps/bbya-social-hub/30-club-systems.server.lua'
+          targets={
+              '136681158481930':'Utopia - Baby Doll (Phatbee Edit)',
+              '131557279061872':'Tiket - Hanya Kamu yg Bisa (Phatbee & Berco Edit)',
+          }
+
+          reg=json.loads(reg_path.read_text(encoding='utf-8'))
+          found=set()
+          moved_at=datetime.datetime.now(datetime.timezone.utc).isoformat().replace('+00:00','Z')
+          for track in reg.get('tracks',[]):
+              aid=str(track.get('assetId') or '')
+              if aid in targets:
+                  if track.get('bbyaPermission') is not True or track.get('moderationLastKnown') != 'Approved':
+                      raise SystemExit(f'SAFETY_GATE_FAILED_{aid}')
+                  found.add(aid)
+                  track['status']='MOVED_TO_MAIN_CLUB'
+                  track['movedFrom']='VIP'
+                  track['movedTo']='MAIN_CLUB'
+                  track['genreClassification']='progressive'
+                  track['movedAt']=moved_at
+                  track['doNotReinjectToVip']=True
+          missing=set(targets)-found
+          if missing:
+              raise SystemExit('VIP_TARGETS_NOT_FOUND_'+','.join(sorted(missing)))
+          reg_path.write_text(json.dumps(reg,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
+
+          src=main_path.read_text(encoding='utf-8')
+          marker='-- MAIN_PROGRESSIVE_UPLOAD_END'
+          if marker not in src:
+              raise SystemExit('MAIN_PROGRESSIVE_MARKER_MISSING')
+          rows=[]
+          for aid,title in targets.items():
+              if aid not in src:
+                  safe_title=title.replace('\\','\\\\').replace('"','\\"')
+                  rows.append(f' {{title="{safe_title}",id="{aid}",style="progressive"}},')
+          if rows:
+              src=src.replace(marker,'\n'.join(rows)+'\n'+marker,1)
+              main_path.write_text(src,encoding='utf-8')
+          print('RECLASSIFY_GATE_PASS',sorted(found),'MAIN_NEW_ROWS',len(rows))
+          PY
+
+            # Official VIP builder reads registry status; MOVED_TO_MAIN_CLUB is excluded,
+            # regenerating both VIP server authority and compact UI without these tracks.
+            python3 scripts/bbya-vip-amapiano-build.py
+
+            # Hard assertions: both only in Main runtime, neither in active VIP runtime/UI.
+            grep -q '136681158481930' maps/bbya-social-hub/30-club-systems.server.lua
+            grep -q '131557279061872' maps/bbya-social-hub/30-club-systems.server.lua
+            ! grep -q '136681158481930' maps/bbya-social-hub/110-vip-track01.server.lua
+            ! grep -q '131557279061872' maps/bbya-social-hub/110-vip-track01.server.lua
+            ! grep -q '136681158481930' maps/bbya-social-hub/103-music-ui-final.client.lua
+            ! grep -q '131557279061872' maps/bbya-social-hub/103-music-ui-final.client.lua
+
+            git add maps/bbya-social-hub/30-club-systems.server.lua \
+                    maps/bbya-social-hub/audio-playlists/vip-amapiano.json \
+                    maps/bbya-social-hub/110-vip-track01.server.lua \
+                    maps/bbya-social-hub/103-music-ui-final.client.lua
+
+            if git diff --cached --quiet; then
+              echo ALREADY_RECLASSIFIED
+              git rev-parse HEAD
+              exit 0
+            fi
+
+            git commit -m 'Move Tiket and Utopia from VIP to Main Club [skip ci]'
+            if git push origin HEAD:main; then
+              echo RECLASSIFY_PUSH_PASS
+              git rev-parse HEAD
+              exit 0
+            fi
+            echo "Source moved during reclassification; retry $attempt/5 from fresh main"
+            sleep $((attempt*2))
+          done
+          echo RECLASSIFY_PUSH_FAILED_AFTER_RETRIES
+          exit 21
