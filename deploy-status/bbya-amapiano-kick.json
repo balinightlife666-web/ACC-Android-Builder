@@ -1,20 +1,32 @@
 {
   "status": "DISPATCHED",
   "http": "204",
-  "dispatcherRunId": "32803291785",
+  "dispatcherRunId": "32803752895",
   "response": "",
-  "dispatchStartedAt": "2026-08-25T02:56:45Z",
-  "recordedAt": "2026-08-25T02:56:51Z",
+  "dispatchStartedAt": "2026-08-25T03:04:08Z",
+  "recordedAt": "2026-08-25T03:04:14Z",
   "runs": [
+    {
+      "id": 32803761740,
+      "run_number": 19,
+      "event": "workflow_dispatch",
+      "status": "queued",
+      "conclusion": null,
+      "created_at": "2026-08-25T03:04:10Z",
+      "run_started_at": "2026-08-25T03:04:10Z",
+      "updated_at": "2026-08-25T03:04:10Z",
+      "head_sha": "354ecb74930abee61457ebba500f86b3cc651ca5",
+      "html_url": "https://github.com/balinightlife666-web/ACC-Android-Builder/actions/runs/32803761740"
+    },
     {
       "id": 32803300595,
       "run_number": 18,
       "event": "workflow_dispatch",
-      "status": "pending",
-      "conclusion": null,
+      "status": "completed",
+      "conclusion": "failure",
       "created_at": "2026-08-25T02:56:46Z",
       "run_started_at": "2026-08-25T02:56:46Z",
-      "updated_at": "2026-08-25T02:56:49Z",
+      "updated_at": "2026-08-25T03:00:05Z",
       "head_sha": "2b969309b0a6eecb23f5d12de3e7e92d734412a3",
       "html_url": "https://github.com/balinightlife666-web/ACC-Android-Builder/actions/runs/32803300595"
     },
@@ -22,11 +34,11 @@
       "id": 32803273432,
       "run_number": 17,
       "event": "workflow_dispatch",
-      "status": "in_progress",
-      "conclusion": null,
+      "status": "completed",
+      "conclusion": "success",
       "created_at": "2026-08-25T02:56:19Z",
       "run_started_at": "2026-08-25T02:56:19Z",
-      "updated_at": "2026-08-25T02:56:24Z",
+      "updated_at": "2026-08-25T02:57:20Z",
       "head_sha": "3513b06dec76de99545224138f717c9bab6f0fed",
       "html_url": "https://github.com/balinightlife666-web/ACC-Android-Builder/actions/runs/32803273432"
     },
@@ -113,18 +125,6 @@
       "updated_at": "2026-08-24T19:19:03Z",
       "head_sha": "1a610feaee171ca4837a104521a5309e5c1eaa07",
       "html_url": "https://github.com/balinightlife666-web/ACC-Android-Builder/actions/runs/32767392640"
-    },
-    {
-      "id": 32755790157,
-      "run_number": 9,
-      "event": "schedule",
-      "status": "completed",
-      "conclusion": "failure",
-      "created_at": "2026-08-24T17:17:39Z",
-      "run_started_at": "2026-08-24T17:17:39Z",
-      "updated_at": "2026-08-24T17:18:12Z",
-      "head_sha": "383edf85050a9955413d89b023d2f32715558006",
-      "html_url": "https://github.com/balinightlife666-web/ACC-Android-Builder/actions/runs/32755790157"
     }
   ]
 }
