@@ -1,0 +1,654 @@
+{
+  "audit": "AFTER_SCHOOL_CITY_LIVE_MAP_INSPECT_V1",
+  "mode": "READ_ONLY",
+  "universeId": "10745359869",
+  "placeId": "121603385909425",
+  "ok": true,
+  "recordedAt": "2026-08-26T07:28:52Z",
+  "http": {
+    "root": 200,
+    "workspace": 200
+  },
+  "services": [
+    {
+      "name": "Workspace",
+      "className": "?",
+      "id": "43d8b47d-c641-568f-0a98-a60000000002",
+      "hasChildren": true
+    },
+    {
+      "name": "Run Service",
+      "className": "?",
+      "id": "001a985c-cb68-d449-0aa0-2f9200000003",
+      "hasChildren": false
+    },
+    {
+      "name": "GuiService",
+      "className": "?",
+      "id": "001a985c-cb68-d449-0aa0-2f9200000004",
+      "hasChildren": true
+    },
+    {
+      "name": "Stats",
+      "className": "?",
+      "id": "001a985c-cb68-d449-0aa0-2f9200000006",
+      "hasChildren": true
+    },
+    {
+      "name": "Instance",
+      "className": "?",
+      "id": "43d8b47d-c641-568f-0a98-a60000000349",
+      "hasChildren": false
+    },
+    {
+      "name": "SoundService",
+      "className": "?",
+      "id": "43d8b47d-c641-568f-0a98-a6000000034b",
+      "hasChildren": false
+    },
+    {
+      "name": "VideoCaptureService",
+      "className": "?",
+      "id": "43d8b47d-c641-568f-0a98-a60000000357",
+      "hasChildren": false
+    },
+    {
+      "name": "LogService",
+      "className": "?",
+      "id": "001a985c-cb68-d449-0aa0-2f9200000365",
+      "hasChildren": false
+    },
+    {
+      "name": "MicroProfilerService",
+      "className": "?",
+      "id": "001a985c-cb68-d449-0aa0-2f9200000366",
+      "hasChildren": false
+    },
+    {
+      "name": "ContentProvider",
+      "className": "?",
+      "id": "001a985c-cb68-d449-0aa0-2f9200000367",
+      "hasChildren": false
+    },
+    {
+      "name": "KeyframeSequenceProvider",
+      "className": "?",
+      "id": "001a985c-cb68-d449-0aa0-2f9200000368",
+      "hasChildren": false
+    },
+    {
+      "name": "AnimationClipProvider",
+      "className": "?",
+      "id": "001a985c-cb68-d449-0aa0-2f9200000369",
+      "hasChildren": false
+    },
+    {
+      "name": "Chat",
+      "className": "?",
+      "id": "43d8b47d-c641-568f-0a98-a6000000035f",
+      "hasChildren": false
+    },
+    {
+      "name": "Players",
+      "className": "?",
+      "id": "43d8b47d-c641-568f-0a98-a60000000361",
+      "hasChildren": false
+    },
+    {
+      "name": "MarketplaceService",
+      "className": "?",
+      "id": "001a985c-cb68-d449-0aa0-2f920000036c",
+      "hasChildren": false
+    },
+    {
+      "name": "PointsService",
+      "className": "?",
+      "id": "001a985c-cb68-d449-0aa0-2f920000036d",
+      "hasChildren": false
+    },
+    {
+      "name": "NotificationService",
+      "className": "?",
+      "id": "001a985c-cb68-d449-0aa0-2f920000036e",
+      "hasChildren": false
+    },
+    {
+      "name": "ReplicatedFirst",
+      "className": "?",
+      "id": "43d8b47d-c641-568f-0a98-a60000000364",
+      "hasChildren": false
+    },
+    {
+      "name": "HttpRbxApiService",
+      "className": "?",
+      "id": "001a985c-cb68-d449-0aa0-2f9200000370",
+      "hasChildren": false
+    },
+    {
+      "name": "TweenService",
+      "className": "?",
+      "id": "43d8b47d-c641-568f-0a98-a60000000366",
+      "hasChildren": false
+    },
+    {
+      "name": "MaterialService",
+      "className": "?",
+      "id": "43d8b47d-c641-568f-0a98-a60000000367",
+      "hasChildren": false
+    },
+    {
+      "name": "TextChatService",
+      "className": "?",
+      "id": "43d8b47d-c641-568f-0a98-a60000000368",
+      "hasChildren": true
+    },
+    {
+      "name": "TextService",
+      "className": "?",
+      "id": "001a985c-cb68-d449-0aa0-2f9200000374",
+      "hasChildren": false
+    },
+    {
+      "name": "SharedTableRegistry",
+      "className": "?",
+      "id": "001a985c-cb68-d449-0aa0-2f9200000379",
+      "hasChildren": false
+    },
+    {
+      "name": "StarterPlayer",
+      "className": "?",
+      "id": "43d8b47d-c641-568f-0a98-a60000000370",
+      "hasChildren": true
+    },
+    {
+      "name": "StarterPack",
+      "className": "?",
+      "id": "43d8b47d-c641-568f-0a98-a60000000371",
+      "hasChildren": false
+    },
+    {
+      "name": "StarterGui",
+      "className": "?",
+      "id": "43d8b47d-c641-568f-0a98-a60000000372",
+      "hasChildren": false
+    },
+    {
+      "name": "LocalizationService",
+      "className": "?",
+      "id": "43d8b47d-c641-568f-0a98-a60000000374",
+      "hasChildren": false
+    },
+    {
+      "name": "PolicyService",
+      "className": "?",
+      "id": "001a985c-cb68-d449-0aa0-2f9200000380",
+      "hasChildren": false
+    },
+    {
+      "name": "Teleport Service",
+      "className": "?",
+      "id": "43d8b47d-c641-568f-0a98-a60000000378",
+      "hasChildren": false
+    },
+    {
+      "name": "JointsService",
+      "className": "?",
+      "id": "001a985c-cb68-d449-0aa0-2f9200000384",
+      "hasChildren": false
+    },
+    {
+      "name": "CollectionService",
+      "className": "?",
+      "id": "43d8b47d-c641-568f-0a98-a6000000034a",
+      "hasChildren": false
+    },
+    {
+      "name": "PhysicsService",
+      "className": "?",
+      "id": "43d8b47d-c641-568f-0a98-a6000000037a",
+      "hasChildren": false
+    },
+    {
+      "name": "BadgeService",
+      "className": "?",
+      "id": "001a985c-cb68-d449-0aa0-2f9200000387",
+      "hasChildren": false
+    },
+    {
+      "name": "FriendService",
+      "className": "?",
+      "id": "001a985c-cb68-d449-0aa0-2f9200000388",
+      "hasChildren": false
+    },
+    {
+      "name": "InsertService",
+      "className": "?",
+      "id": "43d8b47d-c641-568f-0a98-a6000000037d",
+      "hasChildren": true
+    },
+    {
+      "name": "GamePassService",
+      "className": "?",
+      "id": "43d8b47d-c641-568f-0a98-a6000000037e",
+      "hasChildren": false
+    },
+    {
+      "name": "Debris",
+      "className": "?",
+      "id": "43d8b47d-c641-568f-0a98-a6000000037f",
+      "hasChildren": false
+    },
+    {
+      "name": "CookiesService",
+      "className": "?",
+      "id": "43d8b47d-c641-568f-0a98-a60000000380",
+      "hasChildren": false
+    },
+    {
+      "name": "Selection",
+      "className": "?",
+      "id": "43d8b47d-c641-568f-0a98-a60000000381",
+      "hasChildren": false
+    },
+    {
+      "name": "UserInputService",
+      "className": "?",
+      "id": "001a985c-cb68-d449-0aa0-2f920000038e",
+      "hasChildren": false
+    },
+    {
+      "name": "KeyboardService",
+      "className": "?",
+      "id": "001a985c-cb68-d449-0aa0-2f920000038f",
+      "hasChildren": false
+    },
+    {
+      "name": "MouseService",
+      "className": "?",
+      "id": "001a985c-cb68-d449-0aa0-2f9200000390",
+      "hasChildren": false
+    },
+    {
+      "name": "VRService",
+      "className": "?",
+      "id": "43d8b47d-c641-568f-0a98-a60000000385",
+      "hasChildren": false
+    },
+    {
+      "name": "ContextActionService",
+      "className": "?",
+      "id": "43d8b47d-c641-568f-0a98-a60000000386",
+      "hasChildren": false
+    },
+    {
+      "name": "Instance",
+      "className": "?",
+      "id": "43d8b47d-c641-568f-0a98-a60000000387",
+      "hasChildren": false
+    },
+    {
+      "name": "AssetService",
+      "className": "?",
+      "id": "43d8b47d-c641-568f-0a98-a60000000388",
+      "hasChildren": false
+    },
+    {
+      "name": "TouchInputService",
+      "className": "?",
+      "id": "43d8b47d-c641-568f-0a98-a6000000038a",
+      "hasChildren": false
+    },
+    {
+      "name": "BrowserService",
+      "className": "?",
+      "id": "001a985c-cb68-d449-0aa0-2f9200000397",
+      "hasChildren": false
+    },
+    {
+      "name": "CaptureService",
+      "className": "?",
+      "id": "001a985c-cb68-d449-0aa0-2f9200000398",
+      "hasChildren": false
+    },
+    {
+      "name": "SlimContentProvider",
+      "className": "?",
+      "id": "001a985c-cb68-d449-0aa0-2f920000039c",
+      "hasChildren": false
+    },
+    {
+      "name": "Packages",
+      "className": "?",
+      "id": "43d8b47d-c641-568f-0a98-a60000000394",
+      "hasChildren": false
+    },
+    {
+      "name": "GuidRegistryService",
+      "className": "?",
+      "id": "43d8b47d-c641-568f-0a98-a60000000395",
+      "hasChildren": false
+    },
+    {
+      "name": "AvatarCreationService",
+      "className": "?",
+      "id": "001a985c-cb68-d449-0aa0-2f92000003a4",
+      "hasChildren": false
+    },
+    {
+      "name": "GenerationService",
+      "className": "?",
+      "id": "001a985c-cb68-d449-0aa0-2f92000003a5",
+      "hasChildren": false
+    },
+    {
+      "name": "MatchmakingService",
+      "className": "?",
+      "id": "001a985c-cb68-d449-0aa0-2f92000003a6",
+      "hasChildren": false
+    },
+    {
+      "name": "ConfigureServerService",
+      "className": "?",
+      "id": "19875de8-f5aa-3173-0a98-a61400000398",
+      "hasChildren": false
+    },
+    {
+      "name": "ChangeHistoryService",
+      "className": "?",
+      "id": "001a985c-cb68-d449-0aa0-2f92000003a9",
+      "hasChildren": false
+    },
+    {
+      "name": "NetworkServer",
+      "className": "?",
+      "id": "001a985c-cb68-d449-0aa0-2f92000003ae",
+      "hasChildren": false
+    },
+    {
+      "name": "ClusterPacketCache",
+      "className": "?",
+      "id": "001a985c-cb68-d449-0aa0-2f92000003b6",
+      "hasChildren": false
+    },
+    {
+      "name": "DataStoreService",
+      "className": "?",
+      "id": "43d8b47d-c641-568f-0a98-a600000003c5",
+      "hasChildren": false
+    },
+    {
+      "name": "HttpService",
+      "className": "?",
+      "id": "43d8b47d-c641-568f-0a98-a600000003b8",
+      "hasChildren": false
+    },
+    {
+      "name": "Lighting",
+      "className": "?",
+      "id": "43d8b47d-c641-568f-0a98-a600000003c6",
+      "hasChildren": true
+    },
+    {
+      "name": "ProximityPromptService",
+      "className": "?",
+      "id": "43d8b47d-c641-568f-0a98-a600000003c8",
+      "hasChildren": false
+    },
+    {
+      "name": "ReplicatedStorage",
+      "className": "?",
+      "id": "43d8b47d-c641-568f-0a98-a6000000039e",
+      "hasChildren": false
+    },
+    {
+      "name": "ServerScriptService",
+      "className": "?",
+      "id": "43d8b47d-c641-568f-0a98-a6000000039f",
+      "hasChildren": false
+    },
+    {
+      "name": "ServerStorage",
+      "className": "?",
+      "id": "43d8b47d-c641-568f-0a98-a600000003a0",
+      "hasChildren": false
+    },
+    {
+      "name": "ServiceVisibilityService",
+      "className": "?",
+      "id": "43d8b47d-c641-568f-0a98-a600000003a3",
+      "hasChildren": false
+    },
+    {
+      "name": "Teams",
+      "className": "?",
+      "id": "43d8b47d-c641-568f-0a98-a600000003c9",
+      "hasChildren": false
+    },
+    {
+      "name": "TestService",
+      "className": "?",
+      "id": "43d8b47d-c641-568f-0a98-a600000003ca",
+      "hasChildren": false
+    },
+    {
+      "name": "VideoService",
+      "className": "?",
+      "id": "43d8b47d-c641-568f-0a98-a600000003ef",
+      "hasChildren": false
+    },
+    {
+      "name": "VoiceChatService",
+      "className": "?",
+      "id": "43d8b47d-c641-568f-0a98-a600000003cd",
+      "hasChildren": false
+    },
+    {
+      "name": "SpawnerService",
+      "className": "?",
+      "id": "001a985c-cb68-d449-0aa0-2f9200000e2a",
+      "hasChildren": false
+    },
+    {
+      "name": "PackageService",
+      "className": "?",
+      "id": "001a985c-cb68-d449-0aa0-2f9200000e2b",
+      "hasChildren": false
+    },
+    {
+      "name": "FeatureRestrictionManager",
+      "className": "?",
+      "id": "001a985c-cb68-d449-0aa0-2f9200000e2e",
+      "hasChildren": false
+    },
+    {
+      "name": "CommerceService",
+      "className": "?",
+      "id": "001a985c-cb68-d449-0aa0-2f9200000e30",
+      "hasChildren": false
+    },
+    {
+      "name": "RecommendationService",
+      "className": "?",
+      "id": "001a985c-cb68-d449-0aa0-2f9200000e31",
+      "hasChildren": false
+    },
+    {
+      "name": "AdService",
+      "className": "?",
+      "id": "001a985c-cb68-d449-0aa0-2f9200000e32",
+      "hasChildren": false
+    },
+    {
+      "name": "SocialService",
+      "className": "?",
+      "id": "001a985c-cb68-d449-0aa0-2f9200000e33",
+      "hasChildren": false
+    },
+    {
+      "name": "AvatarEditorService",
+      "className": "?",
+      "id": "001a985c-cb68-d449-0aa0-2f9200000e35",
+      "hasChildren": false
+    },
+    {
+      "name": "ScriptProfilerService",
+      "className": "?",
+      "id": "001a985c-cb68-d449-0aa0-2f9200000e37",
+      "hasChildren": false
+    },
+    {
+      "name": "HeapProfilerService",
+      "className": "?",
+      "id": "001a985c-cb68-d449-0aa0-2f9200000e38",
+      "hasChildren": false
+    },
+    {
+      "name": "ModerationService",
+      "className": "?",
+      "id": "001a985c-cb68-d449-0aa0-2f9200000e3a",
+      "hasChildren": false
+    },
+    {
+      "name": "AnalyticsService",
+      "className": "?",
+      "id": "001a985c-cb68-d449-0aa0-2f9200000e3b",
+      "hasChildren": false
+    },
+    {
+      "name": "VersionControlService",
+      "className": "?",
+      "id": "001a985c-cb68-d449-0aa0-2f9200000e3c",
+      "hasChildren": false
+    },
+    {
+      "name": "RemoteCommandService",
+      "className": "?",
+      "id": "001a985c-cb68-d449-0aa0-2f9200000e40",
+      "hasChildren": false
+    },
+    {
+      "name": "Script Context",
+      "className": "?",
+      "id": "001a985c-cb68-d449-0aa0-2f9200000e41",
+      "hasChildren": false
+    },
+    {
+      "name": "PermissionsService",
+      "className": "?",
+      "id": "001a985c-cb68-d449-0aa0-2f9200000e53",
+      "hasChildren": false
+    }
+  ],
+  "workspaceTopLevel": [
+    {
+      "name": "Camera",
+      "className": "?",
+      "id": "43d8b47d-c641-568f-0a98-a600000003ce",
+      "hasChildren": false
+    },
+    {
+      "name": "Baseplate",
+      "className": "?",
+      "id": "43d8b47d-c641-568f-0a98-a600000003cf",
+      "hasChildren": true
+    },
+    {
+      "name": "Terrain",
+      "className": "?",
+      "id": "43d8b47d-c641-568f-0a98-a600000003d1",
+      "hasChildren": false
+    },
+    {
+      "name": "SpawnLocation",
+      "className": "?",
+      "id": "43d8b47d-c641-568f-0a98-a600000003d2",
+      "hasChildren": true
+    }
+  ],
+  "tree": [
+    {
+      "path": "Workspace/Camera",
+      "name": "Camera",
+      "className": "?",
+      "id": "43d8b47d-c641-568f-0a98-a600000003ce",
+      "depth": 1,
+      "hasChildren": false
+    },
+    {
+      "path": "Workspace/Baseplate",
+      "name": "Baseplate",
+      "className": "?",
+      "id": "43d8b47d-c641-568f-0a98-a600000003cf",
+      "depth": 1,
+      "hasChildren": true
+    },
+    {
+      "path": "Workspace/Terrain",
+      "name": "Terrain",
+      "className": "?",
+      "id": "43d8b47d-c641-568f-0a98-a600000003d1",
+      "depth": 1,
+      "hasChildren": false
+    },
+    {
+      "path": "Workspace/SpawnLocation",
+      "name": "SpawnLocation",
+      "className": "?",
+      "id": "43d8b47d-c641-568f-0a98-a600000003d2",
+      "depth": 1,
+      "hasChildren": true
+    },
+    {
+      "path": "Workspace/Baseplate/Texture",
+      "name": "Texture",
+      "className": "?",
+      "id": "43d8b47d-c641-568f-0a98-a600000003d0",
+      "depth": 2,
+      "hasChildren": false
+    },
+    {
+      "path": "Workspace/SpawnLocation/Decal",
+      "name": "Decal",
+      "className": "?",
+      "id": "43d8b47d-c641-568f-0a98-a600000003d3",
+      "depth": 2,
+      "hasChildren": false
+    }
+  ],
+  "classCounts": {
+    "?": 6
+  },
+  "notable": [
+    {
+      "path": "Workspace/Camera",
+      "className": "?",
+      "properties": {
+        "engineInstance.Name": "Camera"
+      }
+    },
+    {
+      "path": "Workspace/Terrain",
+      "className": "?",
+      "properties": {
+        "engineInstance.Name": "Terrain"
+      }
+    },
+    {
+      "path": "Workspace/SpawnLocation",
+      "className": "?",
+      "properties": {
+        "engineInstance.Name": "SpawnLocation"
+      }
+    }
+  ],
+  "geometrySamples": [],
+  "stats": {
+    "nodesVisited": 6,
+    "detailCalls": 3,
+    "workspaceTopLevelCount": 4,
+    "treeDepthCap": 8,
+    "nodeCap": 1200,
+    "truncated": false
+  },
+  "errors": []
+}
