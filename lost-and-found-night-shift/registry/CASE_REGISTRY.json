@@ -1,0 +1,16 @@
+{
+  "version": "1.0",
+  "status": "M0_TEST_REGISTRY",
+  "cases": [
+    {"id":"LF-M0-001","title":"Routine Claim","type":"normal","correctDecision":"RETURN","resolution":"CLOSED","risk":"low"},
+    {"id":"LF-M0-002","title":"Wrong Color","type":"normal","correctDecision":"SECURITY","resolution":"CLOSED","risk":"medium"},
+    {"id":"LF-M0-003","title":"Tag Mismatch","type":"normal","correctDecision":"STORE","resolution":"CLOSED","risk":"low"},
+    {"id":"LF-M0-004","title":"No Claimant","type":"normal","correctDecision":"STORE","resolution":"CLOSED","risk":"low"},
+    {"id":"LF-M0-005","title":"False Claim","type":"normal","correctDecision":"SECURITY","resolution":"CLOSED","risk":"medium"},
+    {"id":"LF-M0-006","title":"Ownerless Suitcase","type":"mystery","correctDecision":"QUARANTINE","resolution":"CONNECTED","risk":"high"},
+    {"id":"LF-M0-007","title":"Flight 000","type":"mystery","correctDecision":"QUARANTINE","resolution":"CONNECTED","risk":"high"},
+    {"id":"LF-M0-008","title":"Changing Weight","type":"mystery","correctDecision":"QUARANTINE","resolution":"RESOLVED","risk":"high"},
+    {"id":"LF-M0-009","title":"Double Identity","type":"mystery","correctDecision":"SECURITY","resolution":"UNRESOLVED","risk":"high"},
+    {"id":"LF-M0-010","title":"The Lost Child","type":"mystery","correctDecision":"SECURITY","resolution":"CONNECTED","risk":"high"}
+  ]
+}

@@ -1,0 +1,10 @@
+{
+  "version": "1.0",
+  "status": "M0",
+  "assets": [],
+  "rule": "No external asset is production-approved until visual, scale, collision, orientation, and performance QC pass.",
+  "m0": {
+    "externalAssetDependency": false,
+    "proceduralPlaceholderAllowed": true
+  }
+}
