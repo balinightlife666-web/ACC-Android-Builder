@@ -5,86 +5,72 @@ Updated: 2026-08-27
 ## Identity
 - Universe ID: `10745354451`
 - Place ID: `93699016600671`
-- Genre selection: Simulation
-- Subgenre selection: None
+- Genre: Simulation
+- Subgenre: None
 
 ## Infrastructure
 - Temporary repo/build home: `balinightlife666-web/ACC-Android-Builder/lost-and-found-night-shift`
-- Temporary routing is intentional while `ardarawk-cloud` quota/limits recover.
-- RR/Roblox publishing credential is present in ACC Builder; do not duplicate or expose credentials.
-- Lost & Found publish workflow is trigger-file/manual only; it does not run on ordinary commits.
+- Publish workflow is trigger-file/manual only.
+- Deployment authority is `deploy-status/lost-and-found-m0.json`; never claim LIVE from source changes alone.
+
+## M0 — FIRST SUITCASE
+**ACCEPTED FOR CONTINUATION.**
+
+Runtime proven on mobile:
+- player joins and can move;
+- case arrives on conveyor;
+- enforced sequence is `SCAN → CHECK TAG → OPEN → DECIDE`;
+- claimant data appears;
+- RETURN / STORE / QUARANTINE / SECURITY work;
+- grading and rewards work;
+- Credits amount displays live in the top HUD;
+- next case starts automatically;
+- compact case card + on-demand CASE FILE popup work on mobile.
+
+UI refinements through Roblox v10:
+- compact HUD moved toward upper-left and clear of joystick;
+- CASE FILE popup reduced while keeping readable evidence text;
+- compact HUD hides while CASE FILE is open;
+- result remains a bottom-center toast;
+- movement/camera safety guard restores normal mobile controls;
+- Credits are displayed separately at the top and update from leaderstats.
 
 ## Active milestone
-**M0 — FIRST SUITCASE**
+**M0.1 — FEEL PASS**
 
-Implementation target:
-`spawn → suitcase arrives → scan → check tag → inspect/open → claimant → decide → grade/reward → next case`
+Implemented:
+- conveyor travel tuned from 3.2s to 2.8s;
+- case advance delay tuned to 3.2s;
+- interaction distance normalized to 7 studs;
+- prompt hold duration reduced to 0.08s;
+- claimant staged with a short 0.45s arrival delay after creation;
+- lightweight built-in audio feedback layer for incoming case, ready state, SCAN, TAG, OPEN, blocked decision, and result grades;
+- M0 gameplay, HUD, movement safety, economy values, and 10-case registry otherwise unchanged.
 
-## Implemented in source
-- Rojo project structure
-- procedural M0 room builder
-- procedural suitcase and claimant placeholders
-- 10-case Lua registry
-- scanner/tag/open prompts
-- four decision prompts
-- result grading
-- Credits + XP leaderstats
-- automatic case cycling
-
-## Runtime authority so far
-M0 core runtime is proven alive on mobile:
-- player joins the generated Lost & Found room;
-- cases arrive and advance;
-- SCAN / CHECK TAG / OPEN sequence works;
-- claimant data appears;
-- decision pads work;
-- result/reward and next-case flow work.
-
-v5 runtime exposed defects: early decisions were allowed, HUD was too large, claimant labels and neon pads dominated the screen, and room readability was too dark.
-
-v6 fixed the gameplay gate and first visual/readability pass:
-- server-enforced `SCAN → CHECK TAG → OPEN → DECIDE`;
-- decision prompts locked until evidence is complete;
-- mobile HUD reduced;
-- smaller claimant labels;
-- subdued decision pads;
-- ceiling/lighting pass.
-
-Mobile retest of v6 proved the gameplay sequence and grading flow, but the permanent evidence panel still occupied too much horizontal screen area and competed with movement controls.
-
-## M0-QC3 — mobile Case File UI
-The HUD architecture is now:
-- always-on compact case card at upper-left;
-- compact card shows case identity, short status, SCAN/TAG/OPEN progress, and `CASE FILE` button;
-- full readable evidence is moved into an on-demand `CASE FILE` popup;
-- popup uses readable 14px mono evidence text and a scroll area rather than shrinking evidence;
-- popup can be closed immediately and is automatically closed on result/new incoming case;
-- result remains a compact bottom-center toast;
-- movement controls remain visually unobstructed during normal gameplay.
-
-Publish run `33001502235`:
-- Source commit: `097ca8e6b82a0c107c988874cc70730e42a45a9b`
-- Rojo: `7.7.0`
-- Static QC: **PASS**
-- Rojo build: **PASS**
-- RBXL bytes: `18156`
-- RBXL SHA256: `b6ea9340cedfbeb723981c9e6a996dd5332937f355b387c3a559b6f17853c3ee`
-- Roblox publish: **PASS**
-- Roblox version: `7`
-- Deploy receipt: `deploy-status/lost-and-found-m0.json`
+## M0.1 publish receipt
+Run: `33005125067`
+Source commit: `2fb9bf5298822ae8ec0249798cf5abd60c683159`
+Rojo: `7.7.0`
+Static QC: **PASS**
+Rojo build: **PASS**
+Roblox publish: **PASS**
+Roblox version: `11`
+RBXL bytes: `20923`
+RBXL SHA256: `7f8f73a19846e72d6807352ab996b0f4ee984e22023ff68403afdfff56e0cafa`
+Deploy receipt: `deploy-status/lost-and-found-m0.json`
 
 ## LIVE authority
-**LIVE_PUBLISHED — v7 BUILD/DEPLOY VERIFIED.**
-Roblox receipt proves source commit `097ca8e6b82a0c107c988874cc70730e42a45a9b` was published to Universe `10745354451` / Place `93699016600671` as Roblox version `7`.
+**LIVE_PUBLISHED — v11 BUILD/DEPLOY VERIFIED.**
+Runtime acceptance of the new M0.1 feel layer still requires a short mobile retest.
 
 ## Next gate
-**M0-RUNTIME3:** mobile UI acceptance for v7:
-1. compact case HUD does not interfere with movement controls;
-2. case title/status/progress remain readable at normal gameplay distance;
-3. `CASE FILE` opens full evidence popup;
-4. full evidence text remains comfortably readable without being tiny;
-5. popup can be closed and gameplay immediately resumes unobstructed;
-6. result toast remains readable without covering movement controls;
-7. gameplay sequence remains `SCAN → TAG → OPEN → DECIDE`.
+**M0.1-RUNTIME:** verify on mobile:
+1. movement/camera remain normal;
+2. conveyor pacing feels faster without feeling abrupt;
+3. prompts require closer intentional interaction;
+4. claimant arrival does not feel instantaneous;
+5. audio feedback is subtle and not annoying;
+6. Credits display continues updating correctly;
+7. full case loop still completes with no dead-end.
 
-Do not begin premium asset production until M0-RUNTIME3 passes.
+After M0.1 passes, proceed to **M1 — PREMIUM ROOM**. Do not start M2 collection expansion before M1 visual language is approved.
