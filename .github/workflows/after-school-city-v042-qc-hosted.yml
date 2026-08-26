@@ -1,0 +1,80 @@
+name: After School City V042 Hosted QC
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/after-school-city-v042-qc-hosted.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  qc:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    env:
+      SOURCE_REPO: ardarawk-cloud/ACC-Roblox-maps
+      SOURCE_SHA: 1205e8bda6de776ae00ba498a43047438bb53dd6
+
+    steps:
+      - name: Checkout publisher repository
+        uses: actions/checkout@v4
+
+      - name: Checkout locked ASC v0.4.2 source
+        uses: actions/checkout@v4
+        with:
+          repository: ardarawk-cloud/ACC-Roblox-maps
+          ref: 1205e8bda6de776ae00ba498a43047438bb53dd6
+          token: ${{ secrets.ACC_ROBLOX_MAPS_WRITE_TOKEN }}
+          path: asc-source
+          fetch-depth: 1
+
+      - name: Static source lock
+        shell: bash
+        run: |
+          set -euo pipefail
+          actual=$(git -C asc-source rev-parse HEAD)
+          [[ "$actual" == "$SOURCE_SHA" ]] || { echo "Source mismatch $actual"; exit 10; }
+          cfg='asc-source/maps/after-school-city/after-school-city.config.lua'
+          project='asc-source/maps/after-school-city/default.project.json'
+          fix='asc-source/maps/after-school-city/after-school-city.structural-realignment.server.lua'
+          intro='asc-source/maps/after-school-city/after-school-city.intro.client.lua'
+
+          jq -e . "$project" >/dev/null
+          grep -Fq '0.4.2-structural-realignment-1' "$cfg"
+          grep -Fq 'EnableStructuralRealignmentPass = true' "$cfg"
+          grep -Fq 'after-school-city.structural-realignment.server.lua' "$project"
+          grep -Fq 'V042_StructuralRealignment' "$fix"
+          grep -Fq 'ASC_RoadBuildingOverlapFixed' "$fix"
+          grep -Fq 'ASC_ClubSportsClearanceFixed' "$fix"
+          grep -Fq 'NorthSouthRoad' "$fix"
+          grep -Fq 'FrontWalk' "$fix"
+          grep -Fq 'ClubHub' "$fix"
+          grep -Fq 'PUTU AZYA PUTRI' "$intro"
+          ! grep -Eq 'MarketplaceService|PromptProductPurchase|ProcessReceipt|DataStoreService' "$fix"
+          echo "ASC v0.4.2 STATIC LOCK PASS source=$actual"
+
+      - name: Prepare Rojo 7.7.0
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/asc-rojo"
+          curl -fsSL 'https://github.com/rojo-rbx/rojo/releases/download/v7.7.0/rojo-7.7.0-linux-x86_64.zip' -o "$RUNNER_TEMP/rojo.zip"
+          unzip -q -o "$RUNNER_TEMP/rojo.zip" -d "$RUNNER_TEMP/asc-rojo"
+          rojo=$(find "$RUNNER_TEMP/asc-rojo" -type f -name rojo | head -n1)
+          chmod +x "$rojo"
+          "$rojo" --version
+          echo "ROJO_EXE=$rojo" >> "$GITHUB_ENV"
+
+      - name: Build exact ASC v0.4.2 place
+        shell: bash
+        run: |
+          set -euo pipefail
+          place="$RUNNER_TEMP/after-school-city-v042.rbxl"
+          "$ROJO_EXE" build 'asc-source/maps/after-school-city/default.project.json' -o "$place"
+          test -f "$place"
+          bytes=$(stat -c%s "$place")
+          (( bytes >= 1024 )) || { echo "Generated RBXL suspiciously small: $bytes"; exit 20; }
+          echo "ASC v0.4.2 ROJO BUILD PASS bytes=$bytes"
