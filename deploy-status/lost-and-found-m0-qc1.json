@@ -1,0 +1,19 @@
+{
+  "status": "PUBLISH_BLOCKED_ROBLOX_MODERATION",
+  "project": "LOST & FOUND: NIGHT SHIFT",
+  "milestone": "M0_FIRST_SUITCASE",
+  "sourceRepo": "balinightlife666-web/ACC-Android-Builder",
+  "sourceCommit": "be3707bed1aa67f657b92cd2723c2ee0603b6d8d",
+  "universeId": "10745354451",
+  "placeId": "93699016600671",
+  "rojoVersion": "7.7.0",
+  "staticQc": "PASS",
+  "build": "PASS",
+  "placeBytes": 15365,
+  "placeSha256": "058e31ad68c2992b6516fcc6d1ac01830db3424bed3e66a1da9ae65cd48d3347",
+  "publishHttp": 403,
+  "publishMessage": "User is moderated",
+  "workflowRunId": "32994564692",
+  "liveVerified": false,
+  "runtimeVerified": false
+}
