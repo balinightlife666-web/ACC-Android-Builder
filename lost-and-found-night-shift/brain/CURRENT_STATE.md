@@ -29,79 +29,62 @@ Implementation target:
 - four decision prompts
 - result grading
 - Credits + XP leaderstats
-- HUD client
 - automatic case cycling
 
-## M0-QC1 result
-Initial run `32994564692`:
-- Static QC: **PASS**
-- Rojo build: **PASS**
-- Roblox publish: blocked once with HTTP `403` / `User is moderated`
-
-Retry run `32998424565`:
-- Source commit: `d6d7b5fa4c606771afbbd5cb8c5b8eb5496a7554`
-- Rojo: `7.7.0`
-- Static QC: **PASS**
-- Rojo build: **PASS**
-- RBXL bytes: `15365`
-- RBXL SHA256: `058e31ad68c2992b6516fcc6d1ac01830db3424bed3e66a1da9ae65cd48d3347`
-- Roblox publish: **PASS**
-- Roblox version: `5`
-
-## M0-RUNTIME1 findings
-In-Roblox mobile screenshots verified that the basic runtime loop is alive:
+## Runtime authority so far
+M0 core runtime is proven alive on mobile:
 - player joins the generated Lost & Found room;
-- cases arrive and advance automatically;
+- cases arrive and advance;
+- SCAN / CHECK TAG / OPEN sequence works;
 - claimant data appears;
-- CHECK TAG interaction works;
 - decision pads work;
-- case completion advances into later cases.
+- result/reward and next-case flow work.
 
-Runtime defects found in v5:
-1. decisions could be submitted while SCAN and OPEN were still pending;
-2. mobile HUD was too large and overlapped Roblox top-bar space;
-3. claimant billboard labels were oversized;
-4. neon decision pads were visually overpowering;
-5. room readability was too dark.
+v5 runtime exposed defects: early decisions were allowed, HUD was too large, claimant labels and neon pads dominated the screen, and room readability was too dark.
 
-## M0-QC2 runtime patch
-Patch source changes:
-- enforce server-side inspection sequence `SCAN → CHECK TAG → OPEN → DECIDE`;
-- disable later prompts until the required previous inspection is complete;
-- disable all decision prompts until all three evidence steps are complete;
-- correct decision after full required inspection grades as PERFECT;
-- mobile-safe compact HUD and step-by-step instruction text;
-- result moved to a compact bottom toast;
-- smaller claimant billboard labels with max distance;
-- decision pads changed from full neon to subdued smooth-plastic colors;
-- ceiling and overhead lighting added for room readability.
+v6 fixed the gameplay gate and first visual/readability pass:
+- server-enforced `SCAN → CHECK TAG → OPEN → DECIDE`;
+- decision prompts locked until evidence is complete;
+- mobile HUD reduced;
+- smaller claimant labels;
+- subdued decision pads;
+- ceiling/lighting pass.
 
-Publish run `33000601563`:
-- Source commit: `ac73ed6e779f0f3568ecd27788a6991f3365c83f`
+Mobile retest of v6 proved the gameplay sequence and grading flow, but the permanent evidence panel still occupied too much horizontal screen area and competed with movement controls.
+
+## M0-QC3 — mobile Case File UI
+The HUD architecture is now:
+- always-on compact case card at upper-left;
+- compact card shows case identity, short status, SCAN/TAG/OPEN progress, and `CASE FILE` button;
+- full readable evidence is moved into an on-demand `CASE FILE` popup;
+- popup uses readable 14px mono evidence text and a scroll area rather than shrinking evidence;
+- popup can be closed immediately and is automatically closed on result/new incoming case;
+- result remains a compact bottom-center toast;
+- movement controls remain visually unobstructed during normal gameplay.
+
+Publish run `33001502235`:
+- Source commit: `097ca8e6b82a0c107c988874cc70730e42a45a9b`
 - Rojo: `7.7.0`
 - Static QC: **PASS**
 - Rojo build: **PASS**
-- RBXL bytes: `16439`
-- RBXL SHA256: `c043acb7d9eb384e0b5275596ab361316e085f676f16e7428471b5b00a2b0da1`
+- RBXL bytes: `18156`
+- RBXL SHA256: `b6ea9340cedfbeb723981c9e6a996dd5332937f355b387c3a559b6f17853c3ee`
 - Roblox publish: **PASS**
-- Roblox version: `6`
+- Roblox version: `7`
 - Deploy receipt: `deploy-status/lost-and-found-m0.json`
 
 ## LIVE authority
-**LIVE_PUBLISHED — v6 BUILD/DEPLOY VERIFIED.**
-Roblox receipt proves source commit `ac73ed6e779f0f3568ecd27788a6991f3365c83f` was published to Universe `10745354451` / Place `93699016600671` as Roblox version `6`.
-
-The original core runtime is proven alive by mobile testing, but v6 patch acceptance still requires a short retest.
+**LIVE_PUBLISHED — v7 BUILD/DEPLOY VERIFIED.**
+Roblox receipt proves source commit `097ca8e6b82a0c107c988874cc70730e42a45a9b` was published to Universe `10745354451` / Place `93699016600671` as Roblox version `7`.
 
 ## Next gate
-**M0-RUNTIME2:** verify v6 on mobile:
-1. HUD no longer covers roughly half the screen or Roblox top controls;
-2. only SCAN is available first;
-3. after SCAN, CHECK TAG becomes available;
-4. after CHECK TAG, OPEN becomes available;
-5. decision pads only become interactable after OPEN;
-6. correct decision produces result/reward;
-7. next case begins automatically;
-8. room and claimant labels are readable without dominating the screen.
+**M0-RUNTIME3:** mobile UI acceptance for v7:
+1. compact case HUD does not interfere with movement controls;
+2. case title/status/progress remain readable at normal gameplay distance;
+3. `CASE FILE` opens full evidence popup;
+4. full evidence text remains comfortably readable without being tiny;
+5. popup can be closed and gameplay immediately resumes unobstructed;
+6. result toast remains readable without covering movement controls;
+7. gameplay sequence remains `SCAN → TAG → OPEN → DECIDE`.
 
-Do not begin premium asset production until M0-RUNTIME2 passes.
+Do not begin premium asset production until M0-RUNTIME3 passes.
