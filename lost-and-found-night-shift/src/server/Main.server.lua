@@ -22,6 +22,31 @@ local activeClaimant = nil
 local locked = false
 local inspections = { scanned = false, tagChecked = false, opened = false }
 
+local function inspectionsComplete()
+    return inspections.scanned and inspections.tagChecked and inspections.opened
+end
+
+local function setDecisionPrompts(enabled)
+    for _, decisionPrompt in pairs(refs.DecisionPrompts) do
+        decisionPrompt.Enabled = enabled
+    end
+end
+
+local function refreshPromptState()
+    if locked or not activeCase then
+        refs.ScannerPrompt.Enabled = false
+        refs.TagPrompt.Enabled = false
+        refs.OpenPrompt.Enabled = false
+        setDecisionPrompts(false)
+        return
+    end
+
+    refs.ScannerPrompt.Enabled = not inspections.scanned
+    refs.TagPrompt.Enabled = inspections.scanned and not inspections.tagChecked
+    refs.OpenPrompt.Enabled = inspections.scanned and inspections.tagChecked and not inspections.opened
+    setDecisionPrompts(inspectionsComplete())
+end
+
 local function ensureStats(player)
     local leaderstats = player:FindFirstChild("leaderstats")
     if not leaderstats then leaderstats = Instance.new("Folder"); leaderstats.Name = "leaderstats"; leaderstats.Parent = player end
@@ -59,6 +84,7 @@ end
 
 local function startNextCase()
     locked = true
+    refreshPromptState()
     cleanActive()
     activeIndex += 1
     if activeIndex > CaseRegistry.Count() then activeIndex = 1 end
@@ -66,6 +92,7 @@ local function startNextCase()
     inspections.scanned = false
     inspections.tagChecked = false
     inspections.opened = false
+    refreshPromptState()
     activeSuitcase = WorldBuilder.CreateSuitcase(refs.World, activeCase, refs.ConveyorStart.CFrame)
     broadcast("CASE_INCOMING", { message = "Incoming property on conveyor..." })
     if activeSuitcase and activeSuitcase.PrimaryPart then
@@ -75,7 +102,8 @@ local function startNextCase()
     end
     if activeSuitcase and activeSuitcase.Parent then activeClaimant = WorldBuilder.CreateClaimant(refs.World, refs.ClaimantMarker, activeCase) end
     locked = false
-    broadcast("CASE_READY", { message = "Inspect the item, verify evidence, then choose a decision." })
+    refreshPromptState()
+    broadcast("CASE_READY", { message = "Scan the item to begin inspection." })
 end
 
 local function grant(player, grade)
@@ -95,35 +123,41 @@ local function contains(list, value)
 end
 
 local function gradeDecision(decision)
-    if decision == activeCase.correctDecision then
-        if inspections.scanned and inspections.tagChecked and inspections.opened then return "PERFECT" end
-        return "CORRECT"
-    end
+    if decision == activeCase.correctDecision then return "PERFECT" end
     if contains(activeCase.questionableDecisions, decision) then return "QUESTIONABLE" end
     if activeCase.risk == "high" and decision == "RETURN" then return "CATASTROPHIC" end
     return "WRONG"
 end
 
 refs.ScannerPrompt.Triggered:Connect(function(player)
-    if locked or not activeCase then return end
+    if locked or not activeCase or inspections.scanned then return end
     inspections.scanned = true
+    refreshPromptState()
     broadcast("INSPECTION", { step = "SCAN", by = player.DisplayName, message = "Scanner record loaded." })
 end)
 refs.TagPrompt.Triggered:Connect(function(player)
-    if locked or not activeCase then return end
+    if locked or not activeCase or not inspections.scanned or inspections.tagChecked then return end
     inspections.tagChecked = true
+    refreshPromptState()
     broadcast("INSPECTION", { step = "TAG", by = player.DisplayName, message = "Claim tag checked." })
 end)
 refs.OpenPrompt.Triggered:Connect(function(player)
-    if locked or not activeCase then return end
+    if locked or not activeCase or not inspections.scanned or not inspections.tagChecked or inspections.opened then return end
     inspections.opened = true
-    broadcast("INSPECTION", { step = "OPEN", by = player.DisplayName, message = "Physical inspection completed." })
+    refreshPromptState()
+    broadcast("INSPECTION", { step = "OPEN", by = player.DisplayName, message = "Physical inspection completed. Choose a decision." })
 end)
 
 for decision, decisionPrompt in pairs(refs.DecisionPrompts) do
     decisionPrompt.Triggered:Connect(function(player)
         if locked or not activeCase then return end
+        if not inspectionsComplete() then
+            refreshPromptState()
+            broadcast("DECISION_BLOCKED", { message = "Complete SCAN, CHECK TAG, and OPEN before deciding." })
+            return
+        end
         locked = true
+        refreshPromptState()
         local grade = gradeDecision(decision)
         local reward, totalCredits, totalXP = grant(player, grade)
         broadcast("RESULT", { decision = decision, grade = grade, correctDecision = activeCase.correctDecision, reason = activeCase.reason, resolution = activeCase.resolution, reward = reward, totalCredits = totalCredits, totalXP = totalXP, by = player.DisplayName })
@@ -131,6 +165,7 @@ for decision, decisionPrompt in pairs(refs.DecisionPrompts) do
     end)
 end
 
+refreshPromptState()
 task.spawn(function()
     task.wait(1.5)
     startNextCase()
