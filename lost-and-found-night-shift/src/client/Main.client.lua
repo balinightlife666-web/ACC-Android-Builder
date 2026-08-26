@@ -41,11 +41,11 @@ local function makeLabel(parent, name, size, position, font, color, textSize)
     return label
 end
 
--- Compact always-on HUD. Keep it clear of the Roblox top bar and movement controls.
+-- Compact always-on HUD. Short enough to remain above mobile movement controls.
 local compact = Instance.new("Frame")
 compact.Name = "CompactCaseHUD"
-compact.Size = UDim2.fromOffset(300, 174)
-compact.Position = UDim2.fromOffset(16, 108)
+compact.Size = UDim2.fromOffset(300, 146)
+compact.Position = UDim2.fromOffset(16, 82)
 compact.BackgroundColor3 = Color3.fromRGB(17, 21, 28)
 compact.BackgroundTransparency = 0.06
 compact.BorderSizePixel = 0
@@ -54,26 +54,26 @@ addCorner(compact, 12)
 addStroke(compact)
 
 local compactConstraint = Instance.new("UISizeConstraint")
-compactConstraint.MinSize = Vector2.new(260, 164)
-compactConstraint.MaxSize = Vector2.new(300, 174)
+compactConstraint.MinSize = Vector2.new(260, 138)
+compactConstraint.MaxSize = Vector2.new(300, 146)
 compactConstraint.Parent = compact
 
-local compactTitle = makeLabel(compact, "Brand", UDim2.new(1, -24, 0, 22), UDim2.fromOffset(12, 10), Enum.Font.GothamBold, Color3.fromRGB(255, 184, 72), 14)
+local compactTitle = makeLabel(compact, "Brand", UDim2.new(1, -24, 0, 20), UDim2.fromOffset(12, 8), Enum.Font.GothamBold, Color3.fromRGB(255, 184, 72), 14)
 compactTitle.Text = "LOST & FOUND: NIGHT SHIFT"
 
-local compactCase = makeLabel(compact, "Case", UDim2.new(1, -24, 0, 48), UDim2.fromOffset(12, 36), Enum.Font.GothamBold, Color3.fromRGB(240, 242, 246), 15)
+local compactCase = makeLabel(compact, "Case", UDim2.new(1, -24, 0, 42), UDim2.fromOffset(12, 31), Enum.Font.GothamBold, Color3.fromRGB(240, 242, 246), 15)
 compactCase.Text = "Waiting for first suitcase..."
 
-local compactStatus = makeLabel(compact, "Status", UDim2.new(1, -24, 0, 24), UDim2.fromOffset(12, 86), Enum.Font.GothamMedium, Color3.fromRGB(111, 210, 255), 12)
+local compactStatus = makeLabel(compact, "Status", UDim2.new(1, -24, 0, 22), UDim2.fromOffset(12, 74), Enum.Font.GothamMedium, Color3.fromRGB(111, 210, 255), 12)
 compactStatus.Text = "M0 — FIRST SUITCASE"
 
-local progress = makeLabel(compact, "Progress", UDim2.new(1, -118, 0, 34), UDim2.fromOffset(12, 118), Enum.Font.GothamBold, Color3.fromRGB(218, 224, 232), 12)
+local progress = makeLabel(compact, "Progress", UDim2.new(1, -118, 0, 28), UDim2.fromOffset(12, 108), Enum.Font.GothamBold, Color3.fromRGB(218, 224, 232), 12)
 progress.Text = "SCAN ○   TAG ○   OPEN ○"
 
 local caseFileButton = Instance.new("TextButton")
 caseFileButton.Name = "CaseFileButton"
-caseFileButton.Size = UDim2.fromOffset(96, 36)
-caseFileButton.Position = UDim2.new(1, -108, 1, -48)
+caseFileButton.Size = UDim2.fromOffset(96, 34)
+caseFileButton.Position = UDim2.new(1, -108, 1, -42)
 caseFileButton.BackgroundColor3 = Color3.fromRGB(218, 145, 48)
 caseFileButton.BackgroundTransparency = 0.04
 caseFileButton.TextColor3 = Color3.fromRGB(20, 22, 27)
@@ -251,6 +251,7 @@ local function render(payload, kind)
         popupStatus.Text = compactStatus.Text
         resultBanner.Visible = false
         popup.Visible = false
+        compact.Visible = true
     elseif kind == "CASE_READY" then
         compactStatus.Text = "CASE READY — inspect item"
         popupStatus.Text = compactStatus.Text
@@ -266,6 +267,7 @@ local function render(payload, kind)
         compactStatus.Text = "CASE COMPLETE — " .. tostring(payload.resolution or "")
         popupStatus.Text = compactStatus.Text
         popup.Visible = false
+        compact.Visible = true
         resultBanner.Visible = true
         resultBanner.Text = string.format("%s  •  %s\n+%d Credits / +%d XP", tostring(payload.grade), tostring(payload.decision), payload.reward and payload.reward.Credits or 0, payload.reward and payload.reward.XP or 0)
     elseif kind == "SYNC" then
@@ -275,15 +277,19 @@ local function render(payload, kind)
 end
 
 caseFileButton.Activated:Connect(function()
-    popup.Visible = not popup.Visible
-    if popup.Visible and currentPayload then
+    local opening = not popup.Visible
+    popup.Visible = opening
+    compact.Visible = not opening
+    if opening and currentPayload then
         render(currentPayload, currentKind or "SYNC")
         popup.Visible = true
+        compact.Visible = false
     end
 end)
 
 closeButton.Activated:Connect(function()
     popup.Visible = false
+    compact.Visible = true
 end)
 
 caseUpdate.OnClientEvent:Connect(function(kind, payload)
