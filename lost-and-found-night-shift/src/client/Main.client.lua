@@ -5,6 +5,32 @@ local player = Players.LocalPlayer
 local remotes = ReplicatedStorage:WaitForChild("LostAndFoundRemotes")
 local caseUpdate = remotes:WaitForChild("CaseUpdate")
 
+local function restorePlayerControls()
+    pcall(function()
+        player.CameraMode = Enum.CameraMode.Classic
+        player.CameraMinZoomDistance = 5
+        player.CameraMaxZoomDistance = 18
+    end)
+
+    task.defer(function()
+        local playerScripts = player:FindFirstChild("PlayerScripts") or player:WaitForChild("PlayerScripts", 10)
+        if not playerScripts then return end
+        local moduleScript = playerScripts:FindFirstChild("PlayerModule")
+        if not moduleScript then return end
+        local ok, playerModule = pcall(require, moduleScript)
+        if not ok or not playerModule or not playerModule.GetControls then return end
+        local controls = playerModule:GetControls()
+        if controls and controls.Enable then
+            controls:Enable()
+        end
+    end)
+end
+
+restorePlayerControls()
+player.CharacterAdded:Connect(function()
+    task.delay(0.5, restorePlayerControls)
+end)
+
 local gui = Instance.new("ScreenGui")
 gui.Name = "LostAndFoundHUD"
 gui.ResetOnSpawn = false
@@ -41,7 +67,6 @@ local function makeLabel(parent, name, size, position, font, color, textSize)
     return label
 end
 
--- Compact always-on HUD. Short enough to remain above mobile movement controls.
 local compact = Instance.new("Frame")
 compact.Name = "CompactCaseHUD"
 compact.Size = UDim2.fromOffset(300, 146)
@@ -49,6 +74,7 @@ compact.Position = UDim2.fromOffset(16, 82)
 compact.BackgroundColor3 = Color3.fromRGB(17, 21, 28)
 compact.BackgroundTransparency = 0.06
 compact.BorderSizePixel = 0
+compact.Active = false
 compact.Parent = gui
 addCorner(compact, 12)
 addStroke(compact)
@@ -81,10 +107,10 @@ caseFileButton.Font = Enum.Font.GothamBold
 caseFileButton.TextSize = 13
 caseFileButton.Text = "CASE FILE"
 caseFileButton.AutoButtonColor = true
+caseFileButton.Modal = false
 caseFileButton.Parent = compact
 addCorner(caseFileButton, 8)
 
--- Full evidence popup. Open only when requested so gameplay stays visible.
 local popup = Instance.new("Frame")
 popup.Name = "CaseFilePopup"
 popup.AnchorPoint = Vector2.new(0.5, 0.5)
@@ -93,6 +119,7 @@ popup.Position = UDim2.new(0.56, 0, 0.55, 0)
 popup.BackgroundColor3 = Color3.fromRGB(15, 19, 26)
 popup.BackgroundTransparency = 0.02
 popup.BorderSizePixel = 0
+popup.Active = false
 popup.Visible = false
 popup.Parent = gui
 addCorner(popup, 14)
@@ -115,6 +142,7 @@ closeButton.TextColor3 = Color3.fromRGB(240, 242, 246)
 closeButton.Font = Enum.Font.GothamBold
 closeButton.TextSize = 20
 closeButton.Text = "×"
+closeButton.Modal = false
 closeButton.Parent = popup
 addCorner(closeButton, 9)
 
@@ -159,7 +187,6 @@ evidence.Parent = evidenceScroll
 local instruction = makeLabel(popup, "Instruction", UDim2.new(1, -36, 0, 48), UDim2.new(0, 18, 1, -54), Enum.Font.GothamBold, Color3.fromRGB(255, 202, 105), 13)
 instruction.Text = "1/3  SCAN the suitcase."
 
--- Result stays as a small toast and never consumes the movement area.
 local resultBanner = Instance.new("TextLabel")
 resultBanner.Name = "ResultBanner"
 resultBanner.AnchorPoint = Vector2.new(0.5, 1)
@@ -277,6 +304,7 @@ local function render(payload, kind)
 end
 
 caseFileButton.Activated:Connect(function()
+    restorePlayerControls()
     local opening = not popup.Visible
     popup.Visible = opening
     compact.Visible = not opening
@@ -290,6 +318,7 @@ end)
 closeButton.Activated:Connect(function()
     popup.Visible = false
     compact.Visible = true
+    restorePlayerControls()
 end)
 
 caseUpdate.OnClientEvent:Connect(function(kind, payload)
