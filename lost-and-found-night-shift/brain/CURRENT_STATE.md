@@ -33,25 +33,37 @@ Implementation target:
 - automatic case cycling
 
 ## M0-QC1 result
-GitHub Actions run: `32994564692`
-Source commit: `be3707bed1aa67f657b92cd2723c2ee0603b6d8d`
-Rojo: `7.7.0`
-Static QC: **PASS**
-Rojo build: **PASS**
-RBXL bytes: `15365`
-RBXL SHA256: `058e31ad68c2992b6516fcc6d1ac01830db3424bed3e66a1da9ae65cd48d3347`
+Initial run `32994564692`:
+- Static QC: **PASS**
+- Rojo build: **PASS**
+- Roblox publish: blocked once with HTTP `403` / `User is moderated`
 
-Roblox publish: **BLOCKED**
-HTTP: `403`
-Roblox response: `User is moderated`
-
-This is a Roblox account/key-owner moderation blocker, not a Rojo/build failure. Do not repeatedly republish while this blocker remains.
+Retry run `32998424565`:
+- Source commit: `d6d7b5fa4c606771afbbd5cb8c5b8eb5496a7554`
+- Rojo: `7.7.0`
+- Static QC: **PASS**
+- Rojo build: **PASS**
+- RBXL bytes: `15365`
+- RBXL SHA256: `058e31ad68c2992b6516fcc6d1ac01830db3424bed3e66a1da9ae65cd48d3347`
+- Roblox publish: **PASS**
+- Roblox version: `5`
+- Deploy receipt: `deploy-status/lost-and-found-m0.json`
 
 ## LIVE authority
-**NOT LIVE / NOT VERIFIED.**
-No LIVE claim is permitted until a successful Roblox publish receipt exists for Universe `10745354451` / Place `93699016600671`, followed by runtime gameplay verification.
+**LIVE_PUBLISHED — BUILD/DEPLOY VERIFIED.**
+Roblox receipt proves M0 source commit `d6d7b5fa4c606771afbbd5cb8c5b8eb5496a7554` was published to Universe `10745354451` / Place `93699016600671` as Roblox version `5`.
+
+This does **not** yet prove runtime gameplay acceptance. The next authority gate is an in-Roblox functional check of FIRST SUITCASE.
 
 ## Next gate
-Resolve/clear the Roblox moderation blocker for the publishing identity, then rerun the existing Lost & Found M0 publish gate. After successful publish, perform in-Roblox FIRST SUITCASE runtime verification.
+**M0-RUNTIME1:** join Place `93699016600671` and verify:
+1. player spawns in the Lost & Found room;
+2. suitcase arrives on conveyor;
+3. SCAN / CHECK TAG / OPEN work;
+4. claimant appears when applicable;
+5. RETURN / STORE / QUARANTINE / SECURITY work;
+6. result grade + Credits/XP appear;
+7. next case begins automatically;
+8. no blocking script/runtime errors.
 
 Do not begin premium asset production until FIRST SUITCASE is functionally proven.
