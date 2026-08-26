@@ -1,0 +1,16 @@
+{
+  "status": "LIVE_PUBLISHED",
+  "project": "AFTER SCHOOL CITY",
+  "mode": "STREET_DENSITY_V0_4",
+  "sourceRepo": "ardarawk-cloud/ACC-Roblox-maps",
+  "sourceCommit": "9a2ad543a1b5667a6bc6a0cfaf0aa716fbbe187e",
+  "universeId": "10745359869",
+  "placeId": "121603385909425",
+  "versionNumber": 9,
+  "rojoVersion": "7.7.0",
+  "placeBytes": 28413,
+  "placeSha256": "e358b474b9b50b34b4cac5248cbc3f85cc4b4b2d9d86ef9b549a804356b91575",
+  "runId": "33001578465",
+  "publishedAt": "2026-08-26T18:47:03Z",
+  "note": "Street Density v0.4 plus dedication intro."
+}
