@@ -3,7 +3,7 @@ local Lighting = game:GetService("Lighting")
 local WorldBuilder = {}
 
 local COLORS = {
-    Floor = Color3.fromRGB(30, 34, 42), Wall = Color3.fromRGB(22, 26, 34), Metal = Color3.fromRGB(64, 70, 80), Amber = Color3.fromRGB(255, 174, 57), Cyan = Color3.fromRGB(72, 198, 255), Red = Color3.fromRGB(210, 54, 58), Green = Color3.fromRGB(67, 168, 92), White = Color3.fromRGB(235, 238, 242),
+    Floor = Color3.fromRGB(30, 34, 42), Wall = Color3.fromRGB(22, 26, 34), Metal = Color3.fromRGB(64, 70, 80), Amber = Color3.fromRGB(214, 151, 55), Cyan = Color3.fromRGB(58, 158, 194), Red = Color3.fromRGB(170, 58, 62), Green = Color3.fromRGB(58, 132, 78), White = Color3.fromRGB(235, 238, 242),
 }
 
 local function part(parent, name, size, cframe, color, material)
@@ -45,7 +45,7 @@ local function prompt(target, actionText, objectText)
     local p = Instance.new("ProximityPrompt")
     p.ActionText = actionText
     p.ObjectText = objectText
-    p.MaxActivationDistance = 10
+    p.MaxActivationDistance = 8
     p.HoldDuration = 0.15
     p.RequiresLineOfSight = false
     p.Parent = target
@@ -63,23 +63,34 @@ end
 
 local function configureLighting()
     Lighting.ClockTime = 1.0
-    Lighting.Brightness = 1.8
-    Lighting.Ambient = Color3.fromRGB(46, 54, 68)
-    Lighting.OutdoorAmbient = Color3.fromRGB(18, 22, 30)
-    Lighting.EnvironmentDiffuseScale = 0.35
-    Lighting.EnvironmentSpecularScale = 0.65
+    Lighting.Brightness = 2.2
+    Lighting.Ambient = Color3.fromRGB(66, 73, 88)
+    Lighting.OutdoorAmbient = Color3.fromRGB(28, 33, 43)
+    Lighting.EnvironmentDiffuseScale = 0.45
+    Lighting.EnvironmentSpecularScale = 0.55
     local atmosphere = Lighting:FindFirstChild("LostAndFoundAtmosphere")
     if not atmosphere then
         atmosphere = Instance.new("Atmosphere")
         atmosphere.Name = "LostAndFoundAtmosphere"
-        atmosphere.Density = 0.22
-        atmosphere.Offset = 0.1
-        atmosphere.Color = Color3.fromRGB(165, 185, 210)
-        atmosphere.Decay = Color3.fromRGB(44, 55, 72)
-        atmosphere.Glare = 0.05
-        atmosphere.Haze = 1.2
+        atmosphere.Density = 0.16
+        atmosphere.Offset = 0.05
+        atmosphere.Color = Color3.fromRGB(175, 190, 210)
+        atmosphere.Decay = Color3.fromRGB(52, 62, 78)
+        atmosphere.Glare = 0.02
+        atmosphere.Haze = 0.8
         atmosphere.Parent = Lighting
     end
+end
+
+local function addCeilingLight(world, x)
+    local fixture = part(world, "CeilingLight", Vector3.new(14, 0.35, 1.2), CFrame.new(x, 17.7, -4), Color3.fromRGB(205, 220, 235), Enum.Material.Neon)
+    fixture.CanCollide = false
+    local light = Instance.new("PointLight")
+    light.Brightness = 1.5
+    light.Range = 27
+    light.Color = Color3.fromRGB(214, 226, 240)
+    light.Shadows = true
+    light.Parent = fixture
 end
 
 function WorldBuilder.Build()
@@ -94,6 +105,10 @@ function WorldBuilder.Build()
     part(world, "BackWall", Vector3.new(92, 18, 1), CFrame.new(0, 9, -31.5), COLORS.Wall, Enum.Material.Concrete)
     part(world, "LeftWall", Vector3.new(1, 18, 64), CFrame.new(-45.5, 9, 0), COLORS.Wall, Enum.Material.Concrete)
     part(world, "RightWall", Vector3.new(1, 18, 64), CFrame.new(45.5, 9, 0), COLORS.Wall, Enum.Material.Concrete)
+    part(world, "Ceiling", Vector3.new(92, 1, 64), CFrame.new(0, 18.5, 0), Color3.fromRGB(18, 22, 29), Enum.Material.Metal)
+    addCeilingLight(world, -28)
+    addCeilingLight(world, 0)
+    addCeilingLight(world, 28)
 
     local spawn = Instance.new("SpawnLocation")
     spawn.Name = "M0Spawn"
@@ -101,9 +116,9 @@ function WorldBuilder.Build()
     spawn.CFrame = CFrame.new(0, 0.5, 24)
     spawn.Anchored = true
     spawn.Neutral = true
-    spawn.Transparency = 0.35
+    spawn.Transparency = 0.55
     spawn.Color = COLORS.Cyan
-    spawn.Material = Enum.Material.Neon
+    spawn.Material = Enum.Material.SmoothPlastic
     spawn.Parent = world
 
     local counter = part(world, "ServiceCounter", Vector3.new(30, 4, 4), CFrame.new(11, 2, -13), COLORS.Metal, Enum.Material.Metal)
@@ -125,23 +140,23 @@ function WorldBuilder.Build()
     local scannerGlow = part(world, "ScannerGlow", Vector3.new(0.3, 4.8, 5.7), CFrame.new(0.05, 5, -8), COLORS.Cyan, Enum.Material.Neon)
     scannerGlow.CanCollide = false
 
-    local tagReader = part(world, "TagReader", Vector3.new(3.5, 1, 3.5), CFrame.new(4, 3, -7), COLORS.Amber, Enum.Material.Neon)
+    local tagReader = part(world, "TagReader", Vector3.new(3.5, 1, 3.5), CFrame.new(4, 3, -7), COLORS.Amber, Enum.Material.SmoothPlastic)
     addLabel(tagReader, "TAG", Enum.NormalId.Top, Color3.fromRGB(20, 20, 20))
     local openTray = part(world, "OpenTray", Vector3.new(3.5, 1, 3.5), CFrame.new(4, 3, -10.5), Color3.fromRGB(120, 126, 138), Enum.Material.Metal)
     addLabel(openTray, "OPEN", Enum.NormalId.Top, COLORS.White)
 
-    local claimantMarker = part(world, "ClaimantMarker", Vector3.new(8, 0.35, 8), CFrame.new(11, 0.2, -4), COLORS.Amber, Enum.Material.Neon)
-    claimantMarker.Transparency = 0.55
+    local claimantMarker = part(world, "ClaimantMarker", Vector3.new(7, 0.3, 7), CFrame.new(11, 0.2, -4), COLORS.Amber, Enum.Material.SmoothPlastic)
+    claimantMarker.Transparency = 0.72
     claimantMarker.CanCollide = false
-    addLabel(claimantMarker, "CLAIMANT", Enum.NormalId.Top, Color3.fromRGB(20, 20, 20))
+    addLabel(claimantMarker, "CLAIMANT", Enum.NormalId.Top, Color3.fromRGB(28, 28, 28))
 
     local decisions = {}
     local decisionData = {
-        { "RETURN", COLORS.Green, CFrame.new(25, 0.35, 5) }, { "STORE", COLORS.Cyan, CFrame.new(34, 0.35, 5) }, { "QUARANTINE", COLORS.Amber, CFrame.new(25, 0.35, 15) }, { "SECURITY", COLORS.Red, CFrame.new(34, 0.35, 15) },
+        { "RETURN", COLORS.Green, CFrame.new(25, 0.3, 5) }, { "STORE", COLORS.Cyan, CFrame.new(34, 0.3, 5) }, { "QUARANTINE", COLORS.Amber, CFrame.new(25, 0.3, 15) }, { "SECURITY", COLORS.Red, CFrame.new(34, 0.3, 15) },
     }
     for _, info in ipairs(decisionData) do
         local decisionName, color, cf = info[1], info[2], info[3]
-        local pad = part(world, decisionName .. "Pad", Vector3.new(7, 0.7, 7), cf, color, Enum.Material.Neon)
+        local pad = part(world, decisionName .. "Pad", Vector3.new(7, 0.55, 7), cf, color, Enum.Material.SmoothPlastic)
         addLabel(pad, decisionName, Enum.NormalId.Top, Color3.fromRGB(20, 20, 20))
         decisions[decisionName] = prompt(pad, decisionName, "CASE DECISION")
     end
@@ -225,19 +240,20 @@ function WorldBuilder.CreateClaimant(world, marker, caseData)
     head.CanCollide = false
     local billboard = Instance.new("BillboardGui")
     billboard.Name = "ClaimantLabel"
-    billboard.Size = UDim2.fromOffset(220, 70)
-    billboard.StudsOffset = Vector3.new(0, 2.5, 0)
+    billboard.Size = UDim2.fromOffset(150, 44)
+    billboard.StudsOffset = Vector3.new(0, 2.1, 0)
     billboard.AlwaysOnTop = true
+    billboard.MaxDistance = 24
     billboard.Parent = head
     local label = Instance.new("TextLabel")
     label.Size = UDim2.fromScale(1, 1)
     label.BackgroundColor3 = Color3.fromRGB(15, 18, 24)
-    label.BackgroundTransparency = 0.15
+    label.BackgroundTransparency = 0.22
     label.TextColor3 = COLORS.White
-    label.TextScaled = true
+    label.TextSize = 13
     label.TextWrapped = true
     label.Font = Enum.Font.GothamBold
-    label.Text = caseData.claimantName .. (child and "\n[CHILD]" or "\n[CLAIMANT]")
+    label.Text = caseData.claimantName .. (child and "  •  CHILD" or "")
     label.Parent = billboard
     return model
 end
