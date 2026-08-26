@@ -1,4 +1,4 @@
-name: After School City Publish Scaffold V1
+name: After School City Publish Dedication V1
 
 on:
   issues:
@@ -10,15 +10,14 @@ permissions:
 
 jobs:
   publish:
-    if: startsWith(github.event.issue.title, 'AFTER SCHOOL CITY PUBLISH SCAFFOLD V1')
-    runs-on: [self-hosted, windows, x64]
+    if: startsWith(github.event.issue.title, 'AFTER SCHOOL CITY PUBLISH DEDICATION V1')
+    runs-on: ubuntu-latest
     timeout-minutes: 15
     env:
       SOURCE_REPO: ardarawk-cloud/ACC-Roblox-maps
-      SOURCE_SHA: d9b1cee118d5cfdb873b604991668a4f0a245428
+      SOURCE_SHA: 2ea8ea1973caba374ce99a34a8e0c772850b277a
       UNIVERSE_ID: '10745359869'
       PLACE_ID: '121603385909425'
-      SOURCE_TOKEN: ${{ secrets.ACC_ROBLOX_MAPS_WRITE_TOKEN }}
       ROBLOX_API_KEY: ${{ secrets.ROCKET_RACOON_PUBLISH }}
 
     steps:
@@ -31,125 +30,107 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: ardarawk-cloud/ACC-Roblox-maps
-          ref: d9b1cee118d5cfdb873b604991668a4f0a245428
+          ref: 2ea8ea1973caba374ce99a34a8e0c772850b277a
           token: ${{ secrets.ACC_ROBLOX_MAPS_WRITE_TOKEN }}
           path: asc-source
+          fetch-depth: 1
 
-      - name: Preflight exact target and scaffold lock
-        shell: powershell
+      - name: Preflight exact target and dedication popup
+        shell: bash
         run: |
-          $ErrorActionPreference='Stop'
-          if([string]::IsNullOrWhiteSpace($env:SOURCE_TOKEN)){ throw 'ACC_ROBLOX_MAPS_WRITE_TOKEN missing' }
-          if([string]::IsNullOrWhiteSpace($env:ROBLOX_API_KEY)){ throw 'ROCKET_RACOON_PUBLISH missing' }
+          set -euo pipefail
+          [[ -n "${ROBLOX_API_KEY:-}" ]] || { echo 'ROCKET_RACOON_PUBLISH missing'; exit 10; }
+          actual=$(git -C asc-source rev-parse HEAD)
+          [[ "$actual" == "$SOURCE_SHA" ]] || { echo "Source SHA mismatch: $actual"; exit 11; }
 
-          $actual = (git -C asc-source rev-parse HEAD).Trim()
-          if($actual -ne $env:SOURCE_SHA){ throw "Source SHA mismatch: $actual" }
+          project='asc-source/maps/after-school-city/default.project.json'
+          intro='asc-source/maps/after-school-city/after-school-city.intro.client.lua'
+          config='asc-source/maps/after-school-city/after-school-city.config.lua'
 
-          $project = Get-Content 'asc-source/maps/after-school-city/default.project.json' -Raw
-          $world = Get-Content 'asc-source/maps/after-school-city/after-school-city.world.server.lua' -Raw
-          $config = Get-Content 'asc-source/maps/after-school-city/after-school-city.config.lua' -Raw
-
-          foreach($token in @('AfterSchoolCity','SchoolDistrict','Downtown','SkatePark','Park','Residential','SportsField','ASC_Blockout','world scaffold v0.1')){
-            if($world -notmatch [regex]::Escape($token)){ throw "Scaffold marker missing: $token" }
-          }
-          foreach($token in @('10745359869','121603385909425')){
-            if($config -notmatch [regex]::Escape($token)){ throw "Target marker missing: $token" }
-          }
-          $null = $project | ConvertFrom-Json
-          Write-Host "LOCK PASS source=$actual universe=$env:UNIVERSE_ID place=$env:PLACE_ID"
+          jq -e . "$project" >/dev/null
+          grep -Fq 'StarterGui' "$project"
+          grep -Fq 'after-school-city.intro.client.lua' "$project"
+          grep -Fq 'PUTU AZYA PUTRI' "$intro"
+          grep -Fq 'BINTANG HARDAJAYA' "$intro"
+          grep -Fq 'WITH LOVE, DAD' "$intro"
+          grep -Fq 'ENTER THE CITY' "$intro"
+          grep -Fq '10745359869' "$config"
+          grep -Fq '121603385909425' "$config"
+          echo "LOCK PASS source=$actual universe=$UNIVERSE_ID place=$PLACE_ID dedication=PASS"
 
       - name: Prepare Rojo 7.7.0
-        shell: powershell
+        shell: bash
         run: |
-          $ErrorActionPreference='Stop'
-          $cmd=Get-Command rojo -ErrorAction SilentlyContinue
-          if($cmd){
-            $rojoExe=$cmd.Source
-          } else {
-            $dir=Join-Path $env:RUNNER_TEMP 'asc-publish-rojo-7.7.0'
-            $zip=Join-Path $env:RUNNER_TEMP 'asc-publish-rojo-7.7.0.zip'
-            if(Test-Path $dir){Remove-Item $dir -Recurse -Force}
-            New-Item -ItemType Directory -Path $dir -Force | Out-Null
-            Invoke-WebRequest -UseBasicParsing -Uri 'https://github.com/rojo-rbx/rojo/releases/download/v7.7.0/rojo-7.7.0-windows-x86_64.zip' -OutFile $zip
-            Expand-Archive -Path $zip -DestinationPath $dir -Force
-            $exe=Get-ChildItem $dir -Filter rojo.exe -File -Recurse | Select-Object -First 1
-            if(-not $exe){throw 'rojo.exe not found'}
-            $rojoExe=$exe.FullName
-          }
-          & $rojoExe --version
-          if($LASTEXITCODE -ne 0){throw 'Rojo version check failed'}
-          "ROJO_EXE=$rojoExe" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/asc-rojo"
+          curl -fsSL 'https://github.com/rojo-rbx/rojo/releases/download/v7.7.0/rojo-7.7.0-linux-x86_64.zip' -o "$RUNNER_TEMP/rojo.zip"
+          unzip -q -o "$RUNNER_TEMP/rojo.zip" -d "$RUNNER_TEMP/asc-rojo"
+          rojo=$(find "$RUNNER_TEMP/asc-rojo" -type f -name rojo | head -n1)
+          [[ -n "$rojo" ]] || { echo 'Rojo binary missing'; exit 20; }
+          chmod +x "$rojo"
+          "$rojo" --version
+          echo "ROJO_EXE=$rojo" >> "$GITHUB_ENV"
 
-      - name: Build exact scaffold place
-        shell: powershell
+      - name: Build exact After School City place
+        shell: bash
         run: |
-          $ErrorActionPreference='Stop'
-          $place=Join-Path $env:RUNNER_TEMP 'after-school-city-scaffold-v1.rbxl'
-          & $env:ROJO_EXE build 'asc-source/maps/after-school-city/default.project.json' -o $place
-          if($LASTEXITCODE -ne 0){throw "Rojo build failed: $LASTEXITCODE"}
-          if(-not (Test-Path $place)){throw 'Generated RBXL missing'}
-          $bytes=(Get-Item $place).Length
-          if($bytes -lt 1024){throw "Generated RBXL suspiciously small: $bytes bytes"}
-          $hash=(Get-FileHash $place -Algorithm SHA256).Hash.ToLowerInvariant()
-          "PLACE_FILE=$place" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-          "PLACE_BYTES=$bytes" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-          "PLACE_SHA256=$hash" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-          Write-Host "BUILD PASS bytes=$bytes sha256=$hash"
+          set -euo pipefail
+          place="$RUNNER_TEMP/after-school-city.rbxl"
+          "$ROJO_EXE" build 'asc-source/maps/after-school-city/default.project.json' -o "$place"
+          test -f "$place"
+          bytes=$(stat -c%s "$place")
+          (( bytes >= 1024 )) || { echo "Generated RBXL suspiciously small: $bytes"; exit 21; }
+          sha=$(sha256sum "$place" | awk '{print $1}')
+          echo "PLACE_FILE=$place" >> "$GITHUB_ENV"
+          echo "PLACE_BYTES=$bytes" >> "$GITHUB_ENV"
+          echo "PLACE_SHA256=$sha" >> "$GITHUB_ENV"
+          echo "BUILD PASS bytes=$bytes sha256=$sha"
 
-      - name: Publish scaffold to Roblox
-        id: publish
-        shell: powershell
+      - name: Publish dedication update LIVE to Roblox
+        shell: bash
         run: |
-          $ErrorActionPreference='Stop'
-          $url="https://apis.roblox.com/universes/v1/$env:UNIVERSE_ID/places/$env:PLACE_ID/versions?versionType=Published"
-          $responseFile=Join-Path $env:RUNNER_TEMP 'asc-publish-response.json'
-          $args=@(
-            '--silent','--show-error','--location',
-            '--request','POST', $url,
-            '--header', "x-api-key: $env:ROBLOX_API_KEY",
-            '--header', 'Content-Type: application/octet-stream',
-            '--data-binary', "@$env:PLACE_FILE",
-            '--output', $responseFile,
-            '--write-out', '%{http_code}'
-          )
-          $http = (& curl.exe @args).Trim()
-          $body = if(Test-Path $responseFile){ Get-Content $responseFile -Raw } else { '' }
-          Write-Host "Roblox publish HTTP $http"
-          if($http -notmatch '^2\d\d$'){
-            throw "Roblox publish failed HTTP $http body=$body"
-          }
-          $json=$body | ConvertFrom-Json
-          if(-not $json.versionNumber){ throw "Publish response missing versionNumber: $body" }
-          "PUBLISHED_VERSION=$($json.versionNumber)" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-          Write-Host "ROBLOX PUBLISH PASS version=$($json.versionNumber)"
+          set -euo pipefail
+          url="https://apis.roblox.com/universes/v1/${UNIVERSE_ID}/places/${PLACE_ID}/versions?versionType=Published"
+          http=$(curl -sS --location -o "$RUNNER_TEMP/asc-publish-response.json" -w '%{http_code}' \
+            -X POST "$url" \
+            -H "x-api-key: $ROBLOX_API_KEY" \
+            -H 'Content-Type: application/octet-stream' \
+            --data-binary "@$PLACE_FILE")
+          body=$(cat "$RUNNER_TEMP/asc-publish-response.json")
+          echo "Roblox publish HTTP $http"
+          [[ "$http" =~ ^2[0-9][0-9]$ ]] || { echo "$body"; exit 30; }
+          version=$(jq -r '.versionNumber // empty' "$RUNNER_TEMP/asc-publish-response.json")
+          [[ -n "$version" ]] || { echo "Missing versionNumber: $body"; exit 31; }
+          echo "PUBLISHED_VERSION=$version" >> "$GITHUB_ENV"
+          echo "ROBLOX PUBLISH PASS version=$version"
 
-      - name: Persist publish receipt
-        shell: powershell
+      - name: Persist LIVE receipt
+        shell: bash
         run: |
-          $ErrorActionPreference='Stop'
-          New-Item -ItemType Directory -Path 'deploy-status' -Force | Out-Null
-          $receipt=[ordered]@{
-            status='LIVE_PUBLISHED'
-            project='AFTER SCHOOL CITY'
-            mode='SCAFFOLD_V1_EXPLICIT_OWNER_TEST'
-            sourceRepo=$env:SOURCE_REPO
-            sourceCommit=$env:SOURCE_SHA
-            universeId=$env:UNIVERSE_ID
-            placeId=$env:PLACE_ID
-            versionNumber=[int]$env:PUBLISHED_VERSION
-            rojoVersion='7.7.0'
-            placeBytes=[int64]$env:PLACE_BYTES
-            placeSha256=$env:PLACE_SHA256
-            publishedAt=(Get-Date).ToUniversalTime().ToString('yyyy-MM-ddTHH:mm:ssZ')
-            note='Owner explicitly requested publishing the blockout scaffold to inspect the live result.'
-          }
-          $receipt | ConvertTo-Json -Depth 6 | Set-Content 'deploy-status/after-school-city-publish-scaffold-v1.json' -Encoding UTF8
-          Get-Content 'deploy-status/after-school-city-publish-scaffold-v1.json'
+          set -euo pipefail
+          mkdir -p deploy-status
+          jq -n \
+            --arg status 'LIVE_PUBLISHED' \
+            --arg project 'AFTER SCHOOL CITY' \
+            --arg mode 'DEDICATION_POPUP_V1' \
+            --arg sourceRepo "$SOURCE_REPO" \
+            --arg sourceCommit "$SOURCE_SHA" \
+            --arg universeId "$UNIVERSE_ID" \
+            --arg placeId "$PLACE_ID" \
+            --arg versionNumber "$PUBLISHED_VERSION" \
+            --arg rojoVersion '7.7.0' \
+            --arg placeBytes "$PLACE_BYTES" \
+            --arg placeSha256 "$PLACE_SHA256" \
+            --arg runId "$GITHUB_RUN_ID" \
+            --arg publishedAt "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+            '{status:$status,project:$project,mode:$mode,sourceRepo:$sourceRepo,sourceCommit:$sourceCommit,universeId:$universeId,placeId:$placeId,versionNumber:($versionNumber|tonumber),rojoVersion:$rojoVersion,placeBytes:($placeBytes|tonumber),placeSha256:$placeSha256,runId:$runId,publishedAt:$publishedAt,note:"Dedication intro popup for PUTU AZYA PUTRI BINTANG HARDAJAYA, with love from Dad."}' \
+            > deploy-status/after-school-city-publish-dedication-v1.json
+          cat deploy-status/after-school-city-publish-dedication-v1.json
 
           git config user.name 'After School City Publish Bot'
           git config user.email 'actions@users.noreply.github.com'
-          git add deploy-status/after-school-city-publish-scaffold-v1.json
-          git commit -m "Record After School City scaffold publish v$env:PUBLISHED_VERSION [skip ci]"
+          git add deploy-status/after-school-city-publish-dedication-v1.json
+          git commit -m "Record After School City dedication publish v${PUBLISHED_VERSION} [skip ci]"
           git pull --rebase origin main
           git push origin HEAD:main
 
@@ -162,5 +143,5 @@ jobs:
               owner: context.repo.owner,
               repo: context.repo.repo,
               issue_number: context.issue.number,
-              body: `PASS — AFTER SCHOOL CITY scaffold published LIVE. Universe ${process.env.UNIVERSE_ID}, Place ${process.env.PLACE_ID}, source ${process.env.SOURCE_SHA}, Roblox version ${process.env.PUBLISHED_VERSION}.`
+              body: `PASS — AFTER SCHOOL CITY dedication popup is LIVE. Universe ${process.env.UNIVERSE_ID}, Place ${process.env.PLACE_ID}, source ${process.env.SOURCE_SHA}, Roblox version ${process.env.PUBLISHED_VERSION}.`
             })
