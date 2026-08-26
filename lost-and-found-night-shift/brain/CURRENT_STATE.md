@@ -47,23 +47,61 @@ Retry run `32998424565`:
 - RBXL SHA256: `058e31ad68c2992b6516fcc6d1ac01830db3424bed3e66a1da9ae65cd48d3347`
 - Roblox publish: **PASS**
 - Roblox version: `5`
+
+## M0-RUNTIME1 findings
+In-Roblox mobile screenshots verified that the basic runtime loop is alive:
+- player joins the generated Lost & Found room;
+- cases arrive and advance automatically;
+- claimant data appears;
+- CHECK TAG interaction works;
+- decision pads work;
+- case completion advances into later cases.
+
+Runtime defects found in v5:
+1. decisions could be submitted while SCAN and OPEN were still pending;
+2. mobile HUD was too large and overlapped Roblox top-bar space;
+3. claimant billboard labels were oversized;
+4. neon decision pads were visually overpowering;
+5. room readability was too dark.
+
+## M0-QC2 runtime patch
+Patch source changes:
+- enforce server-side inspection sequence `SCAN → CHECK TAG → OPEN → DECIDE`;
+- disable later prompts until the required previous inspection is complete;
+- disable all decision prompts until all three evidence steps are complete;
+- correct decision after full required inspection grades as PERFECT;
+- mobile-safe compact HUD and step-by-step instruction text;
+- result moved to a compact bottom toast;
+- smaller claimant billboard labels with max distance;
+- decision pads changed from full neon to subdued smooth-plastic colors;
+- ceiling and overhead lighting added for room readability.
+
+Publish run `33000601563`:
+- Source commit: `ac73ed6e779f0f3568ecd27788a6991f3365c83f`
+- Rojo: `7.7.0`
+- Static QC: **PASS**
+- Rojo build: **PASS**
+- RBXL bytes: `16439`
+- RBXL SHA256: `c043acb7d9eb384e0b5275596ab361316e085f676f16e7428471b5b00a2b0da1`
+- Roblox publish: **PASS**
+- Roblox version: `6`
 - Deploy receipt: `deploy-status/lost-and-found-m0.json`
 
 ## LIVE authority
-**LIVE_PUBLISHED — BUILD/DEPLOY VERIFIED.**
-Roblox receipt proves M0 source commit `d6d7b5fa4c606771afbbd5cb8c5b8eb5496a7554` was published to Universe `10745354451` / Place `93699016600671` as Roblox version `5`.
+**LIVE_PUBLISHED — v6 BUILD/DEPLOY VERIFIED.**
+Roblox receipt proves source commit `ac73ed6e779f0f3568ecd27788a6991f3365c83f` was published to Universe `10745354451` / Place `93699016600671` as Roblox version `6`.
 
-This does **not** yet prove runtime gameplay acceptance. The next authority gate is an in-Roblox functional check of FIRST SUITCASE.
+The original core runtime is proven alive by mobile testing, but v6 patch acceptance still requires a short retest.
 
 ## Next gate
-**M0-RUNTIME1:** join Place `93699016600671` and verify:
-1. player spawns in the Lost & Found room;
-2. suitcase arrives on conveyor;
-3. SCAN / CHECK TAG / OPEN work;
-4. claimant appears when applicable;
-5. RETURN / STORE / QUARANTINE / SECURITY work;
-6. result grade + Credits/XP appear;
+**M0-RUNTIME2:** verify v6 on mobile:
+1. HUD no longer covers roughly half the screen or Roblox top controls;
+2. only SCAN is available first;
+3. after SCAN, CHECK TAG becomes available;
+4. after CHECK TAG, OPEN becomes available;
+5. decision pads only become interactable after OPEN;
+6. correct decision produces result/reward;
 7. next case begins automatically;
-8. no blocking script/runtime errors.
+8. room and claimant labels are readable without dominating the screen.
 
-Do not begin premium asset production until FIRST SUITCASE is functionally proven.
+Do not begin premium asset production until M0-RUNTIME2 passes.
