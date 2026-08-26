@@ -1,0 +1,16 @@
+{
+  "status": "LIVE_PUBLISHED",
+  "project": "AFTER SCHOOL CITY",
+  "mode": "SPATIAL_CLEANUP_V0_4_1",
+  "sourceRepo": "ardarawk-cloud/ACC-Roblox-maps",
+  "sourceCommit": "47cbf0f61c08d7ba691170476b9ce43f2f234b36",
+  "universeId": "10745359869",
+  "placeId": "121603385909425",
+  "versionNumber": 10,
+  "rojoVersion": "7.7.0",
+  "placeBytes": 31920,
+  "placeSha256": "8b55c9c57fad729ded8ce20e948b71f25c3a33a35a875e396cab673ad91b9a7e",
+  "runId": "33004253251",
+  "publishedAt": "2026-08-26T19:16:23Z",
+  "note": "Spatial Cleanup v0.4.1 plus dedication intro."
+}
