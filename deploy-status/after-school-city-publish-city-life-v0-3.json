@@ -1,0 +1,16 @@
+{
+  "status": "LIVE_PUBLISHED",
+  "project": "AFTER SCHOOL CITY",
+  "mode": "CITY_LIFE_V0_3",
+  "sourceRepo": "ardarawk-cloud/ACC-Roblox-maps",
+  "sourceCommit": "3f83eca9652d8bb67e14e8c4d1d1d05aad641bad",
+  "universeId": "10745359869",
+  "placeId": "121603385909425",
+  "versionNumber": 8,
+  "rojoVersion": "7.7.0",
+  "placeBytes": 24113,
+  "placeSha256": "304b8d2951e5126a3d96d99f7eeeed4f6b9e9e61607d0965ea400040042e2a1c",
+  "runId": "32999980176",
+  "publishedAt": "2026-08-26T18:29:49Z",
+  "note": "City Life v0.3 plus dedication intro."
+}
