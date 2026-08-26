@@ -1,0 +1,16 @@
+{
+  "status": "LIVE_PUBLISHED",
+  "project": "AFTER SCHOOL CITY",
+  "mode": "PREMIUM_FOUNDATION_V0_2",
+  "sourceRepo": "ardarawk-cloud/ACC-Roblox-maps",
+  "sourceCommit": "73d6c8151da2f3be724f454ec21f0f5ab225aece",
+  "universeId": "10745359869",
+  "placeId": "121603385909425",
+  "versionNumber": 7,
+  "rojoVersion": "7.7.0",
+  "placeBytes": 14163,
+  "placeSha256": "5728317fe7e14497926293e526f30acee3884a1155148e326fbe537d63e76698",
+  "runId": "32998624032",
+  "publishedAt": "2026-08-26T18:14:53Z",
+  "note": "Premium Foundation v0.2 plus dedication intro."
+}
