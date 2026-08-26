@@ -1,6 +1,6 @@
 {
-  "version": "1.1",
-  "status": "M1_A_ROOM",
+  "version": "1.2",
+  "status": "M1_B_ITEMS",
   "assets": [
     {
       "id": "room_service_counter_v1",
@@ -31,6 +31,36 @@
       "type": "procedural_reference",
       "status": "SOURCE_APPROVED_PENDING_RUNTIME_QC",
       "purpose": "RETURN STORE QUARANTINE SECURITY controls"
+    },
+    {
+      "id": "hardcase_suitcase",
+      "type": "base_item_model",
+      "status": "SOURCE_IMPLEMENTED_PENDING_RUNTIME_QC",
+      "source": "procedural_m1"
+    },
+    {
+      "id": "vintage_suitcase",
+      "type": "base_item_model",
+      "status": "SOURCE_IMPLEMENTED_PENDING_RUNTIME_QC",
+      "source": "procedural_m1"
+    },
+    {
+      "id": "backpack",
+      "type": "base_item_model",
+      "status": "SOURCE_IMPLEMENTED_PENDING_RUNTIME_QC",
+      "source": "procedural_m1"
+    },
+    {
+      "id": "cardboard_box",
+      "type": "base_item_model",
+      "status": "SOURCE_IMPLEMENTED_PENDING_RUNTIME_QC",
+      "source": "procedural_m1"
+    },
+    {
+      "id": "teddy_bear",
+      "type": "base_item_model",
+      "status": "SOURCE_IMPLEMENTED_PENDING_RUNTIME_QC",
+      "source": "procedural_m1"
     }
   ],
   "rule": "No external asset is production-approved until visual, scale, collision, orientation, and performance QC pass.",
@@ -39,6 +69,7 @@
     "externalAssetDependency": false,
     "premiumRoomProceduralReferenceAllowed": true,
     "baseItemMeshTarget": 5,
+    "baseItemMeshesImplemented": 5,
     "baseItemMeshesApproved": 0,
     "m1Complete": false
   }
