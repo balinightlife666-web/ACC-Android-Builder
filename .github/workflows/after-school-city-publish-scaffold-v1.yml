@@ -1,4 +1,4 @@
-name: After School City Publish Dedication Compact V1.1
+name: After School City Publish Premium Foundation V0.2
 
 on:
   issues:
@@ -10,12 +10,12 @@ permissions:
 
 jobs:
   publish:
-    if: startsWith(github.event.issue.title, 'AFTER SCHOOL CITY PUBLISH DEDICATION COMPACT V1.1')
+    if: startsWith(github.event.issue.title, 'AFTER SCHOOL CITY PUBLISH PREMIUM FOUNDATION V0.2')
     runs-on: ubuntu-latest
     timeout-minutes: 15
     env:
       SOURCE_REPO: ardarawk-cloud/ACC-Roblox-maps
-      SOURCE_SHA: 759b9603d63d67f8534658e6448fbc2001a75b5b
+      SOURCE_SHA: 73d6c8151da2f3be724f454ec21f0f5ab225aece
       UNIVERSE_ID: '10745359869'
       PLACE_ID: '121603385909425'
       ROBLOX_API_KEY: ${{ secrets.ROCKET_RACOON_PUBLISH }}
@@ -30,12 +30,12 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: ardarawk-cloud/ACC-Roblox-maps
-          ref: 759b9603d63d67f8534658e6448fbc2001a75b5b
+          ref: 73d6c8151da2f3be724f454ec21f0f5ab225aece
           token: ${{ secrets.ACC_ROBLOX_MAPS_WRITE_TOKEN }}
           path: asc-source
           fetch-depth: 1
 
-      - name: Preflight exact target and compact dedication popup
+      - name: Preflight exact Premium Foundation target
         shell: bash
         run: |
           set -euo pipefail
@@ -45,6 +45,7 @@ jobs:
           project='asc-source/maps/after-school-city/default.project.json'
           intro='asc-source/maps/after-school-city/after-school-city.intro.client.lua'
           config='asc-source/maps/after-school-city/after-school-city.config.lua'
+          world='asc-source/maps/after-school-city/after-school-city.world.server.lua'
           jq -e . "$project" >/dev/null
           grep -Fq 'StarterGui' "$project"
           grep -Fq 'after-school-city.intro.client.lua' "$project"
@@ -55,7 +56,12 @@ jobs:
           grep -Fq 'ENTER THE CITY' "$intro"
           grep -Fq '10745359869' "$config"
           grep -Fq '121603385909425' "$config"
-          echo "LOCK PASS source=$actual universe=$UNIVERSE_ID place=$PLACE_ID compact=PASS"
+          grep -Fq '0.2.0-premium-pass-1' "$config"
+          grep -Fq 'SchoolDistrict' "$world"
+          grep -Fq 'Downtown' "$world"
+          grep -Fq 'SkatePark' "$world"
+          grep -Fq 'SportsField' "$world"
+          echo "LOCK PASS source=$actual universe=$UNIVERSE_ID place=$PLACE_ID premium_v0_2=PASS"
 
       - name: Prepare Rojo 7.7.0
         shell: bash
@@ -85,7 +91,7 @@ jobs:
           echo "PLACE_SHA256=$sha" >> "$GITHUB_ENV"
           echo "BUILD PASS bytes=$bytes sha256=$sha"
 
-      - name: Publish compact dedication update LIVE to Roblox
+      - name: Publish Premium Foundation v0.2 LIVE to Roblox
         shell: bash
         run: |
           set -euo pipefail
@@ -111,7 +117,7 @@ jobs:
           jq -n \
             --arg status 'LIVE_PUBLISHED' \
             --arg project 'AFTER SCHOOL CITY' \
-            --arg mode 'DEDICATION_POPUP_COMPACT_V1_1' \
+            --arg mode 'PREMIUM_FOUNDATION_V0_2' \
             --arg sourceRepo "$SOURCE_REPO" \
             --arg sourceCommit "$SOURCE_SHA" \
             --arg universeId "$UNIVERSE_ID" \
@@ -122,13 +128,13 @@ jobs:
             --arg placeSha256 "$PLACE_SHA256" \
             --arg runId "$GITHUB_RUN_ID" \
             --arg publishedAt "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
-            '{status:$status,project:$project,mode:$mode,sourceRepo:$sourceRepo,sourceCommit:$sourceCommit,universeId:$universeId,placeId:$placeId,versionNumber:($versionNumber|tonumber),rojoVersion:$rojoVersion,placeBytes:($placeBytes|tonumber),placeSha256:$placeSha256,runId:$runId,publishedAt:$publishedAt,note:"Dedication popup compacted for mobile: narrower card, reduced vertical spacing, smaller type and button."}' \
-            > deploy-status/after-school-city-publish-dedication-v1.json
-          cat deploy-status/after-school-city-publish-dedication-v1.json
+            '{status:$status,project:$project,mode:$mode,sourceRepo:$sourceRepo,sourceCommit:$sourceCommit,universeId:$universeId,placeId:$placeId,versionNumber:($versionNumber|tonumber),rojoVersion:$rojoVersion,placeBytes:($placeBytes|tonumber),placeSha256:$placeSha256,runId:$runId,publishedAt:$publishedAt,note:"Premium Foundation v0.2 plus compact dedication intro."}' \
+            > deploy-status/after-school-city-publish-premium-v0-2.json
+          cat deploy-status/after-school-city-publish-premium-v0-2.json
           git config user.name 'After School City Publish Bot'
           git config user.email 'actions@users.noreply.github.com'
-          git add deploy-status/after-school-city-publish-dedication-v1.json
-          git commit -m "Record After School City compact dedication publish v${PUBLISHED_VERSION} [skip ci]"
+          git add deploy-status/after-school-city-publish-premium-v0-2.json
+          git commit -m "Record After School City Premium Foundation publish v${PUBLISHED_VERSION} [skip ci]"
           git pull --rebase origin main
           git push origin HEAD:main
 
@@ -141,5 +147,5 @@ jobs:
               owner: context.repo.owner,
               repo: context.repo.repo,
               issue_number: context.issue.number,
-              body: `PASS — AFTER SCHOOL CITY compact dedication popup is LIVE. Universe ${process.env.UNIVERSE_ID}, Place ${process.env.PLACE_ID}, source ${process.env.SOURCE_SHA}, Roblox version ${process.env.PUBLISHED_VERSION}.`
+              body: `PASS — AFTER SCHOOL CITY Premium Foundation v0.2 is LIVE. Universe ${process.env.UNIVERSE_ID}, Place ${process.env.PLACE_ID}, source ${process.env.SOURCE_SHA}, Roblox version ${process.env.PUBLISHED_VERSION}.`
             })
