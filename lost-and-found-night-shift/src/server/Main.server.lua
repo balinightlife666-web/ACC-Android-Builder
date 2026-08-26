@@ -6,6 +6,7 @@ local shared = ReplicatedStorage:WaitForChild("LostAndFoundShared")
 local Config = require(shared:WaitForChild("Config"))
 local CaseRegistry = require(shared:WaitForChild("CaseRegistry"))
 local WorldBuilder = require(script.Parent:WaitForChild("WorldBuilder"))
+local ItemFactory = require(script.Parent:WaitForChild("ItemFactory"))
 
 local remotes = ReplicatedStorage:FindFirstChild("LostAndFoundRemotes") or Instance.new("Folder")
 remotes.Name = "LostAndFoundRemotes"
@@ -62,14 +63,10 @@ local function normalizeCharacter(character)
     local root = character:FindFirstChild("HumanoidRootPart") or character:WaitForChild("HumanoidRootPart", 5)
 
     for _, descendant in ipairs(character:GetDescendants()) do
-        if descendant:IsA("BasePart") then
-            descendant.Anchored = false
-        end
+        if descendant:IsA("BasePart") then descendant.Anchored = false end
     end
 
-    if root then
-        root.Anchored = false
-    end
+    if root then root.Anchored = false end
 
     if humanoid then
         humanoid.PlatformStand = false
@@ -89,9 +86,7 @@ local function setupPlayer(player)
     player.CharacterAdded:Connect(function(character)
         task.defer(normalizeCharacter, character)
     end)
-    if player.Character then
-        task.defer(normalizeCharacter, player.Character)
-    end
+    if player.Character then task.defer(normalizeCharacter, player.Character) end
 end
 
 local function publicCase(caseData)
@@ -131,14 +126,21 @@ local function startNextCase()
     inspections.tagChecked = false
     inspections.opened = false
     refreshPromptState()
-    activeSuitcase = WorldBuilder.CreateSuitcase(refs.World, activeCase, refs.ConveyorStart.CFrame)
+
+    activeSuitcase = ItemFactory.Create(refs.World, activeCase, refs.ConveyorStart.CFrame)
     broadcast("CASE_INCOMING", { message = "Incoming property on conveyor..." })
+
     if activeSuitcase and activeSuitcase.PrimaryPart then
         local tween = TweenService:Create(activeSuitcase.PrimaryPart, TweenInfo.new(Config.ConveyorTravelTime, Enum.EasingStyle.Linear), { CFrame = refs.InspectionStop.CFrame })
         tween:Play()
         tween.Completed:Wait()
     end
-    if activeSuitcase and activeSuitcase.Parent then activeClaimant = WorldBuilder.CreateClaimant(refs.World, refs.ClaimantMarker, activeCase) end
+
+    if activeSuitcase and activeSuitcase.Parent then
+        task.wait(Config.ClaimantArrivalDelay or 0)
+        activeClaimant = WorldBuilder.CreateClaimant(refs.World, refs.ClaimantMarker, activeCase)
+    end
+
     locked = false
     refreshPromptState()
     broadcast("CASE_READY", { message = "Scan the item to begin inspection." })
@@ -173,12 +175,14 @@ refs.ScannerPrompt.Triggered:Connect(function(player)
     refreshPromptState()
     broadcast("INSPECTION", { step = "SCAN", by = player.DisplayName, message = "Scanner record loaded." })
 end)
+
 refs.TagPrompt.Triggered:Connect(function(player)
     if locked or not activeCase or not inspections.scanned or inspections.tagChecked then return end
     inspections.tagChecked = true
     refreshPromptState()
     broadcast("INSPECTION", { step = "TAG", by = player.DisplayName, message = "Claim tag checked." })
 end)
+
 refs.OpenPrompt.Triggered:Connect(function(player)
     if locked or not activeCase or not inspections.scanned or not inspections.tagChecked or inspections.opened then return end
     inspections.opened = true
@@ -194,6 +198,7 @@ for decision, decisionPrompt in pairs(refs.DecisionPrompts) do
             broadcast("DECISION_BLOCKED", { message = "Complete SCAN, CHECK TAG, and OPEN before deciding." })
             return
         end
+
         locked = true
         refreshPromptState()
         local grade = gradeDecision(decision)
