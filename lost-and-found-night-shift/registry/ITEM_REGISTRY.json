@@ -1,0 +1,12 @@
+{
+  "version": "1.0",
+  "status": "M0_PLACEHOLDER",
+  "items": [
+    {"id":"hardcase_suitcase","name":"Hardcase Suitcase","baseAsset":"procedural","approvedForM0":true},
+    {"id":"vintage_suitcase","name":"Vintage Suitcase","baseAsset":"procedural","approvedForM0":true},
+    {"id":"backpack","name":"Backpack","baseAsset":"future","approvedForM0":false},
+    {"id":"cardboard_box","name":"Cardboard Box","baseAsset":"future","approvedForM0":false},
+    {"id":"teddy_bear","name":"Teddy Bear","baseAsset":"future","approvedForM0":false}
+  ],
+  "futureVariantRule":"Variants should reuse approved base geometry where practical."
+}

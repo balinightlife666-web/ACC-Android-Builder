@@ -1,0 +1,23 @@
+{
+  "name": "LostAndFoundNightShift",
+  "tree": {
+    "$className": "DataModel",
+    "ReplicatedStorage": {
+      "LostAndFoundShared": {
+        "$path": "src/shared"
+      }
+    },
+    "ServerScriptService": {
+      "LostAndFoundServer": {
+        "$path": "src/server"
+      }
+    },
+    "StarterPlayer": {
+      "StarterPlayerScripts": {
+        "LostAndFoundClient": {
+          "$path": "src/client"
+        }
+      }
+    }
+  }
+}
