@@ -1,10 +1,45 @@
 {
-  "version": "1.0",
-  "status": "M0",
-  "assets": [],
+  "version": "1.1",
+  "status": "M1_A_ROOM",
+  "assets": [
+    {
+      "id": "room_service_counter_v1",
+      "type": "procedural_reference",
+      "status": "SOURCE_APPROVED_PENDING_RUNTIME_QC",
+      "purpose": "premium service/intake counter"
+    },
+    {
+      "id": "room_conveyor_v1",
+      "type": "procedural_reference",
+      "status": "SOURCE_APPROVED_PENDING_RUNTIME_QC",
+      "purpose": "premium property conveyor"
+    },
+    {
+      "id": "room_scanner_v1",
+      "type": "procedural_reference",
+      "status": "SOURCE_APPROVED_PENDING_RUNTIME_QC",
+      "purpose": "hero baggage scanner"
+    },
+    {
+      "id": "room_inspection_desk_v1",
+      "type": "procedural_reference",
+      "status": "SOURCE_APPROVED_PENDING_RUNTIME_QC",
+      "purpose": "tag reader and open inspection station"
+    },
+    {
+      "id": "room_decision_consoles_v1",
+      "type": "procedural_reference",
+      "status": "SOURCE_APPROVED_PENDING_RUNTIME_QC",
+      "purpose": "RETURN STORE QUARANTINE SECURITY controls"
+    }
+  ],
   "rule": "No external asset is production-approved until visual, scale, collision, orientation, and performance QC pass.",
-  "m0": {
+  "m1": {
+    "visualLock": "brain/M1_VISUAL_LOCK.md",
     "externalAssetDependency": false,
-    "proceduralPlaceholderAllowed": true
+    "premiumRoomProceduralReferenceAllowed": true,
+    "baseItemMeshTarget": 5,
+    "baseItemMeshesApproved": 0,
+    "m1Complete": false
   }
 }
