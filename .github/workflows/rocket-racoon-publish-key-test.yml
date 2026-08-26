@@ -1,0 +1,68 @@
+name: Rocket Racoon Publish Key Test
+
+on:
+  workflow_dispatch:
+  issues:
+    types: [opened]
+
+permissions:
+  issues: write
+
+jobs:
+  test-key:
+    if: github.event_name == 'workflow_dispatch' || startsWith(github.event.issue.title, 'ROCKET RACOON PUBLISH KEY TEST')
+    runs-on: ubuntu-latest
+    env:
+      ROBLOX_KEY: ${{ secrets.ROCKET_RACOON_PUBLISH }}
+    steps:
+      - name: Introspect RR Roblox Open Cloud key
+        id: keycheck
+        shell: bash
+        run: |
+          set +e
+          if [ -z "$ROBLOX_KEY" ]; then
+            result="SECRET_MISSING"
+          else
+            tmp=$(mktemp)
+            code=$(curl -sS -o "$tmp" -w '%{http_code}' -X POST 'https://apis.roblox.com/api-keys/v1/introspect' \
+              -H 'Content-Type: application/json' \
+              --data "{\"apiKey\":\"$ROBLOX_KEY\"}")
+            if [ "$code" != "200" ]; then
+              result="INTROSPECT_HTTP_$code"
+            else
+              response=$(cat "$tmp")
+              result=$(python3 - "$response" <<'PY'
+          import json,sys
+          try:
+              d=json.loads(sys.argv[1])
+              uid=str(d.get('authorizedUserId') or '')
+              scopes=d.get('scopes') or []
+              scope_summary=[]
+              for s in scopes:
+                  name=s.get('name') or '?'
+                  ops=','.join(s.get('operations') or [])
+                  scope_summary.append(f'{name}[{ops}]')
+              if d.get('expired') is True:
+                  print(f'KEY_EXPIRED owner={uid}')
+              elif d.get('enabled') is False:
+                  print(f'KEY_DISABLED owner={uid}')
+              else:
+                  print(f'PASS owner={uid} scopes={";".join(scope_summary)}')
+          except Exception:
+              print('INVALID_INTROSPECT_RESPONSE')
+          PY
+          )
+            fi
+            rm -f "$tmp"
+          fi
+          echo "result=$result" >> "$GITHUB_OUTPUT"
+          echo "$result"
+
+      - name: Comment result on test issue
+        if: github.event_name == 'issues'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RESULT: ${{ steps.keycheck.outputs.result }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+          REPO: ${{ github.repository }}
+        run: gh issue comment "$ISSUE_NUMBER" --repo "$REPO" --body "$RESULT"
