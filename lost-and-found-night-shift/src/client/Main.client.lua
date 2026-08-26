@@ -11,87 +11,186 @@ gui.ResetOnSpawn = false
 gui.IgnoreGuiInset = false
 gui.Parent = player:WaitForChild("PlayerGui")
 
-local panel = Instance.new("Frame")
-panel.Name = "CasePanel"
-panel.AnchorPoint = Vector2.new(0, 0.5)
-panel.Size = UDim2.new(0.34, 0, 0.86, 0)
-panel.Position = UDim2.new(0, 10, 0.54, 0)
-panel.BackgroundColor3 = Color3.fromRGB(17, 21, 28)
-panel.BackgroundTransparency = 0.08
-panel.BorderSizePixel = 0
-panel.Parent = gui
-local sizeConstraint = Instance.new("UISizeConstraint")
-sizeConstraint.MaxSize = Vector2.new(310, 410)
-sizeConstraint.MinSize = Vector2.new(220, 275)
-sizeConstraint.Parent = panel
-local corner = Instance.new("UICorner")
-corner.CornerRadius = UDim.new(0, 12)
-corner.Parent = panel
-local stroke = Instance.new("UIStroke")
-stroke.Color = Color3.fromRGB(74, 91, 112)
-stroke.Thickness = 1.25
-stroke.Transparency = 0.3
-stroke.Parent = panel
-local padding = Instance.new("UIPadding")
-padding.PaddingTop = UDim.new(0, 9)
-padding.PaddingBottom = UDim.new(0, 9)
-padding.PaddingLeft = UDim.new(0, 12)
-padding.PaddingRight = UDim.new(0, 12)
-padding.Parent = panel
-local layout = Instance.new("UIListLayout")
-layout.Padding = UDim.new(0, 4)
-layout.SortOrder = Enum.SortOrder.LayoutOrder
-layout.Parent = panel
+local function addCorner(target, radius)
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, radius or 10)
+    corner.Parent = target
+end
 
-local function textLabel(name, height, font, color, size)
+local function addStroke(target, color, thickness, transparency)
+    local stroke = Instance.new("UIStroke")
+    stroke.Color = color or Color3.fromRGB(74, 91, 112)
+    stroke.Thickness = thickness or 1.2
+    stroke.Transparency = transparency or 0.3
+    stroke.Parent = target
+end
+
+local function makeLabel(parent, name, size, position, font, color, textSize)
     local label = Instance.new("TextLabel")
     label.Name = name
-    label.Size = UDim2.new(1, 0, 0, height)
+    label.Size = size
+    label.Position = position or UDim2.new()
     label.BackgroundTransparency = 1
     label.TextXAlignment = Enum.TextXAlignment.Left
     label.TextYAlignment = Enum.TextYAlignment.Top
     label.TextWrapped = true
     label.Font = font or Enum.Font.Gotham
     label.TextColor3 = color or Color3.fromRGB(235, 238, 242)
-    label.TextSize = size or 14
-    label.Parent = panel
+    label.TextSize = textSize or 14
+    label.Parent = parent
     return label
 end
 
-local title = textLabel("Title", 22, Enum.Font.GothamBold, Color3.fromRGB(255, 184, 72), 14)
-title.Text = "LOST & FOUND: NIGHT SHIFT"
-local caseTitle = textLabel("CaseTitle", 38, Enum.Font.GothamBold, Color3.fromRGB(240, 242, 246), 15)
-caseTitle.Text = "Waiting for first suitcase..."
-local status = textLabel("Status", 28, Enum.Font.GothamMedium, Color3.fromRGB(111, 210, 255), 12)
-status.Text = "M0 — FIRST SUITCASE"
-local evidence = textLabel("Evidence", 126, Enum.Font.RobotoMono, Color3.fromRGB(215, 220, 228), 11)
+-- Compact always-on HUD. Keep it clear of the Roblox top bar and movement controls.
+local compact = Instance.new("Frame")
+compact.Name = "CompactCaseHUD"
+compact.Size = UDim2.fromOffset(300, 174)
+compact.Position = UDim2.fromOffset(16, 108)
+compact.BackgroundColor3 = Color3.fromRGB(17, 21, 28)
+compact.BackgroundTransparency = 0.06
+compact.BorderSizePixel = 0
+compact.Parent = gui
+addCorner(compact, 12)
+addStroke(compact)
+
+local compactConstraint = Instance.new("UISizeConstraint")
+compactConstraint.MinSize = Vector2.new(260, 164)
+compactConstraint.MaxSize = Vector2.new(300, 174)
+compactConstraint.Parent = compact
+
+local compactTitle = makeLabel(compact, "Brand", UDim2.new(1, -24, 0, 22), UDim2.fromOffset(12, 10), Enum.Font.GothamBold, Color3.fromRGB(255, 184, 72), 14)
+compactTitle.Text = "LOST & FOUND: NIGHT SHIFT"
+
+local compactCase = makeLabel(compact, "Case", UDim2.new(1, -24, 0, 48), UDim2.fromOffset(12, 36), Enum.Font.GothamBold, Color3.fromRGB(240, 242, 246), 15)
+compactCase.Text = "Waiting for first suitcase..."
+
+local compactStatus = makeLabel(compact, "Status", UDim2.new(1, -24, 0, 24), UDim2.fromOffset(12, 86), Enum.Font.GothamMedium, Color3.fromRGB(111, 210, 255), 12)
+compactStatus.Text = "M0 — FIRST SUITCASE"
+
+local progress = makeLabel(compact, "Progress", UDim2.new(1, -118, 0, 34), UDim2.fromOffset(12, 118), Enum.Font.GothamBold, Color3.fromRGB(218, 224, 232), 12)
+progress.Text = "SCAN ○   TAG ○   OPEN ○"
+
+local caseFileButton = Instance.new("TextButton")
+caseFileButton.Name = "CaseFileButton"
+caseFileButton.Size = UDim2.fromOffset(96, 36)
+caseFileButton.Position = UDim2.new(1, -108, 1, -48)
+caseFileButton.BackgroundColor3 = Color3.fromRGB(218, 145, 48)
+caseFileButton.BackgroundTransparency = 0.04
+caseFileButton.TextColor3 = Color3.fromRGB(20, 22, 27)
+caseFileButton.Font = Enum.Font.GothamBold
+caseFileButton.TextSize = 13
+caseFileButton.Text = "CASE FILE"
+caseFileButton.AutoButtonColor = true
+caseFileButton.Parent = compact
+addCorner(caseFileButton, 8)
+
+-- Full evidence popup. Open only when requested so gameplay stays visible.
+local popup = Instance.new("Frame")
+popup.Name = "CaseFilePopup"
+popup.AnchorPoint = Vector2.new(0.5, 0.5)
+popup.Size = UDim2.new(0.58, 0, 0.72, 0)
+popup.Position = UDim2.new(0.56, 0, 0.55, 0)
+popup.BackgroundColor3 = Color3.fromRGB(15, 19, 26)
+popup.BackgroundTransparency = 0.02
+popup.BorderSizePixel = 0
+popup.Visible = false
+popup.Parent = gui
+addCorner(popup, 14)
+addStroke(popup, Color3.fromRGB(83, 101, 124), 1.4, 0.18)
+
+local popupConstraint = Instance.new("UISizeConstraint")
+popupConstraint.MinSize = Vector2.new(360, 300)
+popupConstraint.MaxSize = Vector2.new(540, 430)
+popupConstraint.Parent = popup
+
+local popupTitle = makeLabel(popup, "PopupTitle", UDim2.new(1, -82, 0, 48), UDim2.fromOffset(18, 16), Enum.Font.GothamBold, Color3.fromRGB(240, 242, 246), 18)
+popupTitle.Text = "CASE FILE"
+
+local closeButton = Instance.new("TextButton")
+closeButton.Name = "Close"
+closeButton.Size = UDim2.fromOffset(44, 38)
+closeButton.Position = UDim2.new(1, -58, 0, 14)
+closeButton.BackgroundColor3 = Color3.fromRGB(37, 44, 56)
+closeButton.TextColor3 = Color3.fromRGB(240, 242, 246)
+closeButton.Font = Enum.Font.GothamBold
+closeButton.TextSize = 20
+closeButton.Text = "×"
+closeButton.Parent = popup
+addCorner(closeButton, 9)
+
+local popupStatus = makeLabel(popup, "PopupStatus", UDim2.new(1, -36, 0, 30), UDim2.fromOffset(18, 68), Enum.Font.GothamMedium, Color3.fromRGB(111, 210, 255), 14)
+popupStatus.Text = "Waiting for evidence..."
+
+local evidenceScroll = Instance.new("ScrollingFrame")
+evidenceScroll.Name = "EvidenceScroll"
+evidenceScroll.Size = UDim2.new(1, -36, 1, -166)
+evidenceScroll.Position = UDim2.fromOffset(18, 104)
+evidenceScroll.BackgroundColor3 = Color3.fromRGB(22, 27, 36)
+evidenceScroll.BackgroundTransparency = 0.15
+evidenceScroll.BorderSizePixel = 0
+evidenceScroll.ScrollBarThickness = 5
+evidenceScroll.ScrollBarImageTransparency = 0.2
+evidenceScroll.CanvasSize = UDim2.fromOffset(0, 0)
+evidenceScroll.AutomaticCanvasSize = Enum.AutomaticSize.Y
+evidenceScroll.Parent = popup
+addCorner(evidenceScroll, 9)
+
+local evidencePadding = Instance.new("UIPadding")
+evidencePadding.PaddingTop = UDim.new(0, 12)
+evidencePadding.PaddingBottom = UDim.new(0, 12)
+evidencePadding.PaddingLeft = UDim.new(0, 14)
+evidencePadding.PaddingRight = UDim.new(0, 14)
+evidencePadding.Parent = evidenceScroll
+
+local evidence = Instance.new("TextLabel")
+evidence.Name = "Evidence"
+evidence.Size = UDim2.new(1, -28, 0, 0)
+evidence.AutomaticSize = Enum.AutomaticSize.Y
+evidence.BackgroundTransparency = 1
+evidence.TextXAlignment = Enum.TextXAlignment.Left
+evidence.TextYAlignment = Enum.TextYAlignment.Top
+evidence.TextWrapped = true
+evidence.Font = Enum.Font.RobotoMono
+evidence.TextColor3 = Color3.fromRGB(215, 220, 228)
+evidence.TextSize = 14
 evidence.Text = "SCAN: pending\nTAG: pending\nOPEN: pending"
-local instruction = textLabel("Instruction", 42, Enum.Font.GothamBold, Color3.fromRGB(255, 202, 105), 11)
+evidence.Parent = evidenceScroll
+
+local instruction = makeLabel(popup, "Instruction", UDim2.new(1, -36, 0, 48), UDim2.new(0, 18, 1, -54), Enum.Font.GothamBold, Color3.fromRGB(255, 202, 105), 13)
 instruction.Text = "1/3  SCAN the suitcase."
 
+-- Result stays as a small toast and never consumes the movement area.
 local resultBanner = Instance.new("TextLabel")
 resultBanner.Name = "ResultBanner"
 resultBanner.AnchorPoint = Vector2.new(0.5, 1)
-resultBanner.Size = UDim2.new(0.62, 0, 0, 52)
-resultBanner.Position = UDim2.new(0.5, 0, 0.96, 0)
+resultBanner.Size = UDim2.new(0.54, 0, 0, 58)
+resultBanner.Position = UDim2.new(0.5, 0, 0.94, 0)
 resultBanner.BackgroundColor3 = Color3.fromRGB(28, 35, 45)
-resultBanner.BackgroundTransparency = 0.05
+resultBanner.BackgroundTransparency = 0.04
 resultBanner.TextColor3 = Color3.fromRGB(255, 255, 255)
-resultBanner.TextSize = 14
+resultBanner.TextSize = 15
 resultBanner.TextWrapped = true
 resultBanner.Font = Enum.Font.GothamBold
 resultBanner.Text = ""
 resultBanner.Visible = false
 resultBanner.Parent = gui
-local resultConstraint = Instance.new("UISizeConstraint")
-resultConstraint.MaxSize = Vector2.new(520, 52)
-resultConstraint.MinSize = Vector2.new(280, 48)
-resultConstraint.Parent = resultBanner
-local resultCorner = Instance.new("UICorner")
-resultCorner.CornerRadius = UDim.new(0, 10)
-resultCorner.Parent = resultBanner
+addCorner(resultBanner, 10)
 
-local function inspectionMark(done) return done and "DONE" or "pending" end
+local resultConstraint = Instance.new("UISizeConstraint")
+resultConstraint.MaxSize = Vector2.new(560, 58)
+resultConstraint.MinSize = Vector2.new(300, 52)
+resultConstraint.Parent = resultBanner
+
+local currentPayload = nil
+local currentKind = nil
+
+local function inspectionMark(done)
+    return done and "DONE" or "pending"
+end
+
+local function progressMark(done)
+    return done and "✓" or "○"
+end
 
 local function updateInstruction(inspections)
     if not inspections.scanned then
@@ -105,11 +204,7 @@ local function updateInstruction(inspections)
     end
 end
 
-local function render(payload, kind)
-    local caseData = payload.case
-    local inspections = payload.inspections or {}
-    if not caseData then return end
-    caseTitle.Text = caseData.id .. "  •  " .. caseData.title .. "\n" .. caseData.itemName
+local function buildEvidence(caseData, inspections)
     local lines = {}
     table.insert(lines, "SCAN: " .. inspectionMark(inspections.scanned))
     if inspections.scanned then
@@ -118,41 +213,78 @@ local function render(payload, kind)
         table.insert(lines, "  weight: " .. tostring(caseData.weight))
         table.insert(lines, "  status: " .. tostring(caseData.scanStatus))
     end
+    table.insert(lines, "")
     table.insert(lines, "TAG: " .. inspectionMark(inspections.tagChecked))
     if inspections.tagChecked then
         table.insert(lines, "  item tag: " .. tostring(caseData.tagNumber))
         table.insert(lines, "  claimant: " .. tostring(caseData.claimantName))
         table.insert(lines, "  claim tag: " .. tostring(caseData.claimantTag))
     end
+    table.insert(lines, "")
     table.insert(lines, "OPEN: " .. inspectionMark(inspections.opened))
     if inspections.opened then
         table.insert(lines, "  contents: " .. tostring(caseData.contents))
         table.insert(lines, "  note: " .. tostring(caseData.anomaly))
     end
-    evidence.Text = table.concat(lines, "\n")
+    return table.concat(lines, "\n")
+end
 
-    if kind ~= "RESULT" then updateInstruction(inspections) end
+local function render(payload, kind)
+    local caseData = payload.case
+    local inspections = payload.inspections or {}
+    if not caseData then return end
+
+    currentPayload = payload
+    currentKind = kind
+
+    compactCase.Text = caseData.id .. "  •  " .. caseData.title .. "\n" .. caseData.itemName
+    popupTitle.Text = caseData.id .. "  •  " .. caseData.title .. "\n" .. caseData.itemName
+    progress.Text = string.format("SCAN %s   TAG %s   OPEN %s", progressMark(inspections.scanned), progressMark(inspections.tagChecked), progressMark(inspections.opened))
+    evidence.Text = buildEvidence(caseData, inspections)
+
+    if kind ~= "RESULT" then
+        updateInstruction(inspections)
+    end
 
     if kind == "CASE_INCOMING" then
-        status.Text = "INCOMING — conveyor moving"
+        compactStatus.Text = "INCOMING — conveyor moving"
+        popupStatus.Text = compactStatus.Text
         resultBanner.Visible = false
+        popup.Visible = false
     elseif kind == "CASE_READY" then
-        status.Text = "CASE READY — begin inspection"
+        compactStatus.Text = "CASE READY — inspect item"
+        popupStatus.Text = compactStatus.Text
         resultBanner.Visible = false
     elseif kind == "INSPECTION" then
-        status.Text = tostring(payload.message or "Evidence updated")
+        compactStatus.Text = tostring(payload.message or "Evidence updated")
+        popupStatus.Text = compactStatus.Text
     elseif kind == "DECISION_BLOCKED" then
-        status.Text = "DECISION LOCKED — finish inspection"
+        compactStatus.Text = "DECISION LOCKED — finish evidence"
+        popupStatus.Text = compactStatus.Text
         instruction.Text = tostring(payload.message or "Complete all evidence steps first.")
     elseif kind == "RESULT" then
-        status.Text = "CASE COMPLETE — " .. tostring(payload.resolution or "")
+        compactStatus.Text = "CASE COMPLETE — " .. tostring(payload.resolution or "")
+        popupStatus.Text = compactStatus.Text
+        popup.Visible = false
         resultBanner.Visible = true
         resultBanner.Text = string.format("%s  •  %s\n+%d Credits / +%d XP", tostring(payload.grade), tostring(payload.decision), payload.reward and payload.reward.Credits or 0, payload.reward and payload.reward.XP or 0)
-        instruction.Text = tostring(payload.reason or "")
     elseif kind == "SYNC" then
-        status.Text = payload.locked and "CASE TRANSITION" or "CASE ACTIVE"
+        compactStatus.Text = payload.locked and "CASE TRANSITION" or "CASE ACTIVE"
+        popupStatus.Text = compactStatus.Text
     end
 end
+
+caseFileButton.Activated:Connect(function()
+    popup.Visible = not popup.Visible
+    if popup.Visible and currentPayload then
+        render(currentPayload, currentKind or "SYNC")
+        popup.Visible = true
+    end
+end)
+
+closeButton.Activated:Connect(function()
+    popup.Visible = false
+end)
 
 caseUpdate.OnClientEvent:Connect(function(kind, payload)
     render(payload or {}, kind)
