@@ -55,48 +55,73 @@ Visual authority:
 - no neon arcade floor look.
 
 ## M1-A — PREMIUM ROOM SHELL + EQUIPMENT
-Implemented in source:
+Implemented and published in Roblox v12:
 - premium room shell with wall panels, trims, floor guides, and hidden spawn pad;
-- premium service counter with layered fascia, wood top, amber task lighting, and operations monitor;
-- premium conveyor with layered base, belt slats, rails, and restrained under-lighting;
-- scanner rebuilt as an arch with cyan inner scan lines and evidence display;
-- inspection desk upgraded with dedicated tag reader, open tray, and evidence screen;
+- layered service counter with wood top, amber task lighting, and monitor;
+- layered conveyor with belt slats and restrained under-lighting;
+- scanner arch with cyan inner scan lines and evidence display;
+- upgraded inspection desk, tag reader, open tray, and evidence screen;
 - claimant waiting zone separated from staff work area;
-- four decision pads replaced by raised operational consoles;
-- storage racks / stored-property dressing added;
-- quarantine access rebuilt with restricted frame and red warning lamp;
-- procedure board rebuilt for clearer room hierarchy;
-- lighting upgraded with six industrial ceiling fixtures plus subtle color correction/bloom;
+- raised operational decision consoles;
+- storage racks / stored-property dressing;
+- quarantine access with restricted frame and red warning lamp;
+- improved procedure board and industrial ceiling lighting;
 - core gameplay refs and sequence preserved.
 
-Asset registry:
-- five procedural room modules are registered as `SOURCE_APPROVED_PENDING_RUNTIME_QC`;
-- external item asset dependency remains false;
-- M1-B still requires minimum 5 production-approved base item meshes;
-- M1 is NOT complete yet.
+## M1-B — FIVE BASE ITEM MODELS
+Implemented in source and published in Roblox v13:
+1. `hardcase_suitcase` — ribbed hard-shell luggage, wheels, telescoping handle;
+2. `vintage_suitcase` — wood/leather body, bands, latches, corner protectors;
+3. `backpack` — fabric body, front pocket, straps, zip detail;
+4. `cardboard_box` — parcel body, tape bands, shipping label plate, corner wear;
+5. `teddy_bear` — articulated stylized soft-toy silhouette with head, ears, muzzle, limbs, eyes.
 
-## M1-A publish receipt
-Run: `33006053394`
-Source commit: `6e92e32682c6313aaedd4c13ebec3a0f7d762967`
+Implementation authority:
+- `src/server/ItemFactory.lua` is the M1 base item factory;
+- active case spawning now routes through `ItemFactory.Create`;
+- no external asset dependency is required for these five models;
+- all child parts are welded to one anchored primary part so conveyor tween behavior is preserved;
+- claim-tag visibility is preserved on every model.
+
+Case distribution now exercises all five models during the existing 10-case loop while preserving Season 1 pillars:
+- Ownerless Suitcase remains vintage suitcase;
+- Flight 000 remains hardcase suitcase;
+- The Lost Child remains small vintage case;
+- normal/supporting cases introduce backpack, cardboard parcel, and teddy bear variants.
+
+Asset authority:
+- `registry/ITEM_REGISTRY.json` status is `M1_BASE_MODELS`;
+- `registry/ASSET_REGISTRY.json` records all five as `SOURCE_IMPLEMENTED_PENDING_RUNTIME_QC`;
+- `baseItemMeshesImplemented = 5`;
+- `baseItemMeshesApproved = 0` until mobile visual acceptance;
+- M1 is NOT marked complete until runtime visual QC passes.
+
+## M1-B publish receipt
+Run: `33006870278`
+Source commit: `0a7f93bbade35045dedfeea54a42c5e7fca57140`
 Rojo: `7.7.0`
+Static QC: **PASS**
+Rojo build: **PASS**
 Roblox publish: **PASS**
-Roblox version: `12`
-RBXL bytes: `24768`
-RBXL SHA256: `3460afb39cf78ebd9c4569ab6ea454b948650daea44fefc248956a62b01b766c`
+Roblox version: `13`
+RBXL bytes: `27610`
+RBXL SHA256: `6141422425f867162c38d94d22b2c0972ea7e38ea6b15038b7976a754a490729`
 Deploy receipt: `deploy-status/lost-and-found-m0.json`
 
 ## LIVE authority
-**LIVE_PUBLISHED — v12 BUILD/DEPLOY VERIFIED.**
-M1-A room/equipment visual acceptance still requires mobile runtime inspection.
+**LIVE_PUBLISHED — v13 BUILD/DEPLOY VERIFIED.**
+M1-B item visual acceptance still requires mobile runtime inspection.
 
 ## Next gate
-**M1-A-RUNTIME:** verify on mobile:
+**M1-RUNTIME FINAL:** verify on mobile:
 1. movement/camera remain normal;
-2. room clearly reads as premium Lost & Found operations rather than placeholder blocks;
-3. scanner/conveyor/counter are visually stronger without blocking movement;
-4. SCAN / TAG / OPEN prompts remain reachable and obvious;
-5. decision consoles remain easy to use;
-6. lighting is readable and not over-bright;
-7. full case loop still completes.
+2. premium room modules still read clearly and do not block gameplay;
+3. hardcase and vintage suitcase look distinct;
+4. backpack reads immediately as a backpack, not a box;
+5. cardboard parcel reads immediately as a parcel;
+6. teddy bear reads immediately as a toy and is not visually broken during conveyor movement;
+7. tags remain visible enough for the interaction fantasy;
+8. SCAN → TAG → OPEN → DECIDE still completes on each model;
+9. no welded detail lags behind the item during conveyor tween.
 
-If M1-A passes, proceed to **M1-B — BASE ITEM ASSET PACK** with minimum 5 approved item meshes. Do not claim M1 complete before that gate passes.
+If M1-RUNTIME FINAL passes, set all five base item models to runtime-approved, mark M1 complete, then proceed to **M2 — COLLECTION FOUNDATION**. Do not begin M2 before this gate passes.
