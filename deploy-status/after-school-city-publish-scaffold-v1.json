@@ -1,0 +1,16 @@
+{
+  "status": "LIVE_PUBLISHED",
+  "project": "AFTER SCHOOL CITY",
+  "mode": "SCAFFOLD_V1_EXPLICIT_OWNER_TEST",
+  "sourceRepo": "ardarawk-cloud/ACC-Roblox-maps",
+  "sourceCommit": "d9b1cee118d5cfdb873b604991668a4f0a245428",
+  "universeId": "10745359869",
+  "placeId": "121603385909425",
+  "versionNumber": 4,
+  "rojoVersion": "7.7.0",
+  "placeBytes": 5359,
+  "placeSha256": "c7d5a08264c6b95dd90b90a4669b50f726db98961df2976400ddfea90efd40ff",
+  "runId": "32974040116",
+  "publishedAt": "2026-08-26T13:24:57Z",
+  "note": "Owner explicitly requested publishing the current blockout to inspect the real live result."
+}
