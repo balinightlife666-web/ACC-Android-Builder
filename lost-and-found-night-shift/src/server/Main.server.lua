@@ -56,6 +56,44 @@ local function ensureStats(player)
     if not xp then xp = Instance.new("IntValue"); xp.Name = "XP"; xp.Value = 0; xp.Parent = leaderstats end
 end
 
+local function normalizeCharacter(character)
+    if not character then return end
+    local humanoid = character:FindFirstChildOfClass("Humanoid") or character:WaitForChild("Humanoid", 5)
+    local root = character:FindFirstChild("HumanoidRootPart") or character:WaitForChild("HumanoidRootPart", 5)
+
+    for _, descendant in ipairs(character:GetDescendants()) do
+        if descendant:IsA("BasePart") then
+            descendant.Anchored = false
+        end
+    end
+
+    if root then
+        root.Anchored = false
+    end
+
+    if humanoid then
+        humanoid.PlatformStand = false
+        humanoid.Sit = false
+        humanoid.AutoRotate = true
+        if humanoid.WalkSpeed <= 0 then humanoid.WalkSpeed = 16 end
+        if humanoid.UseJumpPower then
+            if humanoid.JumpPower <= 0 then humanoid.JumpPower = 50 end
+        elseif humanoid.JumpHeight <= 0 then
+            humanoid.JumpHeight = 7.2
+        end
+    end
+end
+
+local function setupPlayer(player)
+    ensureStats(player)
+    player.CharacterAdded:Connect(function(character)
+        task.defer(normalizeCharacter, character)
+    end)
+    if player.Character then
+        task.defer(normalizeCharacter, player.Character)
+    end
+end
+
 local function publicCase(caseData)
     return { id = caseData.id, title = caseData.title, caseType = caseData.caseType, itemName = caseData.itemName, owner = caseData.owner, claimantName = caseData.claimantName or "NO CLAIMANT", claimantKind = caseData.claimantKind, tagNumber = caseData.tagNumber, claimantTag = caseData.claimantTag, flight = caseData.flight, weight = caseData.weight, contents = caseData.contents, scanStatus = caseData.scanStatus, anomaly = caseData.anomaly, resolution = caseData.resolution }
 end
@@ -70,12 +108,12 @@ local function broadcast(kind, extra)
 end
 
 Players.PlayerAdded:Connect(function(player)
-    ensureStats(player)
+    setupPlayer(player)
     task.delay(1.5, function()
         if activeCase then caseUpdate:FireClient(player, "SYNC", { case = publicCase(activeCase), inspections = inspections, locked = locked, milestone = Config.Milestone }) end
     end)
 end)
-for _, player in ipairs(Players:GetPlayers()) do ensureStats(player) end
+for _, player in ipairs(Players:GetPlayers()) do setupPlayer(player) end
 
 local function cleanActive()
     if activeSuitcase then activeSuitcase:Destroy(); activeSuitcase = nil end
