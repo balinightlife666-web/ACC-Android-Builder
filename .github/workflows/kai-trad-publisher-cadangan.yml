@@ -1,0 +1,227 @@
+name: KAI TRAD Publisher Cadangan
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/kai-trad-publisher-cadangan.yml'
+      - '.kai-trad-publisher-trigger'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: kai-trad-publisher-cadangan
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      SOURCE_REPO: ardarawk-cloud/kai-trad-pwa.
+      LIVE_BASE: https://kai-trad-pwa.ardarawk.workers.dev
+
+    steps:
+      - name: Checkout publisher control repo
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Checkout KAI TRAD source read-only
+        uses: actions/checkout@v4
+        with:
+          repository: ardarawk-cloud/kai-trad-pwa.
+          ref: main
+          path: source
+          fetch-depth: 1
+
+      - name: Setup Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Apply v1.11.4 active loss-streak display hotfix
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat > source/worker-v1115.js <<'EOF'
+          import baseWorker, { TradingState as BaseTradingState } from "./worker-v1114.js";
+
+          const APP_VERSION = "1.11.4";
+          const json = (data, status = 200) => new Response(JSON.stringify(data), {
+            status,
+            headers: { "content-type": "application/json; charset=utf-8", "cache-control": "no-store" },
+          });
+
+          export function canonicalActiveLossStreak(state) {
+            const raw = Number(state?.account?.consecutiveLosses ?? 0);
+            return Number.isFinite(raw) ? Math.max(0, Math.trunc(raw)) : 0;
+          }
+
+          export class TradingState extends BaseTradingState {
+            async state() {
+              const s = await super.state();
+              s.version = APP_VERSION;
+              return s;
+            }
+
+            async publicState() {
+              const s = await super.publicState();
+              const activeLossStreak = canonicalActiveLossStreak(s);
+              s.version = APP_VERSION;
+              s.safety = {
+                ...(s.safety || {}),
+                consecutiveLosses: activeLossStreak,
+                historicalMaxConsecutiveLosses: Number(s.account?.maxConsecutiveLossesSeen ?? 0),
+                lossStreakDisplayBasis: "ACCOUNT_ACTIVE_STREAK",
+              };
+              return s;
+            }
+          }
+
+          export default {
+            async fetch(request, env) {
+              const url = new URL(request.url);
+              if (url.pathname === "/api/health") {
+                const response = await baseWorker.fetch(request, env);
+                const data = await response.json().catch(() => ({}));
+                return json({
+                  ...data,
+                  version: APP_VERSION,
+                  lossStreakDisplayBasis: "ACCOUNT_ACTIVE_STREAK",
+                  strictEvidenceReset: false,
+                  liveExecution: "LOCKED",
+                }, response.status);
+              }
+              return baseWorker.fetch(request, env);
+            },
+          };
+          EOF
+
+          python - <<'PY'
+          from pathlib import Path
+          p = Path('source/wrangler.jsonc')
+          s = p.read_text()
+          s = s.replace('"main": "./worker-v1114.js"', '"main": "./worker-v1115.js"')
+          p.write_text(s)
+
+          p = Path('source/release-label-v1112.js')
+          s = p.read_text().replace('const FALLBACK_VERSION = "1.11.3";', 'const FALLBACK_VERSION = "1.11.4";')
+          p.write_text(s)
+          PY
+
+      - name: Unit-check active-vs-historical streak semantics
+        working-directory: source
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --input-type=module <<'NODE'
+          import { canonicalActiveLossStreak } from './worker-v1115.js';
+          const recovered = { account: { consecutiveLosses: 0, maxConsecutiveLossesSeen: 5 } };
+          const active = { account: { consecutiveLosses: 2, maxConsecutiveLossesSeen: 5 } };
+          if (canonicalActiveLossStreak(recovered) !== 0) throw new Error('Recovered streak must display 0, not historical 5');
+          if (canonicalActiveLossStreak(active) !== 2) throw new Error('Active streak must display account counter');
+          console.log('Loss-streak display semantics PASS');
+          NODE
+
+      - name: Install and validate source
+        working-directory: source
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm install --no-audit --no-fund
+          npm test
+          npm run build
+          npx wrangler deploy --dry-run --outdir .wrangler-dry-run
+
+      - name: Resolve Cloudflare publisher credential
+        id: cf
+        shell: bash
+        env:
+          TOKEN_A: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          TOKEN_B: ${{ secrets.CF_API_TOKEN }}
+          TOKEN_C: ${{ secrets.CLOUDFLARE_TOKEN }}
+          ACCOUNT_A: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          ACCOUNT_B: ${{ secrets.CF_ACCOUNT_ID }}
+        run: |
+          set -euo pipefail
+          token="${TOKEN_A:-${TOKEN_B:-${TOKEN_C:-}}}"
+          account="${ACCOUNT_A:-${ACCOUNT_B:-}}"
+          if [[ -z "$token" ]]; then
+            echo 'No Cloudflare API token secret is configured on publisher cadangan.'
+            exit 42
+          fi
+          echo "token=$token" >> "$GITHUB_OUTPUT"
+          echo "account=$account" >> "$GITHUB_OUTPUT"
+
+      - name: Deploy KAI TRAD Worker through cadangan route
+        working-directory: source
+        shell: bash
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ steps.cf.outputs.token }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ steps.cf.outputs.account }}
+        run: |
+          set -euo pipefail
+          npx wrangler deploy
+
+      - name: Verify live health and safety invariant
+        id: verify
+        shell: bash
+        run: |
+          set -euo pipefail
+          health=$(curl -fsSL --retry 6 --retry-delay 5 "$LIVE_BASE/api/health")
+          state=$(curl -fsSL --retry 6 --retry-delay 5 "$LIVE_BASE/api/state")
+          echo "$health" > /tmp/kai-health.json
+          echo "$state" > /tmp/kai-state.json
+          version=$(jq -r '.version // empty' /tmp/kai-health.json)
+          streak=$(jq -r '.safety.consecutiveLosses // 0' /tmp/kai-state.json)
+          max=$(jq -r '.safety.maxConsecutiveLosses // 3' /tmp/kai-state.json)
+          breaker=$(jq -r '.safety.breaker.active // false' /tmp/kai-state.json)
+          cooldown=$(jq -r '.safety.cooldownUntil // empty' /tmp/kai-state.json)
+          echo "Live version=$version streak=$streak/$max breaker=$breaker cooldown=${cooldown:-CLEAR}"
+          [[ "$version" == '1.11.4' ]] || { echo "Expected live v1.11.4, got $version"; exit 50; }
+          if (( streak >= max )) && [[ "$breaker" != 'true' ]]; then
+            echo 'Safety invariant FAILED: active loss streak at/over limit while breaker inactive.'
+            exit 51
+          fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "streak=$streak" >> "$GITHUB_OUTPUT"
+          echo "max=$max" >> "$GITHUB_OUTPUT"
+          echo "breaker=$breaker" >> "$GITHUB_OUTPUT"
+          echo "cooldown=$cooldown" >> "$GITHUB_OUTPUT"
+
+      - name: Persist cadangan publisher status
+        if: always()
+        shell: bash
+        env:
+          VERIFIED_VERSION: ${{ steps.verify.outputs.version }}
+          VERIFIED_STREAK: ${{ steps.verify.outputs.streak }}
+          VERIFIED_MAX: ${{ steps.verify.outputs.max }}
+          VERIFIED_BREAKER: ${{ steps.verify.outputs.breaker }}
+          VERIFIED_COOLDOWN: ${{ steps.verify.outputs.cooldown }}
+        run: |
+          set -euo pipefail
+          mkdir -p deploy-status
+          result='FAILED'
+          [[ "${VERIFIED_VERSION:-}" == '1.11.4' ]] && result='PUBLISHED_VERIFIED'
+          jq -n \
+            --arg status "$result" \
+            --arg version "${VERIFIED_VERSION:-}" \
+            --arg streak "${VERIFIED_STREAK:-}" \
+            --arg max "${VERIFIED_MAX:-}" \
+            --arg breaker "${VERIFIED_BREAKER:-}" \
+            --arg cooldown "${VERIFIED_COOLDOWN:-}" \
+            --arg runId "$GITHUB_RUN_ID" \
+            --arg at "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+            '{status:$status,version:$version,lossStreak:$streak,maxLossStreak:$max,breakerActive:$breaker,cooldownUntil:$cooldown,runId:$runId,recordedAt:$at}' \
+            > deploy-status/kai-trad-publisher-cadangan.json
+
+          git config user.name 'KAI TRAD Publisher Cadangan'
+          git config user.email 'actions@users.noreply.github.com'
+          git add deploy-status/kai-trad-publisher-cadangan.json
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m 'Record KAI TRAD cadangan publish status [skip ci]'
+          git pull --rebase origin main
+          git push origin HEAD:main
