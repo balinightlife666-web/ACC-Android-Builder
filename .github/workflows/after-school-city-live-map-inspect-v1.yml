@@ -1,0 +1,241 @@
+name: AFTER SCHOOL CITY Live Map Inspect v1
+
+on:
+  workflow_dispatch:
+  issues:
+    types: [opened]
+
+permissions:
+  contents: write
+  issues: write
+
+jobs:
+  inspect:
+    if: github.event_name == 'workflow_dispatch' || startsWith(github.event.issue.title, 'AFTER SCHOOL CITY LIVE MAP INSPECT V1')
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    env:
+      ROBLOX_API_KEY: ${{ secrets.ROCKET_RACOON_PUBLISH }}
+      UNIVERSE_ID: '10745359869'
+      PLACE_ID: '121603385909425'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Read-only Open Cloud map scan
+        id: scan
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json, os, time, urllib.request, urllib.error, collections, re
+
+          KEY=os.environ['ROBLOX_API_KEY']
+          U=os.environ['UNIVERSE_ID']
+          P=os.environ['PLACE_ID']
+          H={'x-api-key':KEY,'Accept':'application/json'}
+
+          out={
+            'audit':'AFTER_SCHOOL_CITY_LIVE_MAP_INSPECT_V1',
+            'mode':'READ_ONLY',
+            'universeId':U,
+            'placeId':P,
+            'ok':False,
+            'recordedAt':time.strftime('%Y-%m-%dT%H:%M:%SZ',time.gmtime()),
+            'http':{},
+            'services':[],
+            'workspaceTopLevel':[],
+            'tree':[],
+            'classCounts':{},
+            'notable':[],
+            'geometrySamples':[],
+            'stats':{},
+            'errors':[]
+          }
+
+          def get(url):
+            req=urllib.request.Request(url,headers=H,method='GET')
+            try:
+              with urllib.request.urlopen(req,timeout=25) as r:
+                raw=r.read().decode() or '{}'
+                return r.status,json.loads(raw)
+            except urllib.error.HTTPError as e:
+              raw=e.read().decode(errors='replace')
+              try:d=json.loads(raw)
+              except:d={'raw':raw[:3000]}
+              return e.code,d
+            except Exception as e:
+              return 599,{'error':str(e)}
+
+          def poll(obj):
+            path=obj.get('path') if isinstance(obj,dict) else None
+            if not path:return obj
+            last={}
+            for _ in range(30):
+              st,last=get('https://apis.roblox.com/cloud/v2/'+path)
+              if st>=400:return {'http':st,'error':last}
+              if last.get('done'):return last
+              time.sleep(.35)
+            return {'error':'operation timeout','last':last}
+
+          def rows(done):
+            if not isinstance(done,dict):return []
+            payload=done.get('response') or done
+            return payload.get('instances') or [] if isinstance(payload,dict) else []
+
+          def eng(row):return (row.get('engineInstance') or {}) if isinstance(row,dict) else {}
+          def nm(row):return eng(row).get('Name') or eng(row).get('name') or '?'
+          def iid(row):return eng(row).get('Id') or eng(row).get('id')
+          def cls(row):return eng(row).get('ClassName') or eng(row).get('className') or eng(row).get('Class') or eng(row).get('class') or '?'
+
+          def children(instance_id):
+            st,d=get(f'https://apis.roblox.com/cloud/v2/universes/{U}/places/{P}/instances/{instance_id}:listChildren')
+            done=poll(d) if st<400 else d
+            return st,rows(done),done
+
+          def instance(instance_id):
+            st,d=get(f'https://apis.roblox.com/cloud/v2/universes/{U}/places/{P}/instances/{instance_id}')
+            done=poll(d) if st<400 else d
+            return st,(done.get('response') or done) if isinstance(done,dict) else done
+
+          def flatten(obj,prefix='',dst=None,depth=0):
+            if dst is None:dst={}
+            if depth>7:return dst
+            if isinstance(obj,dict):
+              for k,v in obj.items():
+                p=f'{prefix}.{k}' if prefix else str(k)
+                if isinstance(v,(dict,list)): flatten(v,p,dst,depth+1)
+                elif isinstance(v,(str,int,float,bool)) or v is None: dst[p]=v
+            elif isinstance(obj,list):
+              for i,v in enumerate(obj[:32]): flatten(v,f'{prefix}[{i}]',dst,depth+1)
+            return dst
+
+          def interesting(details):
+            flat=flatten(details)
+            keep={}
+            tokens=('name','class','size','position','cframe','orientation','anchored','cancollide','cantouch','canquery','transparency','material','color','brickcolor','enabled','brightness','clocktime','ambient','technology','fog','fieldofview')
+            for k,v in flat.items():
+              lk=k.lower()
+              if any(t in lk for t in tokens): keep[k]=v
+            return keep
+
+          # Root services
+          st,root,raw=children('root')
+          out['http']['root']=st
+          if st>=400:
+            out['errors'].append({'stage':'root','http':st,'body':raw})
+          else:
+            out['services']=[{'name':nm(r),'className':cls(r),'id':iid(r),'hasChildren':r.get('hasChildren')} for r in root]
+            workspace=next((r for r in root if nm(r)=='Workspace'),None)
+            if not workspace:
+              out['errors'].append({'stage':'workspace','error':'Workspace not found'})
+            else:
+              stw,wkids,raww=children(iid(workspace))
+              out['http']['workspace']=stw
+              if stw>=400:
+                out['errors'].append({'stage':'workspaceChildren','http':stw,'body':raww})
+              else:
+                out['workspaceTopLevel']=[{'name':nm(r),'className':cls(r),'id':iid(r),'hasChildren':r.get('hasChildren')} for r in wkids]
+
+                counts=collections.Counter()
+                q=collections.deque()
+                for r in wkids:q.append((r,1,'Workspace/'+nm(r)))
+                seen=set(); max_nodes=1200; detail_budget=420; details_used=0
+                geom_classes={'Part','MeshPart','UnionOperation','WedgePart','CornerWedgePart','TrussPart','SpawnLocation'}
+                notable_re=re.compile(r'(spawn|school|city|street|road|park|court|basket|skate|shop|store|cafe|arcade|house|home|room|club|music|sport|downtown|residential|roof|plaza|bus|bike|scooter|terrain|camera|lighting)',re.I)
+
+                while q and len(seen)<max_nodes:
+                  row,depth,path=q.popleft()
+                  rid=iid(row)
+                  if not rid or rid in seen:continue
+                  seen.add(rid)
+                  c=cls(row); n=nm(row); counts[c]+=1
+                  rec={'path':path,'name':n,'className':c,'id':rid,'depth':depth,'hasChildren':row.get('hasChildren')}
+                  out['tree'].append(rec)
+
+                  want_details=(c in geom_classes or notable_re.search(n) or c in {'Model','Folder','Terrain','Camera'}) and details_used<detail_budget
+                  if want_details:
+                    sti,d=instance(rid); details_used+=1
+                    if sti<400:
+                      props=interesting(d)
+                      if props:
+                        if c in geom_classes and len(out['geometrySamples'])<300:
+                          out['geometrySamples'].append({'path':path,'className':c,'properties':props})
+                        if notable_re.search(n) and len(out['notable'])<220:
+                          out['notable'].append({'path':path,'className':c,'properties':props})
+
+                  if row.get('hasChildren') and depth<8:
+                    stc,kids,rawc=children(rid)
+                    if stc<400:
+                      for k in kids:q.append((k,depth+1,path+'/'+nm(k)))
+                    elif len(out['errors'])<40:
+                      out['errors'].append({'stage':'children','path':path,'http':stc})
+
+                out['classCounts']=dict(counts.most_common())
+                out['stats']={
+                  'nodesVisited':len(seen),
+                  'detailCalls':details_used,
+                  'workspaceTopLevelCount':len(wkids),
+                  'treeDepthCap':8,
+                  'nodeCap':max_nodes,
+                  'truncated':bool(q)
+                }
+                out['ok']=stw<400 and len(seen)>0
+
+          os.makedirs('deploy-status',exist_ok=True)
+          path='deploy-status/after-school-city-live-map-inspect-v1.json'
+          with open(path,'w',encoding='utf-8') as f:
+            json.dump(out,f,indent=2,ensure_ascii=False)
+            f.write('\n')
+
+          summary={
+            'ok':out['ok'],
+            'mode':out['mode'],
+            'universeId':U,
+            'placeId':P,
+            'stats':out['stats'],
+            'workspaceTopLevel':[x['name'] for x in out['workspaceTopLevel'][:40]],
+            'classCounts':dict(list(out['classCounts'].items())[:20]),
+            'notablePaths':[x['path'] for x in out['notable'][:30]],
+            'errors':out['errors'][:8]
+          }
+          print(json.dumps(summary,indent=2,ensure_ascii=False))
+          print('result='+('PASS' if out['ok'] else 'FAIL'))
+          PY
+          echo "result=SCAN_COMPLETE" >> "$GITHUB_OUTPUT"
+
+      - name: Persist scan receipt
+        if: always()
+        shell: bash
+        run: |
+          git config user.name 'RR Cloud Inspector'
+          git config user.email 'actions@users.noreply.github.com'
+          git add deploy-status/after-school-city-live-map-inspect-v1.json || true
+          git commit -m 'Record After School City live map inspect v1 [skip ci]' || true
+          git pull --rebase origin main
+          git push origin HEAD:main
+
+      - name: Comment scan status
+        if: github.event_name == 'issues' && always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+          REPO: ${{ github.repository }}
+        shell: bash
+        run: |
+          if [ -f deploy-status/after-school-city-live-map-inspect-v1.json ]; then
+            BODY=$(python3 - <<'PY'
+          import json
+          p='deploy-status/after-school-city-live-map-inspect-v1.json'
+          d=json.load(open(p,encoding='utf-8'))
+          stats=d.get('stats') or {}
+          top=', '.join(x.get('name','?') for x in (d.get('workspaceTopLevel') or [])[:25]) or '(none)'
+          notable='\n'.join('- '+x.get('path','?') for x in (d.get('notable') or [])[:20]) or '- (none detected)'
+          errs=d.get('errors') or []
+          err='none' if not errs else str(errs[:4])
+          print(f"LIVE MAP INSPECT V1 {'PASS' if d.get('ok') else 'FAIL'}\n\nMode: READ_ONLY\nUniverse: {d.get('universeId')}\nPlace: {d.get('placeId')}\nNodes visited: {stats.get('nodesVisited')}\nTop-level Workspace: {top}\n\nNotable paths:\n{notable}\n\nErrors: {err}\n\nReceipt: deploy-status/after-school-city-live-map-inspect-v1.json")
+          PY
+          )
+          else
+            BODY='LIVE MAP INSPECT V1 failed before receipt creation.'
+          fi
+          gh issue comment "$ISSUE_NUMBER" --repo "$REPO" --body "$BODY"
