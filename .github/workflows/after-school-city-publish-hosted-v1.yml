@@ -1,4 +1,4 @@
-# Owner-approved AFTER SCHOOL CITY Layout Correction v0.4.3 LIVE publish
+# Owner-approved AFTER SCHOOL CITY Circulation Sanitize v0.4.4 LIVE publish
 name: After School City Publish Hosted V1
 
 on:
@@ -21,7 +21,7 @@ jobs:
     timeout-minutes: 15
     env:
       SOURCE_REPO: ardarawk-cloud/ACC-Roblox-maps
-      SOURCE_SHA: 3bcd50ef5cfe7565e80345fe3dd52fdfa05cff6a
+      SOURCE_SHA: b23b21a8df3c373f668a2dee86bfadad9539419e
       UNIVERSE_ID: '10745359869'
       PLACE_ID: '121603385909425'
       ROBLOX_API_KEY: ${{ secrets.ROCKET_RACOON_PUBLISH }}
@@ -36,12 +36,12 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: ardarawk-cloud/ACC-Roblox-maps
-          ref: 3bcd50ef5cfe7565e80345fe3dd52fdfa05cff6a
+          ref: b23b21a8df3c373f668a2dee86bfadad9539419e
           token: ${{ secrets.ACC_ROBLOX_MAPS_WRITE_TOKEN }}
           path: asc-source
           fetch-depth: 1
 
-      - name: Preflight target and Layout Correction v0.4.3
+      - name: Preflight target and Circulation Sanitize v0.4.4
         shell: bash
         run: |
           set -euo pipefail
@@ -52,21 +52,20 @@ jobs:
           project='asc-source/maps/after-school-city/default.project.json'
           intro='asc-source/maps/after-school-city/after-school-city.intro.client.lua'
           config='asc-source/maps/after-school-city/after-school-city.config.lua'
-          fix='asc-source/maps/after-school-city/after-school-city.layout-correction.server.lua'
+          fix='asc-source/maps/after-school-city/after-school-city.circulation-sanitize.server.lua'
 
           jq -e . "$project" >/dev/null
-          grep -Fq 'ASC_LayoutCorrection' "$project"
-          grep -Fq 'after-school-city.layout-correction.server.lua' "$project"
+          grep -Fq 'ASC_CirculationSanitize' "$project"
+          grep -Fq 'after-school-city.circulation-sanitize.server.lua' "$project"
           grep -Fq 'PUTU AZYA PUTRI' "$intro"
           grep -Fq 'BINTANG HARDAJAYA' "$intro"
           grep -Fq 'WITH LOVE, DAD' "$intro"
-          grep -Fq '0.4.3-layout-correction-1' "$config"
-          grep -Fq 'EnableLayoutCorrectionPass = true' "$config"
-          grep -Fq 'V043_LayoutCorrection' "$fix"
-          grep -Fq 'ASC_LockerTreeCollisionFixed' "$fix"
-          grep -Fq 'ASC_ResidentialRoadHouseCollisionFixed' "$fix"
-          grep -Fq 'ASC_YouthStudioSportsCollisionFixed' "$fix"
-          echo "LOCK PASS source=$actual layout_correction_v0_4_3=PASS dedication=PASS"
+          grep -Fq '0.4.4-circulation-sanitize-1' "$config"
+          grep -Fq 'EnableCirculationSanitizePass = true' "$config"
+          grep -Fq 'V044_CirculationSanitize' "$fix"
+          grep -Fq 'ASC_SchoolFrontTreeFree' "$fix"
+          grep -Fq 'ASC_ClubHubRebuiltForClearance' "$fix"
+          echo "LOCK PASS source=$actual circulation_sanitize_v0_4_4=PASS dedication=PASS"
 
       - name: Prepare Rojo 7.7.0
         shell: bash
@@ -96,7 +95,7 @@ jobs:
           echo "PLACE_SHA256=$sha" >> "$GITHUB_ENV"
           echo "BUILD PASS bytes=$bytes sha256=$sha"
 
-      - name: Publish Layout Correction v0.4.3 LIVE to Roblox
+      - name: Publish Circulation Sanitize v0.4.4 LIVE to Roblox
         shell: bash
         run: |
           set -euo pipefail
@@ -122,7 +121,7 @@ jobs:
           jq -n \
             --arg status 'LIVE_PUBLISHED' \
             --arg project 'AFTER SCHOOL CITY' \
-            --arg mode 'LAYOUT_CORRECTION_V0_4_3' \
+            --arg mode 'CIRCULATION_SANITIZE_V0_4_4' \
             --arg sourceRepo "$SOURCE_REPO" \
             --arg sourceCommit "$SOURCE_SHA" \
             --arg universeId "$UNIVERSE_ID" \
@@ -133,13 +132,13 @@ jobs:
             --arg placeSha256 "$PLACE_SHA256" \
             --arg runId "$GITHUB_RUN_ID" \
             --arg publishedAt "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
-            '{status:$status,project:$project,mode:$mode,sourceRepo:$sourceRepo,sourceCommit:$sourceCommit,universeId:$universeId,placeId:$placeId,versionNumber:($versionNumber|tonumber),rojoVersion:$rojoVersion,placeBytes:($placeBytes|tonumber),placeSha256:$placeSha256,runId:$runId,publishedAt:$publishedAt,note:"Layout Correction v0.4.3 plus dedication intro."}' \
-            > deploy-status/after-school-city-publish-layout-correction-v0-4-3.json
-          cat deploy-status/after-school-city-publish-layout-correction-v0-4-3.json
+            '{status:$status,project:$project,mode:$mode,sourceRepo:$sourceRepo,sourceCommit:$sourceCommit,universeId:$universeId,placeId:$placeId,versionNumber:($versionNumber|tonumber),rojoVersion:$rojoVersion,placeBytes:($placeBytes|tonumber),placeSha256:$placeSha256,runId:$runId,publishedAt:$publishedAt,note:"Circulation Sanitize v0.4.4 plus dedication intro."}' \
+            > deploy-status/after-school-city-publish-circulation-sanitize-v0-4-4.json
+          cat deploy-status/after-school-city-publish-circulation-sanitize-v0-4-4.json
 
           git config user.name 'After School City Publish Bot'
           git config user.email 'actions@users.noreply.github.com'
-          git add deploy-status/after-school-city-publish-layout-correction-v0-4-3.json
-          git commit -m "Record After School City Layout Correction publish v${PUBLISHED_VERSION} [skip ci]"
+          git add deploy-status/after-school-city-publish-circulation-sanitize-v0-4-4.json
+          git commit -m "Record After School City Circulation Sanitize publish v${PUBLISHED_VERSION} [skip ci]"
           git pull --rebase origin main
           git push origin HEAD:main
