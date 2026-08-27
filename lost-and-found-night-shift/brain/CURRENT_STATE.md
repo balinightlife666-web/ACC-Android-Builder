@@ -52,7 +52,7 @@ M1 visual authority remains `brain/M1_VISUAL_LOCK.md`.
 - no generated images used for collection visuals.
 
 ### M2-B — CONTROLLED VARIANTS + PHYSICAL SHOWCASE
-**COMPLETE / ACCEPTED FOR CONTINUATION.**
+**COMPLETE / ACCEPTED.**
 
 Collection expanded to 10 controlled variants:
 1. Blue Transit Hardcase — COMMON
@@ -72,8 +72,8 @@ Authority:
 - per-case stable `collectionId`;
 - per-player client-side physical collection showcase remains active.
 
-## M2-C — PERSISTENCE / DATASTORE
-**IMPLEMENTED / LIVE — RUNTIME REJOIN QC PENDING.**
+### M2-C — PERSISTENCE / DATASTORE
+**COMPLETE / RUNTIME-ACCEPTED.**
 
 Source:
 - `src/server/PlayerDataStore.lua`
@@ -82,19 +82,24 @@ Source:
 Persistent payload v1:
 - Credits;
 - XP;
-- discovered collection IDs (10-item registry).
+- discovered collection IDs.
 
-Safety rules:
+Runtime acceptance confirmed on mobile after leave/rejoin:
+- Credits restore correctly;
+- Collection/INDEX restore correctly;
+- physical showcase restoration is accepted for continuation;
+- case loop and movement remain stable.
+
+Safety rules remain locked:
 - datastore name: `LostAndFound_PlayerData_v1`;
-- load is protected by `pcall`;
-- if load fails, player continues session-only and server does **not** overwrite old persistent data;
+- load protected by `pcall`;
+- failed load falls back to session-only and must not overwrite prior persistent data;
 - only successfully-loaded profiles may save;
-- dirty profiles autosave every 60 seconds;
-- forced save on `PlayerRemoving` and `BindToClose`;
-- collection snapshot reports whether persistence is ready for that session.
+- autosave every 60 seconds when dirty;
+- forced save on `PlayerRemoving` and `BindToClose`.
 
 ### Inspection control readability patch
-`TAG READER` and `OPEN / INSPECT` are now tilted upright toward the approaching player while remaining side-by-side and floor-accessible. Source: `src/server/InteractionLayout.server.lua`.
+`TAG READER` and `OPEN / INSPECT` are tilted upright toward the approaching player while remaining side-by-side and floor-accessible. Source: `src/server/InteractionLayout.server.lua`.
 
 ## Latest publish receipt
 Run: `33049729712`
@@ -109,19 +114,19 @@ RBXL SHA256: `6286b58942177e301a98708647064f0357525d93d635f080fd33035cbeeeb800`
 Deploy receipt: `deploy-status/lost-and-found-m0.json`
 
 ## LIVE authority
-**LIVE_PUBLISHED — v21 BUILD/DEPLOY VERIFIED.**
-Persistence correctness still requires a real leave/rejoin test.
+**LIVE_PUBLISHED — v21 BUILD/DEPLOY VERIFIED + M2-C RUNTIME ACCEPTED.**
 
 ## Next gate
-**M2-C-RUNTIME / REJOIN:**
-1. verify TAG / OPEN panels are readable while standing on the floor;
-2. note current Credits and INDEX count;
-3. resolve at least one case so data becomes dirty;
-4. leave the experience normally;
-5. rejoin;
-6. verify Credits are restored;
-7. verify INDEX discoveries are restored;
-8. verify physical showcase restores discovered entries;
-9. verify case loop and movement remain stable.
+**M2-D — CONTROLLED COLLECTION EXPANSION.**
 
-Do not unlock trading yet. After persistence passes, continue controlled collection expansion toward the roadmap target before social/economy hardening.
+Goal:
+- expand the collection in staged batches rather than one uncontrolled jump;
+- move from 10 toward the roadmap target of 30–40 approved collectible items;
+- prioritize new meaningful item shapes plus controlled variants, not color swaps alone;
+- keep mobile Collection UI readable and physical showcase scalable;
+- preserve rarity discipline and mystery-item scarcity;
+- do not unlock trading yet.
+
+Recommended next slice: add 5 new collectible items with at least 2 new base geometries, then runtime-QC before expanding further.
+
+After the collection foundation is materially stronger, proceed to **M3 — FLIGHT 000**.
