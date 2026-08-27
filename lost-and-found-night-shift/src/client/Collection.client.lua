@@ -70,11 +70,12 @@ indexButton.Parent = gui
 corner(indexButton, 9)
 stroke(indexButton, 0.4)
 
+-- Mobile-first collection panel. Short height keeps it clear of jump controls.
 local popup = Instance.new("Frame")
 popup.Name = "CollectionPopup"
-popup.AnchorPoint = Vector2.new(1, 0)
-popup.Size = UDim2.fromOffset(440, 290)
-popup.Position = UDim2.new(1, -18, 0, 106)
+popup.AnchorPoint = Vector2.new(0.5, 0)
+popup.Size = UDim2.fromOffset(380, 220)
+popup.Position = UDim2.new(0.54, 0, 0, 96)
 popup.BackgroundColor3 = Color3.fromRGB(15, 19, 26)
 popup.BackgroundTransparency = 0.02
 popup.BorderSizePixel = 0
@@ -85,19 +86,19 @@ corner(popup, 12)
 stroke(popup, 0.2)
 
 local popupConstraint = Instance.new("UISizeConstraint")
-popupConstraint.MinSize = Vector2.new(390, 270)
-popupConstraint.MaxSize = Vector2.new(460, 310)
+popupConstraint.MinSize = Vector2.new(350, 205)
+popupConstraint.MaxSize = Vector2.new(400, 230)
 popupConstraint.Parent = popup
 
-local title = label(popup, UDim2.new(1, -58, 0, 34), UDim2.fromOffset(12, 7), 14, Enum.Font.GothamBold, Color3.fromRGB(255, 192, 86))
+local title = label(popup, UDim2.new(1, -56, 0, 32), UDim2.fromOffset(12, 6), 14, Enum.Font.GothamBold, Color3.fromRGB(255, 192, 86))
 title.Text = "LOST PROPERTY COLLECTION"
 
-local subtitle = label(popup, UDim2.new(1, -24, 0, 20), UDim2.fromOffset(12, 37), 10, Enum.Font.GothamMedium, Color3.fromRGB(151, 164, 181))
-subtitle.Text = "Resolve cases to reveal item types."
+local subtitle = label(popup, UDim2.new(1, -24, 0, 18), UDim2.fromOffset(12, 34), 10, Enum.Font.GothamMedium, Color3.fromRGB(151, 164, 181))
+subtitle.Text = "Swipe cards • resolve cases to reveal items"
 
 local close = Instance.new("TextButton")
-close.Size = UDim2.fromOffset(32, 30)
-close.Position = UDim2.new(1, -41, 0, 8)
+close.Size = UDim2.fromOffset(31, 29)
+close.Position = UDim2.new(1, -40, 0, 7)
 close.BackgroundColor3 = Color3.fromRGB(38, 45, 57)
 close.BorderSizePixel = 0
 close.Text = "×"
@@ -108,20 +109,32 @@ close.Modal = false
 close.Parent = popup
 corner(close, 8)
 
-local grid = Instance.new("Frame")
-grid.Name = "CollectionGrid"
-grid.Size = UDim2.new(1, -24, 1, -68)
-grid.Position = UDim2.fromOffset(12, 60)
-grid.BackgroundTransparency = 1
-grid.Parent = popup
+-- One-row horizontal collection carousel: larger 3D cards without clipping vertically.
+local strip = Instance.new("ScrollingFrame")
+strip.Name = "CollectionStrip"
+strip.Size = UDim2.new(1, -20, 0, 150)
+strip.Position = UDim2.fromOffset(10, 58)
+strip.BackgroundTransparency = 1
+strip.BorderSizePixel = 0
+strip.ScrollBarThickness = 3
+strip.ScrollBarImageTransparency = 0.35
+strip.ScrollingDirection = Enum.ScrollingDirection.X
+strip.AutomaticCanvasSize = Enum.AutomaticSize.X
+strip.CanvasSize = UDim2.fromOffset(0, 0)
+strip.ElasticBehavior = Enum.ElasticBehavior.WhenScrollable
+strip.Parent = popup
 
-local layout = Instance.new("UIGridLayout")
-layout.CellSize = UDim2.fromOffset(128, 96)
-layout.CellPadding = UDim2.fromOffset(7, 7)
-layout.FillDirectionMaxCells = 3
-layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+local stripPadding = Instance.new("UIPadding")
+stripPadding.PaddingLeft = UDim.new(0, 2)
+stripPadding.PaddingRight = UDim.new(0, 2)
+stripPadding.Parent = strip
+
+local layout = Instance.new("UIListLayout")
+layout.FillDirection = Enum.FillDirection.Horizontal
+layout.Padding = UDim.new(0, 7)
+layout.VerticalAlignment = Enum.VerticalAlignment.Top
 layout.SortOrder = Enum.SortOrder.LayoutOrder
-layout.Parent = grid
+layout.Parent = strip
 
 local toast = Instance.new("TextLabel")
 toast.Name = "DiscoveryToast"
@@ -148,19 +161,23 @@ local function rarityColor(rarity)
     return RARITY_COLORS[tostring(rarity or "COMMON")] or Color3.fromRGB(177, 187, 201)
 end
 
-local function setCaseHudVisible(visible)
+local function setMainHudVisible(visible)
     local mainHud = playerGui:FindFirstChild("LostAndFoundHUD")
     if not mainHud then return end
+
     local compact = mainHud:FindFirstChild("CompactCaseHUD")
     local casePopup = mainHud:FindFirstChild("CaseFilePopup")
+    local moneyBar = mainHud:FindFirstChild("MoneyBar")
+
     if compact then compact.Visible = visible end
+    if moneyBar then moneyBar.Visible = visible end
     if not visible and casePopup then casePopup.Visible = false end
 end
 
 local function addPreview(card, entry, isDiscovered)
     local viewport = Instance.new("ViewportFrame")
     viewport.Name = "Preview"
-    viewport.Size = UDim2.new(1, -8, 0, 60)
+    viewport.Size = UDim2.new(1, -8, 0, 88)
     viewport.Position = UDim2.fromOffset(4, 4)
     viewport.BackgroundColor3 = isDiscovered and Color3.fromRGB(20, 25, 33) or Color3.fromRGB(17, 20, 26)
     viewport.BackgroundTransparency = 0.02
@@ -198,7 +215,7 @@ local function addPreview(card, entry, isDiscovered)
 end
 
 local function rebuildCards()
-    for _, child in ipairs(grid:GetChildren()) do
+    for _, child in ipairs(strip:GetChildren()) do
         if child:IsA("Frame") then child:Destroy() end
     end
 
@@ -210,20 +227,22 @@ local function rebuildCards()
         local card = Instance.new("Frame")
         card.Name = entry.id
         card.LayoutOrder = order
+        card.Size = UDim2.fromOffset(112, 132)
         card.BackgroundColor3 = Color3.fromRGB(24, 29, 38)
         card.BackgroundTransparency = isDiscovered and 0.03 or 0.18
         card.BorderSizePixel = 0
-        card.Parent = grid
+        card.Parent = strip
         corner(card, 9)
         stroke(card, isDiscovered and 0.18 or 0.55, accent)
 
         addPreview(card, entry, isDiscovered)
 
-        local itemName = label(card, UDim2.new(1, -10, 0, 15), UDim2.fromOffset(5, 65), 10, Enum.Font.GothamBold, isDiscovered and Color3.fromRGB(235, 239, 244) or Color3.fromRGB(125, 134, 147))
+        local itemName = label(card, UDim2.new(1, -8, 0, 17), UDim2.fromOffset(4, 94), 10, Enum.Font.GothamBold, isDiscovered and Color3.fromRGB(235, 239, 244) or Color3.fromRGB(125, 134, 147))
         itemName.TextXAlignment = Enum.TextXAlignment.Center
         itemName.Text = isDiscovered and entry.name or "???"
+        itemName.TextTruncate = Enum.TextTruncate.AtEnd
 
-        local rarityLabel = label(card, UDim2.new(1, -10, 0, 13), UDim2.fromOffset(5, 80), 8, Enum.Font.GothamBold, accent)
+        local rarityLabel = label(card, UDim2.new(1, -8, 0, 14), UDim2.fromOffset(4, 112), 8, Enum.Font.GothamBold, accent)
         rarityLabel.TextXAlignment = Enum.TextXAlignment.Center
         rarityLabel.Text = isDiscovered and rarity or "LOCKED"
     end
@@ -249,11 +268,12 @@ end
 
 local function setCollectionOpen(open)
     popup.Visible = open
-    setCaseHudVisible(not open)
+    indexButton.Visible = not open
+    setMainHudVisible(not open)
 end
 
 indexButton.Activated:Connect(function()
-    setCollectionOpen(not popup.Visible)
+    setCollectionOpen(true)
 end)
 
 close.Activated:Connect(function()
