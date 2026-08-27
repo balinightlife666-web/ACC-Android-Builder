@@ -57,13 +57,26 @@
 - Mobile runtime screenshots confirmed bonus item rendering, rarity display, locked silhouettes, and carousel stability.
 - Corrected TAG / OPEN visual panels in v23 so labels stand vertically with horizontal readable text rather than tilted SurfaceGui text.
 
-## 2026-08-27 — M2-E 20-item collection live candidate
+## 2026-08-27 — M2-E 20-item collection accepted
 - Expanded persistent INDEX from 15 to 20 collectible entries.
 - All 10 cases now have exactly one PERFECT-only bonus collectible.
 - Added Maya's Power Adapter, Daniel's Formal Shoe, Sofia's Stitched Patch, Ari's Red Paperback, and Unstable Mass Readout.
 - Added five new 3D collectible geometries: power adapter, formal shoe, name patch, paperback, and mass readout.
-- Long collection names now wrap to two lines instead of truncating with ellipsis.
+- Long collection names wrap to two lines instead of truncating with ellipsis.
 - Expanded physical showcase from 15 to 20 slots across four rows.
 - Existing DataStore payload remains compatible; old saves remain valid and new discoveries persist in the same discovered-ID list.
-- Published as Roblox v24; M2-E mobile runtime acceptance pending.
+- Mobile visual QC and leave/rejoin persistence were accepted on Roblox v24.
 - Trading remains locked.
+
+## 2026-08-27 — M3-A Flight 000 first incident live candidate
+- Added `brain/M3_FLIGHT_000_LOCK.md` as active M3 authority.
+- Flight 000 still preserves the canon facts: Jonas Vale passenger record exists, Flight 000 record does not, tag F0-00013, correct action QUARANTINE.
+- Exact final explanation remains CANON UNKNOWN.
+- A PERFECT resolution of `LF-M0-007 — Flight 000` now raises a server-wide terminal incident.
+- Flight 000 incident extends the next-case delay to 6.2 seconds for readability.
+- Added a separate mobile `ARCHIVE 000-A` interface without modifying the stable CASE FILE / Collection UI.
+- Archive entry exposes only operational facts and `CONNECTED / UNRESOLVED` status.
+- Players joining the same server after the incident receive an archive sync for that server session.
+- Archive progression is session-scoped in M3-A; persistence is deferred to a later M3 slice.
+- Static QC, Rojo 7.7.0 build, and Roblox publish passed as v25.
+- M3-A mobile runtime acceptance remains pending.
