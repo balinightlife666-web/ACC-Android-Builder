@@ -1,13 +1,14 @@
 {
-  "version": "1.1",
-  "status": "M1_BASE_MODELS",
+  "version": "1.2",
+  "status": "M2_COLLECTION_FOUNDATION",
   "items": [
-    {"id":"hardcase_suitcase","name":"Hardcase Suitcase","baseAsset":"procedural_m1","approvedForM0":true,"m1Candidate":true},
-    {"id":"vintage_suitcase","name":"Vintage Suitcase","baseAsset":"procedural_m1","approvedForM0":true,"m1Candidate":true},
-    {"id":"backpack","name":"Travel Backpack","baseAsset":"procedural_m1","approvedForM0":false,"m1Candidate":true},
-    {"id":"cardboard_box","name":"Cardboard Parcel","baseAsset":"procedural_m1","approvedForM0":false,"m1Candidate":true},
-    {"id":"teddy_bear","name":"Teddy Bear","baseAsset":"procedural_m1","approvedForM0":false,"m1Candidate":true}
+    {"id":"hardcase_suitcase","name":"Hardcase Suitcase","baseAsset":"procedural_m1","productionApproved":true,"rarity":"COMMON"},
+    {"id":"vintage_suitcase","name":"Vintage Suitcase","baseAsset":"procedural_m1","productionApproved":true,"rarity":"UNCOMMON"},
+    {"id":"backpack","name":"Travel Backpack","baseAsset":"procedural_m1","productionApproved":true,"rarity":"COMMON"},
+    {"id":"cardboard_box","name":"Cardboard Parcel","baseAsset":"procedural_m1","productionApproved":true,"rarity":"UNCOMMON"},
+    {"id":"teddy_bear","name":"Teddy Bear","baseAsset":"procedural_m1","productionApproved":true,"rarity":"RARE"}
   ],
-  "m1Rule":"Five base models are implemented as code-built stylized Roblox geometry. Runtime visual acceptance is still required before productionApproved=true.",
+  "m1Rule":"Five base models passed mobile runtime use across the active case loop and are production-approved for continued development.",
+  "m2Rule":"M2-A begins with these five approved base item types. Discovery index is session-only until persistence is explicitly added and validated.",
   "futureVariantRule":"Variants should reuse approved base geometry where practical."
 }
