@@ -1,11 +1,11 @@
 {
-  "version": "1.2",
-  "status": "M2_D_CONTROLLED_EXPANSION",
+  "version": "1.3",
+  "status": "M2_E_CONTROLLED_EXPANSION",
   "sessionOnly": false,
   "persistenceEnabled": true,
   "tradingEnabled": false,
   "showcaseEnabled": true,
-  "collectionCount": 15,
+  "collectionCount": 20,
   "entries": [
     {"id":"blue_transit_hardcase","baseItemId":"hardcase_suitcase","name":"Blue Transit Hardcase","rarity":"COMMON","caseId":"LF-M0-001","acquisition":"CASE_RESOLUTION"},
     {"id":"crimson_travel_backpack","baseItemId":"backpack","name":"Crimson Travel Backpack","rarity":"UNCOMMON","caseId":"LF-M0-002","acquisition":"CASE_RESOLUTION"},
@@ -21,14 +21,20 @@
     {"id":"ownerless_tag_00017284","baseItemId":"evidence_tag","name":"Ownerless Tag 000-17284","rarity":"ANOMALY","caseId":"LF-M0-006","acquisition":"PERFECT_BONUS"},
     {"id":"flight_000_boarding_tag","baseItemId":"evidence_tag","name":"Flight 000 Boarding Tag","rarity":"SECRET","caseId":"LF-M0-007","acquisition":"PERFECT_BONUS"},
     {"id":"duplicate_passport","baseItemId":"passport","name":"Duplicate Passport","rarity":"EPIC","caseId":"LF-M0-009","acquisition":"PERFECT_BONUS"},
-    {"id":"milo_toy_train_2001","baseItemId":"toy_train","name":"Milo's Toy Train","rarity":"SECRET","caseId":"LF-M0-010","acquisition":"PERFECT_BONUS"}
+    {"id":"milo_toy_train_2001","baseItemId":"toy_train","name":"Milo's Toy Train","rarity":"SECRET","caseId":"LF-M0-010","acquisition":"PERFECT_BONUS"},
+    {"id":"maya_power_adapter","baseItemId":"power_adapter","name":"Maya's Power Adapter","rarity":"UNCOMMON","caseId":"LF-M0-001","acquisition":"PERFECT_BONUS"},
+    {"id":"daniel_formal_shoe","baseItemId":"formal_shoe","name":"Daniel's Formal Shoe","rarity":"RARE","caseId":"LF-M0-002","acquisition":"PERFECT_BONUS"},
+    {"id":"sofia_name_patch","baseItemId":"name_patch","name":"Sofia's Stitched Patch","rarity":"RARE","caseId":"LF-M0-003","acquisition":"PERFECT_BONUS"},
+    {"id":"ari_red_paperback","baseItemId":"paperback","name":"Ari's Red Paperback","rarity":"UNCOMMON","caseId":"LF-M0-004","acquisition":"PERFECT_BONUS"},
+    {"id":"unstable_mass_readout","baseItemId":"mass_readout","name":"Unstable Mass Readout","rarity":"ANOMALY","caseId":"LF-M0-008","acquisition":"PERFECT_BONUS"}
   ],
   "rules": [
     "The first 10 entries are stable case-resolution collectibles.",
-    "The five M2-D bonus entries unlock only when their mapped case is graded PERFECT.",
-    "M2-D introduces four new collectible geometries: camera_lens, evidence_tag, passport, and toy_train.",
+    "All 10 cases now have exactly one PERFECT-only bonus collectible.",
+    "M2-E adds five new collectible geometries: power_adapter, formal_shoe, name_patch, paperback, and mass_readout.",
     "All discovered IDs persist through LostAndFound_PlayerData_v1.",
-    "Undiscovered entries remain hidden in UI and physical showcase.",
-    "No trading in M2-D."
+    "Collection UI uses wrapped two-line item names instead of truncating long names.",
+    "Physical showcase scales to 20 non-colliding slots.",
+    "No trading in M2-E."
   ]
 }
