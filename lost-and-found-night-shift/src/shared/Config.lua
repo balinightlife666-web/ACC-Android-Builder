@@ -3,7 +3,7 @@ local Config = {}
 Config.GameTitle = "LOST & FOUND: NIGHT SHIFT"
 Config.UniverseId = 10745354451
 Config.PlaceId = 93699016600671
-Config.Milestone = "M1 — PREMIUM ROOM"
+Config.Milestone = "M2 — COLLECTION FOUNDATION"
 
 Config.CaseAdvanceDelay = 3.2
 Config.ConveyorTravelTime = 2.8
