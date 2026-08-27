@@ -1,76 +1,31 @@
 {
-  "version": "1.2",
-  "status": "M1_B_ITEMS",
+  "version": "1.3",
+  "status": "M1_COMPLETE_M2_ACTIVE",
   "assets": [
-    {
-      "id": "room_service_counter_v1",
-      "type": "procedural_reference",
-      "status": "SOURCE_APPROVED_PENDING_RUNTIME_QC",
-      "purpose": "premium service/intake counter"
-    },
-    {
-      "id": "room_conveyor_v1",
-      "type": "procedural_reference",
-      "status": "SOURCE_APPROVED_PENDING_RUNTIME_QC",
-      "purpose": "premium property conveyor"
-    },
-    {
-      "id": "room_scanner_v1",
-      "type": "procedural_reference",
-      "status": "SOURCE_APPROVED_PENDING_RUNTIME_QC",
-      "purpose": "hero baggage scanner"
-    },
-    {
-      "id": "room_inspection_desk_v1",
-      "type": "procedural_reference",
-      "status": "SOURCE_APPROVED_PENDING_RUNTIME_QC",
-      "purpose": "tag reader and open inspection station"
-    },
-    {
-      "id": "room_decision_consoles_v1",
-      "type": "procedural_reference",
-      "status": "SOURCE_APPROVED_PENDING_RUNTIME_QC",
-      "purpose": "RETURN STORE QUARANTINE SECURITY controls"
-    },
-    {
-      "id": "hardcase_suitcase",
-      "type": "base_item_model",
-      "status": "SOURCE_IMPLEMENTED_PENDING_RUNTIME_QC",
-      "source": "procedural_m1"
-    },
-    {
-      "id": "vintage_suitcase",
-      "type": "base_item_model",
-      "status": "SOURCE_IMPLEMENTED_PENDING_RUNTIME_QC",
-      "source": "procedural_m1"
-    },
-    {
-      "id": "backpack",
-      "type": "base_item_model",
-      "status": "SOURCE_IMPLEMENTED_PENDING_RUNTIME_QC",
-      "source": "procedural_m1"
-    },
-    {
-      "id": "cardboard_box",
-      "type": "base_item_model",
-      "status": "SOURCE_IMPLEMENTED_PENDING_RUNTIME_QC",
-      "source": "procedural_m1"
-    },
-    {
-      "id": "teddy_bear",
-      "type": "base_item_model",
-      "status": "SOURCE_IMPLEMENTED_PENDING_RUNTIME_QC",
-      "source": "procedural_m1"
-    }
+    {"id":"room_service_counter_v1","type":"procedural_reference","status":"RUNTIME_APPROVED","purpose":"premium service/intake counter"},
+    {"id":"room_conveyor_v1","type":"procedural_reference","status":"RUNTIME_APPROVED","purpose":"premium property conveyor"},
+    {"id":"room_scanner_v1","type":"procedural_reference","status":"RUNTIME_APPROVED","purpose":"hero baggage scanner"},
+    {"id":"room_inspection_desk_v1","type":"procedural_reference","status":"RUNTIME_APPROVED","purpose":"tag reader and open inspection station"},
+    {"id":"room_decision_consoles_v1","type":"procedural_reference","status":"RUNTIME_APPROVED","purpose":"RETURN STORE QUARANTINE SECURITY controls"},
+    {"id":"hardcase_suitcase","type":"base_item_model","status":"RUNTIME_APPROVED","source":"procedural_m1"},
+    {"id":"vintage_suitcase","type":"base_item_model","status":"RUNTIME_APPROVED","source":"procedural_m1"},
+    {"id":"backpack","type":"base_item_model","status":"RUNTIME_APPROVED","source":"procedural_m1"},
+    {"id":"cardboard_box","type":"base_item_model","status":"RUNTIME_APPROVED","source":"procedural_m1"},
+    {"id":"teddy_bear","type":"base_item_model","status":"RUNTIME_APPROVED","source":"procedural_m1"}
   ],
-  "rule": "No external asset is production-approved until visual, scale, collision, orientation, and performance QC pass.",
+  "rule":"External assets still require visual, scale, collision, orientation, and performance QC before production approval.",
   "m1": {
-    "visualLock": "brain/M1_VISUAL_LOCK.md",
-    "externalAssetDependency": false,
-    "premiumRoomProceduralReferenceAllowed": true,
-    "baseItemMeshTarget": 5,
-    "baseItemMeshesImplemented": 5,
-    "baseItemMeshesApproved": 0,
-    "m1Complete": false
+    "visualLock":"brain/M1_VISUAL_LOCK.md",
+    "externalAssetDependency":false,
+    "baseItemMeshTarget":5,
+    "baseItemMeshesImplemented":5,
+    "baseItemMeshesApproved":5,
+    "m1Complete":true
+  },
+  "m2": {
+    "collectionRegistry":"src/shared/CollectionRegistry.lua",
+    "initialIndexSize":5,
+    "persistence":false,
+    "trading":false
   }
 }
