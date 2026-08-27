@@ -1,6 +1,10 @@
 name: Publish TRACK 01 via RR Key
 
 on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/publish-track01-rr.yml'
   workflow_dispatch:
     inputs:
       source_ref:
@@ -22,7 +26,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: ardarawk-cloud/ACC-Roblox-maps
-          ref: ${{ inputs.source_ref }}
+          ref: ${{ inputs.source_ref || 'main' }}
           path: track-src
 
       - name: Setup Node
