@@ -135,7 +135,9 @@ function CollectionPreviewFactory.Create(collectionId, parent, locked)
         end
     end
 
-    model:PivotTo(CFrame.Angles(math.rad(-8), math.rad(-28), 0))
+    -- Front details are built toward -Z. Rotate the model so that face points
+    -- toward the collection camera (+X/+Z), while keeping a slight 3/4 angle.
+    model:PivotTo(CFrame.Angles(math.rad(-6), math.rad(-148), 0))
     return model
 end
 
