@@ -3,17 +3,17 @@ local Lighting = game:GetService("Lighting")
 local PersonalStationWorld = {}
 
 local COLORS = {
-    floor = Color3.fromRGB(24, 28, 35),
-    wall = Color3.fromRGB(17, 21, 28),
-    metal = Color3.fromRGB(56, 64, 75),
-    dark = Color3.fromRGB(31, 37, 46),
-    panel = Color3.fromRGB(20, 25, 33),
-    amber = Color3.fromRGB(214, 151, 55),
-    cyan = Color3.fromRGB(58, 158, 194),
-    green = Color3.fromRGB(58, 132, 78),
-    red = Color3.fromRGB(170, 58, 62),
-    white = Color3.fromRGB(235, 238, 242),
-    muted = Color3.fromRGB(122, 132, 147),
+    floor = Color3.fromRGB(31, 36, 44),
+    wall = Color3.fromRGB(22, 27, 35),
+    metal = Color3.fromRGB(70, 80, 94),
+    dark = Color3.fromRGB(39, 46, 57),
+    panel = Color3.fromRGB(27, 33, 42),
+    amber = Color3.fromRGB(224, 163, 64),
+    cyan = Color3.fromRGB(69, 177, 214),
+    green = Color3.fromRGB(67, 153, 92),
+    red = Color3.fromRGB(190, 67, 70),
+    white = Color3.fromRGB(240, 243, 247),
+    muted = Color3.fromRGB(142, 153, 169),
 }
 
 local STATION_LAYOUT = {
@@ -65,7 +65,7 @@ local function surfaceText(target, text, face, color, textSize)
     gui.Name = "StationText"
     gui.Face = face or Enum.NormalId.Front
     gui.LightInfluence = 0
-    gui.PixelsPerStud = 52
+    gui.PixelsPerStud = 58
     gui.Parent = target
 
     local label = Instance.new("TextLabel")
@@ -97,28 +97,28 @@ end
 
 local function configureLighting()
     Lighting.ClockTime = 1.0
-    Lighting.Brightness = 2.05
-    Lighting.Ambient = Color3.fromRGB(52, 59, 70)
-    Lighting.OutdoorAmbient = Color3.fromRGB(21, 25, 32)
-    Lighting.EnvironmentDiffuseScale = 0.42
-    Lighting.EnvironmentSpecularScale = 0.55
+    Lighting.Brightness = 2.75
+    Lighting.Ambient = Color3.fromRGB(76, 84, 97)
+    Lighting.OutdoorAmbient = Color3.fromRGB(38, 44, 53)
+    Lighting.EnvironmentDiffuseScale = 0.55
+    Lighting.EnvironmentSpecularScale = 0.58
 
     local atmosphere = Lighting:FindFirstChild("LostAndFoundAtmosphere") or Instance.new("Atmosphere")
     atmosphere.Name = "LostAndFoundAtmosphere"
-    atmosphere.Density = 0.08
-    atmosphere.Offset = 0.03
-    atmosphere.Color = Color3.fromRGB(177, 188, 202)
-    atmosphere.Decay = Color3.fromRGB(48, 57, 70)
+    atmosphere.Density = 0.045
+    atmosphere.Offset = 0.02
+    atmosphere.Color = Color3.fromRGB(188, 198, 211)
+    atmosphere.Decay = Color3.fromRGB(60, 70, 84)
     atmosphere.Glare = 0
-    atmosphere.Haze = 0.35
+    atmosphere.Haze = 0.18
     atmosphere.Parent = Lighting
 
     local correction = Lighting:FindFirstChild("LostAndFoundColor") or Instance.new("ColorCorrectionEffect")
     correction.Name = "LostAndFoundColor"
-    correction.Brightness = 0.015
-    correction.Contrast = 0.07
-    correction.Saturation = -0.07
-    correction.TintColor = Color3.fromRGB(229, 234, 242)
+    correction.Brightness = 0.055
+    correction.Contrast = 0.025
+    correction.Saturation = -0.04
+    correction.TintColor = Color3.fromRGB(236, 240, 247)
     correction.Parent = Lighting
 end
 
@@ -128,9 +128,23 @@ local function buildDecision(parent, stationId, decision, position, color)
     model:SetAttribute("StationId", stationId)
     model.Parent = parent
 
-    rolePart(model, "Base", Vector3.new(4.8, 1.25, 3.0), CFrame.new(position + Vector3.new(0, 0.625, 0)), "base", COLORS.dark, Enum.Material.Metal, true)
-    local top = rolePart(model, "Top", Vector3.new(4.5, 0.25, 2.7), CFrame.new(position + Vector3.new(0, 1.38, 0)), "accent", color, Enum.Material.SmoothPlastic, true)
-    surfaceText(top, decision, Enum.NormalId.Top, Color3.fromRGB(245, 247, 250))
+    rolePart(model, "Base", Vector3.new(4.8, 1.8, 3.0), CFrame.new(position + Vector3.new(0, 0.9, 0)), "base", COLORS.dark, Enum.Material.Metal, true)
+    local top = rolePart(model, "Top", Vector3.new(4.5, 0.28, 2.7), CFrame.new(position + Vector3.new(0, 1.94, 0)), "accent", color, Enum.Material.Neon, true)
+    surfaceText(top, decision, Enum.NormalId.Top, Color3.fromRGB(250, 251, 253))
+
+    local face = rolePart(
+        model,
+        "DecisionFace",
+        Vector3.new(4.35, 1.0, 0.2),
+        CFrame.new(position + Vector3.new(0, 1.45, 1.42)) * CFrame.Angles(0, math.rad(180), 0),
+        "panel",
+        COLORS.panel,
+        Enum.Material.SmoothPlastic,
+        false
+    )
+    surfaceText(face, decision, Enum.NormalId.Front, color)
+
+    rolePart(model, "FootGlow", Vector3.new(4.4, 0.08, 2.75), CFrame.new(position + Vector3.new(0, 0.08, 0)), "accent", color, Enum.Material.Neon, false)
     return prompt(top, decision, "YOUR SHIFT DECISION", stationId)
 end
 
@@ -147,22 +161,37 @@ local function buildStation(world, stationId, origin)
     rolePart(model, "BayFloor", Vector3.new(23.5, 0.22, 28), CFrame.new(x, 0.11, z), "base", COLORS.dark, Enum.Material.Metal, false)
     rolePart(model, "BackPanel", Vector3.new(22.5, 7.5, 0.35), CFrame.new(x, 4.2, z - 13.6), "panel", COLORS.panel, Enum.Material.Metal, false)
 
-    local sign = rolePart(model, "OwnerSign", Vector3.new(13.5, 2.5, 0.22), CFrame.new(x, 6.1, z - 13.35), "panel", COLORS.panel, Enum.Material.SmoothPlastic, false)
+    -- Clear visual boundary between eight personal bays. Neon trim has no shadows/lights.
+    rolePart(model, "BoundaryLeft", Vector3.new(0.10, 0.09, 27.2), CFrame.new(x - 11.65, 0.29, z), "accent", COLORS.amber, Enum.Material.Neon, false)
+    rolePart(model, "BoundaryRight", Vector3.new(0.10, 0.09, 27.2), CFrame.new(x + 11.65, 0.29, z), "accent", COLORS.amber, Enum.Material.Neon, false)
+    rolePart(model, "BoundaryFront", Vector3.new(23.2, 0.09, 0.10), CFrame.new(x, 0.29, z + 13.85), "accent", COLORS.amber, Enum.Material.Neon, false)
+    rolePart(model, "BoundaryBack", Vector3.new(23.2, 0.09, 0.10), CFrame.new(x, 0.29, z - 13.85), "accent", COLORS.amber, Enum.Material.Neon, false)
+
+    local floorId = rolePart(model, "FloorStationId", Vector3.new(5.8, 0.12, 2.2), CFrame.new(x, 0.31, z + 10.6), "panel", COLORS.panel, Enum.Material.SmoothPlastic, false)
+    surfaceText(floorId, "STATION " .. stationId, Enum.NormalId.Top, COLORS.amber)
+
+    local sign = rolePart(model, "OwnerSign", Vector3.new(16.5, 3.0, 0.24), CFrame.new(x, 6.15, z - 13.34), "panel", COLORS.panel, Enum.Material.SmoothPlastic, false)
     local ownerLabel = surfaceText(sign, "STATION " .. stationId .. "\nVACANT", Enum.NormalId.Front, COLORS.amber)
     ownerLabel.Name = "OwnerLabel"
 
-    local accent = rolePart(model, "OwnerAccent", Vector3.new(18, 0.13, 0.12), CFrame.new(x, 2.15, z - 13.15), "accent", COLORS.amber, Enum.Material.Neon, false)
-    pointLight(accent, COLORS.amber, 0.22, 6)
+    local signGlow = rolePart(model, "OwnerSignGlow", Vector3.new(16.8, 0.12, 0.14), CFrame.new(x, 7.72, z - 13.18), "accent", COLORS.amber, Enum.Material.Neon, false)
+    pointLight(signGlow, COLORS.amber, 0.36, 8)
+
+    local accent = rolePart(model, "OwnerAccent", Vector3.new(18, 0.14, 0.14), CFrame.new(x, 2.15, z - 13.15), "accent", COLORS.amber, Enum.Material.Neon, false)
+
+    -- One soft fill light per station keeps mobile readability without flooding the server with lights.
+    local workLight = rolePart(model, "WorkLight", Vector3.new(8.8, 0.12, 0.45), CFrame.new(x + 1.8, 8.45, z - 3.8), "trim", COLORS.white, Enum.Material.Neon, false)
+    pointLight(workLight, COLORS.white, 0.58, 13)
 
     local conveyor = Instance.new("Model")
     conveyor.Name = "Conveyor"
     conveyor.Parent = model
     rolePart(conveyor, "Base", Vector3.new(15.5, 1.4, 4.6), CFrame.new(x - 2.1, 0.8, z - 6.5), "base", COLORS.dark, Enum.Material.Metal, true)
-    rolePart(conveyor, "Belt", Vector3.new(14.7, 0.28, 3.7), CFrame.new(x - 2.1, 1.62, z - 6.5), "panel", Color3.fromRGB(15, 18, 23), Enum.Material.DiamondPlate, true)
+    rolePart(conveyor, "Belt", Vector3.new(14.7, 0.28, 3.7), CFrame.new(x - 2.1, 1.62, z - 6.5), "panel", Color3.fromRGB(22, 26, 33), Enum.Material.DiamondPlate, true)
 
-    local scanner = rolePart(model, "Scanner", Vector3.new(1.15, 4.4, 4.8), CFrame.new(x - 4.7, 3.2, z - 6.5), "base", Color3.fromRGB(39, 48, 59), Enum.Material.Metal, false)
+    local scanner = rolePart(model, "Scanner", Vector3.new(1.15, 4.4, 4.8), CFrame.new(x - 4.7, 3.2, z - 6.5), "base", Color3.fromRGB(48, 59, 72), Enum.Material.Metal, false)
     local scannerGlow = rolePart(model, "ScannerGlow", Vector3.new(0.15, 3.5, 3.9), CFrame.new(x - 4.08, 3.2, z - 6.5), "accent", COLORS.cyan, Enum.Material.Neon, false)
-    pointLight(scannerGlow, COLORS.cyan, 0.35, 7)
+    pointLight(scannerGlow, COLORS.cyan, 0.32, 7)
     local scannerPrompt = prompt(scanner, "SCAN ITEM", "STATION " .. stationId .. " SCANNER", stationId)
 
     local desk = Instance.new("Model")
@@ -305,17 +334,20 @@ function PersonalStationWorld.Build()
     part(world, "FrontWall", Vector3.new(108, 19, 1), CFrame.new(0, 9.5, 41.5), COLORS.wall, Enum.Material.Concrete, true)
     part(world, "LeftWall", Vector3.new(1, 19, 82), CFrame.new(-54.5, 9.5, 0), COLORS.wall, Enum.Material.Concrete, true)
     part(world, "RightWall", Vector3.new(1, 19, 82), CFrame.new(54.5, 9.5, 0), COLORS.wall, Enum.Material.Concrete, true)
-    part(world, "Ceiling", Vector3.new(108, 1, 82), CFrame.new(0, 19.2, 0), Color3.fromRGB(13, 17, 22), Enum.Material.Metal, true)
+    part(world, "Ceiling", Vector3.new(108, 1, 82), CFrame.new(0, 19.2, 0), Color3.fromRGB(18, 22, 28), Enum.Material.Metal, true)
 
     local header = part(world, "MainHeader", Vector3.new(37, 4.8, 0.35), CFrame.new(0, 12.5, -40.85), COLORS.panel, Enum.Material.Metal, false)
     surfaceText(header, "LOST PROPERTY OPERATIONS\nPERSONAL NIGHT SHIFTS", Enum.NormalId.Front, COLORS.amber)
 
     for _, x in ipairs({-39, -13, 13, 39}) do
-        local light = part(world, "CeilingLight", Vector3.new(16, 0.18, 1.0), CFrame.new(x, 18.3, -18), Color3.fromRGB(222, 230, 239), Enum.Material.Neon, false)
-        pointLight(light, Color3.fromRGB(220, 228, 238), 0.7, 20)
-        local light2 = part(world, "CeilingLight", Vector3.new(16, 0.18, 1.0), CFrame.new(x, 18.3, 18), Color3.fromRGB(222, 230, 239), Enum.Material.Neon, false)
-        pointLight(light2, Color3.fromRGB(220, 228, 238), 0.7, 20)
+        local light = part(world, "CeilingLight", Vector3.new(16, 0.18, 1.0), CFrame.new(x, 18.3, -18), Color3.fromRGB(232, 238, 246), Enum.Material.Neon, false)
+        pointLight(light, Color3.fromRGB(228, 235, 244), 1.0, 24)
+        local light2 = part(world, "CeilingLight", Vector3.new(16, 0.18, 1.0), CFrame.new(x, 18.3, 18), Color3.fromRGB(232, 238, 246), Enum.Material.Neon, false)
+        pointLight(light2, Color3.fromRGB(228, 235, 244), 1.0, 24)
     end
+
+    local centerLight = part(world, "CenterFill", Vector3.new(28, 0.16, 0.8), CFrame.new(0, 18.1, 0), Color3.fromRGB(211, 222, 236), Enum.Material.Neon, false)
+    pointLight(centerLight, Color3.fromRGB(218, 228, 240), 0.75, 28)
 
     local lobbySign = part(world, "LobbySign", Vector3.new(24, 2.7, 0.3), CFrame.new(0, 7.2, 40.8) * CFrame.Angles(0, math.rad(180), 0), COLORS.panel, Enum.Material.Metal, false)
     surfaceText(lobbySign, "JOIN → GET A STATION → WORK YOUR SHIFT → COLLECT → TRADE", Enum.NormalId.Front, COLORS.white)
