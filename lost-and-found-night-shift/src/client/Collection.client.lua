@@ -73,7 +73,7 @@ stroke(indexButton, 0.4)
 local popup = Instance.new("Frame")
 popup.Name = "CollectionPopup"
 popup.AnchorPoint = Vector2.new(0.5, 0)
-popup.Size = UDim2.fromOffset(380, 220)
+popup.Size = UDim2.fromOffset(380, 230)
 popup.Position = UDim2.new(0.54, 0, 0, 96)
 popup.BackgroundColor3 = Color3.fromRGB(15, 19, 26)
 popup.BackgroundTransparency = 0.02
@@ -85,15 +85,15 @@ corner(popup, 12)
 stroke(popup, 0.2)
 
 local popupConstraint = Instance.new("UISizeConstraint")
-popupConstraint.MinSize = Vector2.new(350, 205)
-popupConstraint.MaxSize = Vector2.new(400, 230)
+popupConstraint.MinSize = Vector2.new(350, 215)
+popupConstraint.MaxSize = Vector2.new(400, 240)
 popupConstraint.Parent = popup
 
 local title = label(popup, UDim2.new(1, -56, 0, 32), UDim2.fromOffset(12, 6), 14, Enum.Font.GothamBold, Color3.fromRGB(255, 192, 86))
 title.Text = "LOST PROPERTY COLLECTION"
 
 local subtitle = label(popup, UDim2.new(1, -24, 0, 18), UDim2.fromOffset(12, 34), 10, Enum.Font.GothamMedium, Color3.fromRGB(151, 164, 181))
-subtitle.Text = "Swipe cards • PERFECT cases can reveal bonus finds"
+subtitle.Text = "Swipe cards • each owned item carries a unique serial"
 
 local close = Instance.new("TextButton")
 close.Size = UDim2.fromOffset(30, 30)
@@ -110,7 +110,7 @@ corner(close, 8)
 
 local strip = Instance.new("ScrollingFrame")
 strip.Name = "CollectionStrip"
-strip.Size = UDim2.new(1, -20, 0, 150)
+strip.Size = UDim2.new(1, -20, 0, 160)
 strip.Position = UDim2.fromOffset(10, 58)
 strip.BackgroundTransparency = 1
 strip.BorderSizePixel = 0
@@ -153,6 +153,7 @@ stroke(toast, 0.4)
 
 local discovered = {}
 local entries = {}
+local serialByCollectionId = {}
 local toastToken = 0
 
 local function rarityColor(rarity)
@@ -191,7 +192,7 @@ end
 local function addPreview(card, entry, isDiscovered)
     local viewport = Instance.new("ViewportFrame")
     viewport.Name = "Preview"
-    viewport.Size = UDim2.new(1, -8, 0, 84)
+    viewport.Size = UDim2.new(1, -8, 0, 80)
     viewport.Position = UDim2.fromOffset(4, 4)
     viewport.BackgroundColor3 = isDiscovered and Color3.fromRGB(20, 25, 33) or Color3.fromRGB(17, 20, 26)
     viewport.BackgroundTransparency = 0.02
@@ -237,11 +238,12 @@ local function rebuildCards()
         local isDiscovered = discovered[entry.id] == true
         local rarity = tostring(entry.rarity or "COMMON")
         local accent = isDiscovered and rarityColor(rarity) or Color3.fromRGB(72, 80, 92)
+        local serialInfo = serialByCollectionId[entry.id]
 
         local card = Instance.new("Frame")
         card.Name = entry.id
         card.LayoutOrder = order
-        card.Size = UDim2.fromOffset(112, 140)
+        card.Size = UDim2.fromOffset(112, 150)
         card.BackgroundColor3 = Color3.fromRGB(24, 29, 38)
         card.BackgroundTransparency = isDiscovered and 0.03 or 0.18
         card.BorderSizePixel = 0
@@ -251,21 +253,34 @@ local function rebuildCards()
 
         addPreview(card, entry, isDiscovered)
 
-        local itemName = label(card, UDim2.new(1, -8, 0, 30), UDim2.fromOffset(4, 90), 9, Enum.Font.GothamBold, isDiscovered and Color3.fromRGB(235, 239, 244) or Color3.fromRGB(125, 134, 147))
+        local itemName = label(card, UDim2.new(1, -8, 0, 28), UDim2.fromOffset(4, 86), 9, Enum.Font.GothamBold, isDiscovered and Color3.fromRGB(235, 239, 244) or Color3.fromRGB(125, 134, 147))
         itemName.TextXAlignment = Enum.TextXAlignment.Center
         itemName.TextYAlignment = Enum.TextYAlignment.Center
         itemName.TextWrapped = true
         itemName.Text = isDiscovered and entry.name or "???"
 
-        local rarityLabel = label(card, UDim2.new(1, -8, 0, 14), UDim2.fromOffset(4, 122), 8, Enum.Font.GothamBold, accent)
+        local rarityLabel = label(card, UDim2.new(1, -8, 0, 12), UDim2.fromOffset(4, 116), 8, Enum.Font.GothamBold, accent)
         rarityLabel.TextXAlignment = Enum.TextXAlignment.Center
         rarityLabel.Text = isDiscovered and rarity or "LOCKED"
+
+        local serialLabel = label(card, UDim2.new(1, -8, 0, 16), UDim2.fromOffset(4, 130), 8, Enum.Font.RobotoMono, Color3.fromRGB(124, 205, 212))
+        serialLabel.TextXAlignment = Enum.TextXAlignment.Center
+        if not isDiscovered then
+            serialLabel.Text = "NO INSTANCE"
+            serialLabel.TextColor3 = Color3.fromRGB(92, 100, 113)
+        elseif serialInfo and serialInfo.serial then
+            serialLabel.Text = tostring(serialInfo.serial)
+        else
+            serialLabel.Text = "SERIALIZING..."
+            serialLabel.TextColor3 = Color3.fromRGB(145, 157, 174)
+        end
     end
 end
 
 local function applySnapshot(payload)
     entries = payload.entries or entries
     discovered = payload.discovered or discovered
+    serialByCollectionId = payload.serialByCollectionId or serialByCollectionId
     indexButton.Text = string.format("INDEX  %d/%d", payload.count or 0, payload.total or #entries)
     rebuildCards()
 end
@@ -277,6 +292,18 @@ local function showToast(item, isBonus)
     local prefix = isBonus and "BONUS FIND" or "NEW DISCOVERY"
     toast.Text = string.format("%s  •  %s  •  %s", prefix, tostring(item.name), tostring(item.rarity))
     toast.TextColor3 = isBonus and Color3.fromRGB(110, 224, 226) or Color3.fromRGB(255, 211, 125)
+    toast.Visible = true
+    task.delay(2.5, function()
+        if token == toastToken then toast.Visible = false end
+    end)
+end
+
+local function showSerialToast(serialMint)
+    if not serialMint or not serialMint.serial then return end
+    toastToken += 1
+    local token = toastToken
+    toast.Text = "SERIAL MINTED  •  " .. tostring(serialMint.serial)
+    toast.TextColor3 = Color3.fromRGB(110, 224, 226)
     toast.Visible = true
     task.delay(2.5, function()
         if token == toastToken then toast.Visible = false end
@@ -305,5 +332,7 @@ collectionUpdate.OnClientEvent:Connect(function(kind, payload)
         showToast(payload.item, false)
     elseif kind == "BONUS_DISCOVERY" and payload.isNew then
         showToast(payload.item, true)
+    elseif kind == "SERIAL_MINTED" then
+        showSerialToast(payload.serialMint)
     end
 end)
