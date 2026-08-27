@@ -49,7 +49,7 @@ Acceptance note:
 - therefore M3-A is USER-ACCEPTED rather than independently re-verified end-to-end after v27.
 
 ### M3-B — CONNECTED MYSTERY CHAIN
-**IMPLEMENTED / LIVE v28 — RUNTIME QC PENDING.**
+**IMPLEMENTED / LIVE v29 — RUNTIME QC PENDING.**
 
 Goal:
 Connect the three existing Season 1 pillars without forcing replay and without revealing the final explanation.
@@ -87,6 +87,7 @@ Mobile UX:
 - locked slots stay visible as locked placeholders;
 - newly earned Ownerless/Lost Child links may show a brief `CASE LINK CONFIRMED` toast;
 - Flight 000 retains the stronger M3-A terminal incident banner;
+- v29 standardizes the utility-control system across Credits / Index / Archive / Case File and popup close controls: top-right utility controls use 128×30, primary button text 11px, 8px corner radius, and close controls 30×30;
 - final explanation remains explicitly unknown.
 
 M3-B hard limits:
@@ -98,20 +99,20 @@ M3-B hard limits:
 - the 2001 date is immutable unless Arda explicitly revises canon.
 
 ## Latest publish receipt
-Run: `33072052969`
-Source commit: `8b71545d25c7a23729d2b2c91e0ce2bc720db5fa`
+Run: `33073692620`
+Source commit: `0acce6014a0b1c8979ff5b753e0ad1518f465c7c`
 Rojo: `7.7.0`
 Static QC: **PASS**
 Rojo build: **PASS**
 Roblox publish: **PASS**
-Roblox version: `28`
-RBXL bytes: `49373`
-RBXL SHA256: `c9e3e21c7948d07757e56e219a3fc03ec9fa77e3a55ee390de5e95a0e915573a`
+Roblox version: `29`
+RBXL bytes: `49355`
+RBXL SHA256: `27960b7b63d0fa88678d32ef5acf4f0908dd2a3ce7f518d7da93cf98d0398ada`
 Deploy receipt: `deploy-status/lost-and-found-m0.json`
 
 ## LIVE authority
-**LIVE_PUBLISHED — v28 BUILD/DEPLOY VERIFIED.**
-M3-B archive-chain UI/progression still requires mobile runtime acceptance.
+**LIVE_PUBLISHED — v29 BUILD/DEPLOY VERIFIED.**
+M3-B archive-chain UI/progression and unified mobile button polish still require runtime visual acceptance.
 
 ## Next gate
 **M3-B-RUNTIME**
@@ -120,7 +121,8 @@ M3-B archive-chain UI/progression still requires mobile runtime acceptance.
 3. open Archive and confirm three cards render on mobile;
 4. already-earned linked bonuses reveal their corresponding entries;
 5. locked entries remain readable placeholders;
-6. Collection `/20`, Credits, movement, CASE FILE, and case loop remain stable;
-7. no final lore explanation is exposed.
+6. confirm Credits / Index / Archive / Case File and popup close controls are visually consistent and compact;
+7. Collection `/20`, Credits, movement, CASE FILE, and case loop remain stable;
+8. no final lore explanation is exposed.
 
 After M3-B passes, continue M3 with a deeper operational escalation/limited anomaly reward before M4 social/economy hardening. Trading remains locked.
