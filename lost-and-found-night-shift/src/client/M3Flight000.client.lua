@@ -6,6 +6,7 @@ local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
 local remotes = ReplicatedStorage:WaitForChild("LostAndFoundRemotes")
 local incidentUpdate = remotes:WaitForChild("IncidentUpdate")
+local caseUpdate = remotes:WaitForChild("CaseUpdate")
 
 local gui = Instance.new("ScreenGui")
 gui.Name = "LostAndFoundM3HUD"
@@ -48,18 +49,39 @@ archiveButton.Name = "ArchiveButton"
 archiveButton.AnchorPoint = Vector2.new(1, 0)
 archiveButton.Size = UDim2.fromOffset(150, 34)
 archiveButton.Position = UDim2.new(1, -18, 0, 102)
-archiveButton.BackgroundColor3 = Color3.fromRGB(28, 31, 38)
+archiveButton.BackgroundColor3 = Color3.fromRGB(27, 31, 39)
 archiveButton.BackgroundTransparency = 0.03
 archiveButton.BorderSizePixel = 0
-archiveButton.Text = "ARCHIVE  000-A"
-archiveButton.TextColor3 = Color3.fromRGB(110, 224, 226)
+archiveButton.Text = "ARCHIVE  LOCKED"
+archiveButton.TextColor3 = Color3.fromRGB(128, 139, 153)
 archiveButton.Font = Enum.Font.GothamBold
 archiveButton.TextSize = 12
-archiveButton.Visible = false
+archiveButton.Visible = true
 archiveButton.Modal = false
 archiveButton.Parent = gui
 corner(archiveButton, 9)
-stroke(archiveButton, 0.25, Color3.fromRGB(88, 221, 224), 1.2)
+local archiveStroke = Instance.new("UIStroke")
+archiveStroke.Color = Color3.fromRGB(76, 86, 101)
+archiveStroke.Transparency = 0.35
+archiveStroke.Thickness = 1.1
+archiveStroke.Parent = archiveButton
+
+local hint = Instance.new("TextLabel")
+hint.AnchorPoint = Vector2.new(1, 0)
+hint.Size = UDim2.fromOffset(260, 42)
+hint.Position = UDim2.new(1, -18, 0, 140)
+hint.BackgroundColor3 = Color3.fromRGB(19, 24, 32)
+hint.BackgroundTransparency = 0.04
+hint.BorderSizePixel = 0
+hint.TextColor3 = Color3.fromRGB(210, 217, 227)
+hint.Font = Enum.Font.GothamBold
+hint.TextSize = 11
+hint.TextWrapped = true
+hint.Text = ""
+hint.Visible = false
+hint.Parent = gui
+corner(hint, 8)
+stroke(hint, 0.4, Color3.fromRGB(92, 105, 122), 1.0)
 
 local popup = Instance.new("Frame")
 popup.Name = "ArchivePopup"
@@ -127,7 +149,7 @@ incidentOverlay.Parent = gui
 
 local incidentCard = Instance.new("Frame")
 incidentCard.AnchorPoint = Vector2.new(0.5, 0.5)
-incidentCard.Size = UDim2.fromOffset(360, 96)
+incidentCard.Size = UDim2.fromOffset(360, 100)
 incidentCard.Position = UDim2.fromScale(0.5, 0.47)
 incidentCard.BackgroundColor3 = Color3.fromRGB(18, 24, 31)
 incidentCard.BackgroundTransparency = 0.08
@@ -140,12 +162,37 @@ local incidentTitle = label(incidentCard, UDim2.new(1, -24, 0, 34), UDim2.fromOf
 incidentTitle.TextXAlignment = Enum.TextXAlignment.Center
 incidentTitle.Text = "TERMINAL INCIDENT // FLIGHT 000"
 
-local incidentSub = label(incidentCard, UDim2.new(1, -24, 0, 30), UDim2.fromOffset(12, 51), 11, Enum.Font.GothamBold, Color3.fromRGB(88, 221, 224))
+local incidentSub = label(incidentCard, UDim2.new(1, -24, 0, 36), UDim2.fromOffset(12, 50), 11, Enum.Font.GothamBold, Color3.fromRGB(88, 221, 224))
 incidentSub.TextXAlignment = Enum.TextXAlignment.Center
-incidentSub.Text = "ARCHIVE LINK ESTABLISHED — CASE REMAINS UNRESOLVED"
+incidentSub.Text = "ARCHIVE LINK ESTABLISHED\nCASE REMAINS UNRESOLVED"
 
 local currentArchive = nil
 local incidentToken = 0
+local hintToken = 0
+
+local function showHint(text)
+    hintToken += 1
+    local token = hintToken
+    hint.Text = text
+    hint.Visible = true
+    task.delay(2.6, function()
+        if token == hintToken then hint.Visible = false end
+    end)
+end
+
+local function setButtonLocked(inFlight000)
+    if currentArchive then return end
+    archiveButton.Visible = true
+    if inFlight000 then
+        archiveButton.Text = "ARCHIVE  PENDING"
+        archiveButton.TextColor3 = Color3.fromRGB(255, 192, 86)
+        archiveStroke.Color = Color3.fromRGB(218, 145, 48)
+    else
+        archiveButton.Text = "ARCHIVE  LOCKED"
+        archiveButton.TextColor3 = Color3.fromRGB(128, 139, 153)
+        archiveStroke.Color = Color3.fromRGB(76, 86, 101)
+    end
+end
 
 local function setOtherHudVisible(visible)
     local mainHud = playerGui:FindFirstChild("LostAndFoundHUD")
@@ -170,6 +217,9 @@ end
 local function renderArchive(payload)
     currentArchive = payload
     archiveButton.Visible = true
+    archiveButton.Text = "ARCHIVE  000-A"
+    archiveButton.TextColor3 = Color3.fromRGB(110, 224, 226)
+    archiveStroke.Color = Color3.fromRGB(88, 221, 224)
     popupTitle.Text = tostring(payload.title or "INCIDENT 000-A — FLIGHT 000")
     status.Text = tostring(payload.status or "CONNECTED / UNRESOLVED")
     evidence.Text = table.concat({
@@ -194,12 +244,12 @@ local function showIncident(payload)
     incidentTitle.TextTransparency = 1
     incidentSub.TextTransparency = 1
 
-    TweenService:Create(incidentOverlay, TweenInfo.new(0.18), {BackgroundTransparency = 0.42}):Play()
-    TweenService:Create(incidentCard, TweenInfo.new(0.18), {BackgroundTransparency = 0.08}):Play()
+    TweenService:Create(incidentOverlay, TweenInfo.new(0.18), {BackgroundTransparency = 0.35}):Play()
+    TweenService:Create(incidentCard, TweenInfo.new(0.18), {BackgroundTransparency = 0.04}):Play()
     TweenService:Create(incidentTitle, TweenInfo.new(0.18), {TextTransparency = 0}):Play()
     TweenService:Create(incidentSub, TweenInfo.new(0.18), {TextTransparency = 0}):Play()
 
-    task.delay(2.6, function()
+    task.delay(3.2, function()
         if token ~= incidentToken then return end
         local fade = TweenService:Create(incidentOverlay, TweenInfo.new(0.35), {BackgroundTransparency = 1})
         TweenService:Create(incidentCard, TweenInfo.new(0.35), {BackgroundTransparency = 1}):Play()
@@ -212,16 +262,34 @@ local function showIncident(payload)
 end
 
 archiveButton.Activated:Connect(function()
-    if not currentArchive then return end
+    if not currentArchive then
+        showHint("ARCHIVE LOCKED — Resolve Flight 000 with PERFECT QUARANTINE.")
+        return
+    end
     popup.Visible = true
     archiveButton.Visible = false
+    hint.Visible = false
     setOtherHudVisible(false)
 end)
 
 close.Activated:Connect(function()
     popup.Visible = false
-    archiveButton.Visible = currentArchive ~= nil
+    archiveButton.Visible = true
     setOtherHudVisible(true)
+end)
+
+caseUpdate.OnClientEvent:Connect(function(kind, payload)
+    payload = payload or {}
+    local caseData = payload.case
+    if currentArchive then return end
+    local isFlight000 = caseData and caseData.id == "LF-M0-007"
+    if isFlight000 and kind == "RESULT" and payload.serverIncident then
+        archiveButton.Text = "ARCHIVE  CONNECTING"
+        archiveButton.TextColor3 = Color3.fromRGB(88, 221, 224)
+        archiveStroke.Color = Color3.fromRGB(88, 221, 224)
+    else
+        setButtonLocked(isFlight000)
+    end
 end)
 
 incidentUpdate.OnClientEvent:Connect(function(kind, payload)
