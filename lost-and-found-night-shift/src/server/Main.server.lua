@@ -8,6 +8,7 @@ local CaseRegistry = require(shared:WaitForChild("CaseRegistry"))
 local CollectionRegistry = require(shared:WaitForChild("CollectionRegistry"))
 local WorldBuilder = require(script.Parent:WaitForChild("WorldBuilder"))
 local ItemFactory = require(script.Parent:WaitForChild("ItemFactory"))
+local PlayerDataStore = require(script.Parent:WaitForChild("PlayerDataStore"))
 
 local remotes = ReplicatedStorage:FindFirstChild("LostAndFoundRemotes") or Instance.new("Folder")
 remotes.Name = "LostAndFoundRemotes"
@@ -29,6 +30,8 @@ local activeClaimant = nil
 local locked = false
 local inspections = { scanned = false, tagChecked = false, opened = false }
 local discoveries = {}
+local persistenceReady = {}
+local dirty = {}
 
 local function inspectionsComplete()
     return inspections.scanned and inspections.tagChecked and inspections.opened
@@ -78,6 +81,8 @@ local function ensureStats(player)
         xp.Value = 0
         xp.Parent = leaderstats
     end
+
+    return credits, xp
 end
 
 local function normalizeCharacter(character)
@@ -121,8 +126,42 @@ local function collectionSnapshot(player)
         count = count,
         total = CollectionRegistry.Count(),
         entries = CollectionRegistry.PublicEntries(),
-        persistent = false,
+        persistent = persistenceReady[player.UserId] == true,
     }
+end
+
+local function savePayload(player)
+    local credits, xp = ensureStats(player)
+    local found = discoveries[player.UserId] or {}
+    local discoveredList = {}
+
+    for _, collectionId in ipairs(CollectionRegistry.Order) do
+        if found[collectionId] then
+            table.insert(discoveredList, collectionId)
+        end
+    end
+
+    return {
+        credits = credits.Value,
+        xp = xp.Value,
+        discovered = discoveredList,
+    }
+end
+
+local function savePlayer(player, force)
+    local userId = player.UserId
+    if persistenceReady[userId] ~= true then
+        return false
+    end
+    if not force and not dirty[userId] then
+        return true
+    end
+
+    local ok = PlayerDataStore.Save(userId, savePayload(player))
+    if ok then
+        dirty[userId] = false
+    end
+    return ok
 end
 
 local function sendCollectionSync(player)
@@ -141,6 +180,9 @@ local function markDiscovered(player, collectionId)
 
     local isNew = not found[collectionId]
     found[collectionId] = true
+    if isNew then
+        dirty[player.UserId] = true
+    end
 
     local snapshot = collectionSnapshot(player)
     snapshot.item = {
@@ -154,8 +196,24 @@ local function markDiscovered(player, collectionId)
 end
 
 local function setupPlayer(player)
-    ensureStats(player)
-    discoveries[player.UserId] = discoveries[player.UserId] or {}
+    local credits, xp = ensureStats(player)
+    local loaded, ok = PlayerDataStore.Load(player.UserId)
+    local found = {}
+
+    if ok then
+        credits.Value = loaded.credits or 0
+        xp.Value = loaded.xp or 0
+        for _, collectionId in ipairs(loaded.discovered or {}) do
+            if CollectionRegistry.Get(collectionId) then
+                found[collectionId] = true
+            end
+        end
+    end
+
+    discoveries[player.UserId] = found
+    persistenceReady[player.UserId] = ok
+    dirty[player.UserId] = false
+    player:SetAttribute("LostFoundPersistenceReady", ok)
 
     player.CharacterAdded:Connect(function(character)
         task.defer(normalizeCharacter, character)
@@ -203,7 +261,8 @@ end
 
 Players.PlayerAdded:Connect(function(player)
     setupPlayer(player)
-    task.delay(1.5, function()
+    task.delay(0.5, function()
+        if not player.Parent then return end
         if activeCase then
             caseUpdate:FireClient(player, "SYNC", {
                 case = publicCase(activeCase),
@@ -217,7 +276,10 @@ Players.PlayerAdded:Connect(function(player)
 end)
 
 Players.PlayerRemoving:Connect(function(player)
+    savePlayer(player, true)
     discoveries[player.UserId] = nil
+    persistenceReady[player.UserId] = nil
+    dirty[player.UserId] = nil
 end)
 
 for _, player in ipairs(Players:GetPlayers()) do
@@ -273,16 +335,16 @@ local function startNextCase()
 end
 
 local function grant(player, grade)
-    ensureStats(player)
+    local credits, xp = ensureStats(player)
     local reward = Config.Rewards[grade] or Config.Rewards.WRONG
-    local leaderstats = player:FindFirstChild("leaderstats")
-    local credits = leaderstats and leaderstats:FindFirstChild("Credits")
-    local xp = leaderstats and leaderstats:FindFirstChild("XP")
 
-    if credits then credits.Value += reward.Credits end
-    if xp then xp.Value += reward.XP end
+    if reward.Credits ~= 0 then credits.Value += reward.Credits end
+    if reward.XP ~= 0 then xp.Value += reward.XP end
+    if reward.Credits ~= 0 or reward.XP ~= 0 then
+        dirty[player.UserId] = true
+    end
 
-    return reward, credits and credits.Value or 0, xp and xp.Value or 0
+    return reward, credits.Value, xp.Value
 end
 
 local function contains(list, value)
@@ -367,6 +429,22 @@ for decision, decisionPrompt in pairs(refs.DecisionPrompts) do
         end)
     end)
 end
+
+-- Conservative autosave: only dirty, successfully-loaded profiles are written.
+task.spawn(function()
+    while true do
+        task.wait(60)
+        for _, player in ipairs(Players:GetPlayers()) do
+            savePlayer(player, false)
+        end
+    end
+end)
+
+game:BindToClose(function()
+    for _, player in ipairs(Players:GetPlayers()) do
+        savePlayer(player, true)
+    end
+end)
 
 refreshPromptState()
 task.spawn(function()
