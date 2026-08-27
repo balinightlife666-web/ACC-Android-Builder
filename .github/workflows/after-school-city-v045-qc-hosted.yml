@@ -1,0 +1,83 @@
+name: After School City V045 Hosted QC
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/after-school-city-v045-qc-hosted.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  qc:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      SOURCE_SHA: e628b01acc2a75ddef4ac75a2c9285a77e87f1c4
+
+    steps:
+      - name: Checkout publisher repository
+        uses: actions/checkout@v4
+
+      - name: Checkout locked ASC v0.4.5 source
+        uses: actions/checkout@v4
+        with:
+          repository: ardarawk-cloud/ACC-Roblox-maps
+          ref: e628b01acc2a75ddef4ac75a2c9285a77e87f1c4
+          token: ${{ secrets.ACC_ROBLOX_MAPS_WRITE_TOKEN }}
+          path: asc-source
+          fetch-depth: 1
+
+      - name: Static source lock
+        shell: bash
+        run: |
+          set -euo pipefail
+          actual=$(git -C asc-source rev-parse HEAD)
+          [[ "$actual" == "$SOURCE_SHA" ]] || { echo "Source SHA mismatch: $actual"; exit 11; }
+
+          project='asc-source/maps/after-school-city/default.project.json'
+          config='asc-source/maps/after-school-city/after-school-city.config.lua'
+          fix='asc-source/maps/after-school-city/after-school-city.clearance-sanitize.server.lua'
+          intro='asc-source/maps/after-school-city/after-school-city.intro.client.lua'
+
+          jq -e . "$project" >/dev/null
+          grep -Fq 'ASC_ClearanceSanitize' "$project"
+          grep -Fq 'after-school-city.clearance-sanitize.server.lua' "$project"
+          grep -Fq '0.4.5-door-road-clearance-1' "$config"
+          grep -Fq 'EnableClearanceSanitizePass = true' "$config"
+          grep -Fq 'V045_ClearanceSanitize' "$fix"
+          grep -Fq 'pos.Z >= 214' "$fix"
+          grep -Fq 'math.abs(obj.Position.Z) <= 24' "$fix"
+          grep -Fq 'ASC_SchoolDoorTreeClearanceFixed' "$fix"
+          grep -Fq 'ASC_ResidentialRoadHedgeClearanceFixed' "$fix"
+          grep -Fq 'PUTU AZYA PUTRI' "$intro"
+          grep -Fq 'BINTANG HARDAJAYA' "$intro"
+          grep -Fq 'WITH LOVE, DAD' "$intro"
+          echo "STATIC LOCK PASS source=$actual v0.4.5=PASS dedication=PASS"
+
+      - name: Prepare Rojo 7.7.0
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/asc-rojo"
+          curl -fsSL 'https://github.com/rojo-rbx/rojo/releases/download/v7.7.0/rojo-7.7.0-linux-x86_64.zip' -o "$RUNNER_TEMP/rojo.zip"
+          unzip -q -o "$RUNNER_TEMP/rojo.zip" -d "$RUNNER_TEMP/asc-rojo"
+          rojo=$(find "$RUNNER_TEMP/asc-rojo" -type f -name rojo | head -n1)
+          [[ -n "$rojo" ]] || { echo 'Rojo binary missing'; exit 20; }
+          chmod +x "$rojo"
+          "$rojo" --version
+          echo "ROJO_EXE=$rojo" >> "$GITHUB_ENV"
+
+      - name: Build exact ASC v0.4.5 place
+        shell: bash
+        run: |
+          set -euo pipefail
+          place="$RUNNER_TEMP/after-school-city-v045.rbxl"
+          "$ROJO_EXE" build 'asc-source/maps/after-school-city/default.project.json' -o "$place"
+          test -f "$place"
+          bytes=$(stat -c%s "$place")
+          (( bytes >= 1024 )) || { echo "Generated RBXL suspiciously small: $bytes"; exit 21; }
+          sha256sum "$place"
+          echo "BUILD PASS bytes=$bytes"
