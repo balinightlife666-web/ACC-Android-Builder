@@ -1,165 +1,162 @@
-# LOST & FOUND: NIGHT SHIFT — M4-D PERSONAL STATION / SOCIAL FLEX LOCK v1.0
+# LOST & FOUND: NIGHT SHIFT — M4-D PERSONAL STATION / SOCIAL FLEX LOCK v1.1
 
-Status: DESIGN LOCKED / IMPLEMENTATION NEXT
+Status: IMPLEMENTED IN SOURCE / PUBLISH + RUNTIME QC PENDING
 Updated: 2026-08-28
 
 ## Goal
-Convert the current single shared job loop into a multiplayer-safe personal shift system while preserving one shared social room for collection flex and same-server trading.
+Convert the single shared job loop into a multiplayer-safe personal shift system while preserving one shared social room for collection flex and same-server trading.
 
 ## Initial server capacity
-- Initial soft-launch target: maximum 8 players per server.
+- Initial soft-launch design target: 8 active job players per server.
 - The room provides 8 physical station slots: A through H.
 - Station letters are temporary physical slots, not permanent player ownership.
-- Capacity must be implemented so it can later scale beyond 8 without changing player save identity, collection serials, or trade ownership.
+- If a ninth player reaches a server before the experience MaxPlayers setting is reduced to 8, the runtime does not give that player a job station; no shared-job fallback is allowed.
+- Capacity architecture must remain scalable without changing save identity, collection serials, or trade ownership.
 
 ## Station assignment
-- On join, the server assigns one available physical station slot.
-- First available slot may be used; social preference may later try to place friends near each other when possible.
-- The player receives a clear `SHIFT ASSIGNED — STATION X` message and persistent compact station indicator.
-- The assigned station must visibly identify its current player owner.
-- Other players cannot operate another player's SCAN / TAG / OPEN / DECIDE controls.
-- On leave, the physical slot is cleaned and returns to VACANT.
+- On join, the server assigns the first available physical station slot.
+- Player receives `SHIFT ASSIGNED — STATION X` and a compact persistent `SHIFT STATION X` indicator.
+- Character is staged at that assigned station and the station is locally highlighted for a short orientation window.
+- Station model stores server-owned `OwnerUserId` / owner identity attributes.
+- SCAN / TAG / OPEN / DECIDE are validated server-side against the assigned station owner.
+- Non-owned job prompts are hidden locally where possible, but server ownership validation remains the security authority.
+- On leave, active case objects are destroyed, the station is released, and the slot becomes VACANT.
 
 ## Persistent Personal Station Profile
-The persistent identity is the player's station profile, NOT the physical A-H slot.
+Persistent identity is the player's station profile, NOT the physical A-H slot.
 
-A player's saved station profile may contain:
-- equipped station skin/theme;
-- scanner cosmetic;
-- desk/workbench cosmetic;
-- lighting/trim cosmetic;
-- showcase/display style;
-- nameplate/title;
-- seasonal decorations;
-- eligible QoL upgrades that do not alter collectible rarity/drop odds.
+Current persisted station profile foundation:
+- `equippedSkin`
+- `ownedSkins`
+- `title`
 
-When the player joins any server, their saved station profile is applied to whichever physical slot they receive.
+Default:
+- skin `STANDARD_OPS`
+- owned skins include `STANDARD_OPS`
+- title `NIGHT SHIFT OPERATOR`
 
-Example:
-- Day 1: player profile loads into Station F.
-- Day 2: same profile may load into Station B.
-- Cosmetic ownership/equipment remains unchanged.
+`LostAndFound_PlayerData_v1` remains the DataStore name; payload version is now 6.
+Existing Credits / XP / discovered Index / serialized inventory stay compatible.
+
+## Station skin registry
+Source authority: `src/shared/StationSkinRegistry.lua`.
+
+Initial design registry:
+- `STANDARD_OPS` — FREE
+- `INDUSTRIAL_SHIFT` — 8,000 Credits target
+- `RETRO_AIRPORT` — 18,000 Credits target
+- `BLACK_OPS` — 35,000 Credits target
+- `LUXURY_EXECUTIVE` — ROBUX, exact product/price TBD
+- `HALLOWEEN_2026` — EVENT
+- `CHRISTMAS_2026` — EVENT
+
+Registry presence does NOT mean all purchase flows are live yet. M4-D loads equipped station cosmetics; Station Shop purchase/equip UX remains a later gate after the personal-shift runtime passes.
+
+## Credits / Robux / prestige monetization rules
+Credits are non-transferable soft currency.
+Approved Credits sinks include station skins, scanner/desk cosmetics, display upgrades, nameplates/titles, seasonal basic cosmetics, and later controlled convenience if telemetry supports it.
+
+Robux is optional premium cosmetic monetization only.
+Robux MUST NOT increase collectible odds, SECRET/ANOMALY chance, case rewards, or farming output.
+
+Some achievement/event skins must remain prestige-only and unavailable through Credits or Robux.
 
 ## Personal job stream
-The existing global `activeCase` model must be replaced by per-player/per-station case state.
-
-Required ownership domains:
+Global `activeCase` is replaced by state owned by player/station.
+Each state independently owns:
 - active case;
 - inspection progress;
-- active item;
+- active physical item;
 - claimant;
-- decision state;
+- decision lock;
 - reward;
 - collectible roll;
-- case advancement.
+- next-case timing.
 
 No player may progress, decide, claim reward from, or mutate another station's job.
 
 ## Case distribution
-Use a hybrid progression model:
-1. Fresh players receive a short fixed onboarding sequence so SCAN → TAG → OPEN → DECIDE is learned consistently.
-2. After onboarding, case selection becomes independent weighted random per player.
-3. Returning players use their own progression state rather than resetting to the first job.
-4. Mystery cases remain gated by personal progression/canon rules and are not thrown randomly before eligibility.
-5. The server should avoid assigning the same active case to multiple stations when practical, but duplication is allowed when the eligible pool is exhausted.
+Hybrid model is locked and implemented:
+1. Fresh players receive fixed onboarding cases 001 → 002 → 003.
+2. After onboarding, each player gets an independent weighted random stream.
+3. Normal cases have higher selection weight than mystery cases.
+4. Returning progression is derived from persistent completed-case/XP economy state rather than resetting to job 1.
+5. Mystery eligibility unlocks progressively; Ownerless precedes Flight 000 and later incidents.
+6. Server avoids assigning a case already active at another station when another eligible case is available; duplication is allowed only when needed.
 
-## Collectible/drop ownership
+Initial mystery eligibility thresholds are implementation values and may be tuned from telemetry without changing canon:
+- Ownerless Suitcase from 5 completed cases;
+- Flight 000 from 7;
+- Changing Weight from 8;
+- Double Identity from 9;
+- Lost Child from 10.
+
+## Collectible / drop ownership
 Collectible outcome is personal, not one shared server prize.
 
 Flow:
-`PERSONAL CASE → ELIGIBILITY/PERFECT → SERVER-SIDE ROLL → GLOBAL SERIAL MINT → ONLY THAT PLAYER RECEIVES INSTANCE`
+`PERSONAL CASE → PERFECT ELIGIBILITY → SERVER-SIDE ROLL → GLOBAL SERIAL MINT → ONLY THAT PLAYER RECEIVES INSTANCE`
 
-Rules:
-- Regular/Rare/Epic: personal station roll.
-- SECRET/ANOMALY: personal station roll with stricter eligibility/rarity; not automatically granted merely because a case completes.
-- Two players may independently obtain the same collectible type, but every minted instance has a unique immutable serial/instance identity.
-- Normal SECRET/ANOMALY supply is NOT restricted to one drop per server.
-- Very rare future server-incident artifacts may use one-server-winner logic only as explicitly designed special events, never as the default collectible rule.
-- Seasonal limited items may use global mint caps across the whole experience.
+Collection Index and owned inventory are intentionally separate:
+- encountering the case records Index discovery;
+- PERFECT bonus evidence records historical bonus discovery / Archive progression;
+- actual owned serialized instance still requires a valid drop roll;
+- failed roll may therefore leave an Index card as `NOT OWNED`;
+- replay can legitimately mint another copy only through a new valid drop roll;
+- every copy still has a unique immutable serial/instance identity.
+
+Initial ownership roll rates:
+- COMMON 100%
+- UNCOMMON 85%
+- RARE 65%
+- EPIC 40%
+- ANOMALY 16%
+- SECRET 8%
+
+These are initial balance values, not immutable canon. Telemetry may tune them. No normal SECRET/ANOMALY uses one-drop-per-server logic.
+Future explicitly designed server-incident artifacts may use one-server-winner rules only as special exceptions.
+Seasonal limited items may use global mint caps.
 
 ## Collection Index rule
-- Collection Index remains historical discovery prestige.
-- Trading away the last owned copy does not erase Index discovery.
-- Historical discovery does NOT grant a free replacement mint.
-- Any new owned copy must come from a valid future drop/mint or trade.
+- Index = historical encounter/discovery prestige.
+- Trading away the last copy does not erase Index.
+- Index discovery never creates a free replacement item.
+- A new owned copy must come from a valid drop/mint or trade.
 
-## Credits role
-Credits are non-transferable soft currency.
+## Social flex implementation
+Station is personal workspace + collection flex space.
+M4-D source adds a replicated public showcase inside each station:
+- automatically displays up to 3 currently owned high-rarity serialized items;
+- serial labels are visible to nearby players;
+- showcase is server-replicated rather than the retired local-only wall display;
+- other players cannot remove or mutate those items.
 
-Approved Credit sinks:
-- standard/premium-looking earnable station skins;
-- scanner/desk/workbench cosmetics;
-- showcase/display upgrades;
-- nameplates/titles/case-file themes;
-- seasonal basic cosmetics;
-- controlled convenience such as limited rerolls if later balancing supports it;
-- optional processing fees only if telemetry later demonstrates a need.
-
-Credits MUST NOT:
-- transfer player-to-player;
-- directly buy SECRET/ANOMALY collectible instances;
-- replace serialized item-for-item trading;
-- improve SECRET/ANOMALY drop odds.
-
-## Robux monetization role
-Robux is optional premium cosmetic monetization.
-
-Suitable Robux products:
-- premium/exclusive station skins;
-- complete station theme packs;
-- premium cosmetic lighting/ambience;
-- premium decorative/showcase variants;
-- selected limited cosmetic event themes.
-
-Robux MUST NOT:
-- increase collectible rarity odds;
-- increase SECRET/ANOMALY chance;
-- grant better case rewards;
-- grant stronger farming output;
-- create pay-to-win trading advantage.
-
-## Achievement/Event prestige
-Some station skins/decorations should not be purchasable by either Credits or Robux.
-They may be awarded only from:
-- achievements;
-- collection milestones;
-- seasonal participation;
-- special mystery completion;
-- other clearly defined prestige goals.
-
-This creates three visible social-status paths:
-`PLAY → EARN CREDITS → CUSTOMIZE`
-`COLLECT/ACHIEVE → EARN PRESTIGE → FLEX`
-`ROBux → OPTIONAL PREMIUM COSMETICS`
-
-## Social flex role
-A station is not only a work surface. It is the player's personal workspace + collectible showcase + social flex space.
-
-Other players may be allowed to:
-- view station cosmetics;
-- view displayed collectibles and serials;
-- inspect public showcase/profile details;
-- walk around the station area.
-
-Other players must NOT be able to:
-- operate job controls;
-- move/remove another player's collectible instances;
-- alter another player's equipped station profile.
+Later UX may allow the owner to choose featured items manually.
 
 ## Performance rule
 Initial design target is 8 simultaneous personalized stations.
-Do not raise server capacity until mobile/server telemetry proves the room, claimant/item spawning, station visuals, trading, persistence, and network traffic remain stable.
+Do not increase capacity until mobile/server telemetry proves station geometry, claimant/item spawning, showcases, trading, persistence, and network traffic remain stable.
 
-## Implementation priority
-M4-D is a multiplayer-safety blocker before broad soft launch.
-Implementation sequence:
-1. station-slot allocator + ownership;
-2. per-player case state isolation;
-3. owner-validated prompts/actions/rewards;
-4. personal case distribution;
-5. personal collectible rolls + global serial mint compatibility;
-6. persistent station profile foundation;
-7. station skin/equipment loading;
-8. mobile/runtime QC with multiple players when a second tester is available.
+## Runtime QC gates
+Solo QC can verify now:
+1. existing Credits / XP / Index / serials survive rejoin;
+2. player receives Station A when alone;
+3. assignment toast + station indicator appear;
+4. character lands at assigned station;
+5. personal case reaches the station and SCAN → TAG → OPEN → DECIDE works;
+6. reward remains correct;
+7. next case advances independently;
+8. public showcase renders owned serialized items;
+9. no legacy giant local collection showcase remains.
 
-Do not proceed to broad monetization or larger player capacity before multiplayer job isolation is functioning safely.
+Deferred two-player QC when another tester is available:
+1. different station assignment;
+2. independent case streams;
+3. player B cannot operate player A controls;
+4. simultaneous case progression does not cross-update HUD/reward;
+5. avoid-duplicate case assignment works when practical;
+6. item/claimant objects remain isolated;
+7. same-server trading still works after station isolation;
+8. swapped serial ownership survives both-account rejoin.
+
+Do not call M4-D runtime-accepted until solo QC passes. Do not call cross-player isolation runtime-proven until the deferred two-player QC passes.
