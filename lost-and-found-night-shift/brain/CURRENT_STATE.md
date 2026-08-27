@@ -1,6 +1,6 @@
 # LOST & FOUND: NIGHT SHIFT — CURRENT STATE
 
-Updated: 2026-08-27
+Updated: 2026-08-28
 
 ## Identity
 - Universe ID: `10745354451`
@@ -70,7 +70,7 @@ Runtime acceptance evidence:
 - therefore serial persistence passed.
 
 ### M4-B — SECURE PLAYER TRADING v1
-**LIVE_PUBLISHED v32 — RUNTIME QC PENDING.**
+**LIVE_PUBLISHED v32 — PHASE 1 MOBILE UI SMOKE PASS / PHASE 2 OWNERSHIP TEST PENDING.**
 
 Scope:
 - same-server only;
@@ -86,17 +86,17 @@ Scope:
 - cancel / disconnect before commit does not move ownership.
 
 Persistence / anti-dupe:
-- new durable `LostAndFound_TradeJournal_v1`;
+- durable `LostAndFound_TradeJournal_v1`;
 - per-user `LostAndFound_TradeRecovery_v1` marker;
 - journal is `PREPARED` before ownership mutation;
 - both player inventories are saved before journal becomes `COMMITTED`;
 - failure attempts rollback to original inventory snapshots;
 - unresolved recovery markers reconcile on future profile load;
 - committed item receives updated `currentOwnerUserId`, `tradeCount`, `lastTradeAt`, `lastTradeId`, and bounded provenance;
-- profile payload version is now 4 while DataStore name remains `LostAndFound_PlayerData_v1`.
+- profile payload version is 4 while DataStore name remains `LostAndFound_PlayerData_v1`.
 
 Critical migration hardening:
-- added persisted `serialMigrationComplete` flag;
+- persisted `serialMigrationComplete` flag;
 - legacy backfill runs only once;
 - after migration, trading away the final owned instance MUST NOT mint a free replacement on rejoin;
 - Collection Index stays discovered, but UI shows `NOT OWNED` when current owned count is zero.
@@ -111,6 +111,13 @@ Mobile UI:
 - COMMITTING state;
 - completion summary with sent serial, received serial, and trade ID;
 - utility visibility coordinator prevents TRADE overlap with Collection / Archive / Case File / Trade popups.
+
+Phase 1 runtime evidence on v32:
+- mobile screenshot confirmed `SECURE SERIAL TRADE` opens cleanly;
+- one-player empty-state correctly shows `No other players are in this server.`;
+- `REFRESH PLAYERS` and close control are readable and properly positioned;
+- panel fits mobile without overlap with movement controls;
+- Phase 1 UI smoke test is accepted.
 
 ## M5 / LIVE-SERVICE SEASONAL PRIORITY
 Authority: `brain/SEASONAL_EVENTS_LOCK.md`.
@@ -140,19 +147,10 @@ Deploy receipt: `deploy-status/lost-and-found-m0.json`
 
 ## LIVE authority
 **LIVE_PUBLISHED — v32 BUILD/DEPLOY VERIFIED.**
-M4-B is live in build/deploy terms but trading is NOT runtime-accepted yet.
+M4-B Phase 1 mobile UI smoke test passed; trading ownership transfer is NOT runtime-accepted yet.
 
-## Next gate — M4-B RUNTIME
-Phase 1 — one-account UI smoke test:
-1. rejoin v32;
-2. Credits / INDEX / ARCHIVE remain stable;
-3. new compact `TRADE` button appears below Archive;
-4. opening TRADE hides other utility HUD and shows same-server lobby;
-5. with only one player, lobby clearly says no other player is present;
-6. closing TRADE restores normal HUD.
-
-Phase 2 — two-account ownership test:
-1. both accounts must be in the same server and persistence-ready;
+## Next gate — M4-B PHASE 2 OWNERSHIP
+1. put two persistence-ready accounts in the same server;
 2. request / accept works;
 3. each selects one exact serialized instance;
 4. both first-confirm;
