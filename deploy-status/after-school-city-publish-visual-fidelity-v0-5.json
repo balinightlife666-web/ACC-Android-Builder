@@ -1,0 +1,16 @@
+{
+  "status": "LIVE_PUBLISHED",
+  "project": "AFTER SCHOOL CITY",
+  "mode": "VISUAL_FIDELITY_V0_5",
+  "sourceRepo": "ardarawk-cloud/ACC-Roblox-maps",
+  "sourceCommit": "ca68820c3833140ff6ff4552fcbc90a8914e278a",
+  "universeId": "10745359869",
+  "placeId": "121603385909425",
+  "versionNumber": 17,
+  "rojoVersion": "7.7.0",
+  "placeBytes": 52856,
+  "placeSha256": "918256826b1bb105911192c56854f632b8d5eb1be0335b0a0f009a06f772130e",
+  "runId": "33100237153",
+  "publishedAt": "2026-08-27T17:48:09Z",
+  "note": "Visual Fidelity v0.5; exact locked source; Cloud Spatial V4 + Orientation V1 + Visual Fidelity V1 gates passed; dedication intro preserved."
+}
