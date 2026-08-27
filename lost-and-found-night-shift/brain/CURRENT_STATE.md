@@ -43,9 +43,9 @@ Season 1 pillars:
 ## M4-D — PERSONAL STATION / MULTIPLAYER JOB ISOLATION
 Authority: `brain/M4D_PERSONAL_STATION_LOCK.md` v1.1.
 
-**LIVE_PUBLISHED v34 — BUILD/DEPLOY VERIFIED / SOLO RUNTIME QC PENDING.**
+**LIVE_PUBLISHED v34 — BUILD/DEPLOY VERIFIED / SOLO CORE FUNCTIONAL PASS / MULTIPLAYER QC DEFERRED.**
 
-Exact deployment evidence:
+v34 deployment evidence:
 - source commit: `950eeb1e7b4c6119292340f4e630b8fa3e589461`
 - workflow run: `33100322285`
 - status: `LIVE_PUBLISHED`
@@ -55,6 +55,20 @@ Exact deployment evidence:
 - RBXL SHA256: `b70b00eaeab8cdfc6cb72b1ea881625ddc75995d2903c6ed3cae903436692612`
 - receipt milestone: `M4D_PERSONAL_SHIFTS`
 
+### Solo runtime evidence accepted on v34
+Mobile screenshots confirmed:
+- `SHIFT STATION A` assignment;
+- personal Station A interaction prompt;
+- multiple personal cases rotating for the returning player;
+- Credits / INDEX 18/20 / ARCHIVE 1/3 loaded;
+- public serialized showcase label visible;
+- PERFECT RETURN produced +30 Credits / +20 XP;
+- new serialized mint `MPA-S1-000003` succeeded;
+- old giant local wall showcase is gone;
+- no obvious movement/jump/top-control overlap.
+
+Therefore M4-D solo core function is accepted. Two-player isolation is NOT runtime-proven yet.
+
 ### Multiplayer station architecture
 - initial design target: 8 active job players/server;
 - 8 physical station slots A-H in one shared social room;
@@ -63,7 +77,6 @@ Exact deployment evidence:
 - `PersonalShiftRuntime.lua` replaces the legacy global `activeCase` loop;
 - every station owns its own active case, inspection progress, item, claimant, decision lock, reward and next-case timer;
 - server validates Station OwnerUserId for every SCAN/TAG/OPEN/DECIDE interaction;
-- other stations' prompts are locally hidden when practical, but server validation remains authority;
 - leave cleans the active case and releases the station to VACANT;
 - if more than 8 players reach a server before Creator MaxPlayers is configured to 8, extra players receive no shared-job fallback.
 
@@ -104,7 +117,7 @@ Rules:
 - future seasonal limited items may use global mint caps.
 
 ### Persistent Personal Station Profile
-DataStore remains `LostAndFound_PlayerData_v1`; payload version is now 6.
+DataStore remains `LostAndFound_PlayerData_v1`; payload version is 6.
 
 Persisted foundation:
 - `equippedSkin`
@@ -125,7 +138,7 @@ Station skin registry currently defines:
 - HALLOWEEN_2026 — EVENT
 - CHRISTMAS_2026 — EVENT
 
-Registry/profile loading is live foundation only. Station Shop purchase/equip UX is NOT implemented yet.
+Registry/profile loading is foundation only. Station Shop purchase/equip UX is NOT implemented yet.
 Robux cosmetics must never improve collectible odds, rewards, farming output or trading advantage.
 
 ### Social flex
@@ -135,6 +148,33 @@ Robux cosmetics must never improve collectible odds, rewards, farming output or 
 - showcase items cannot be removed/mutated by another player;
 - old giant local-only wall showcase is retired.
 
+## M4-D.1 — STATION READABILITY PASS
+Authority/runtime evidence: `brain/M4D_SOLO_RUNTIME_QC_2026-08-28.md`.
+
+**IMPLEMENTED IN SOURCE — PUBLISH / RUNTIME QC PENDING.**
+
+Purpose: fix v34 mobile darkness/readability without changing gameplay.
+
+Implemented source changes:
+- brighter but still night-shift ambient/diffuse lighting;
+- reduced atmosphere density/haze and crushed-black contrast;
+- stronger ceiling illumination + one central fill;
+- one soft non-shadow fill light per station only;
+- visible neon bay perimeter boundaries A-H without extra point lights;
+- floor `STATION X` marker at each bay entrance;
+- larger illuminated owner sign;
+- raised decision consoles with vertical readable faces + foot glow;
+- brighter Standard Ops base/panel/trim palette;
+- `StationReadability.server.lua` makes public serial labels non-AlwaysOnTop, shorter-range and smaller.
+
+Hard locks preserved:
+- no reward/drop/progression changes;
+- no ownership/trading changes;
+- no HUD size increase;
+- no image generation;
+- no shadow-casting light expansion;
+- 8-station target unchanged.
+
 ## M4-C / trading protections retained
 - Credits remain non-transferable soft currency.
 - Credits cannot directly purchase SECRET/ANOMALY instances.
@@ -142,19 +182,18 @@ Robux cosmetics must never improve collectible odds, rewards, farming output or 
 - trade journal/recovery/rollback architecture remains active.
 - M4-B two-account ownership/rejoin QC remains deferred until a second tester is available.
 
-## ACTIVE GATE — M4-D SOLO RUNTIME QC
-User can test now on Roblox v34:
-1. join/rejoin and confirm existing Credits / XP / INDEX / serials remain intact;
-2. when alone, confirm assignment to Station A and `SHIFT STATION A` HUD;
-3. confirm character lands at Station A and owner sign identifies the player;
-4. confirm suitcase/case arrives at the personal station;
-5. complete SCAN → TAG → OPEN → DECIDE;
-6. confirm normal reward and next personal case start;
-7. confirm public station showcase displays owned serialized items;
-8. confirm old giant local wall showcase is gone;
-9. confirm no obvious mobile HUD overlap or movement regression.
+## LIVE authority
+Current verified Roblox LIVE remains **v34** until a new deploy receipt matches the exact M4-D.1 trigger source.
+Do not call M4-D.1 LIVE from source commits alone.
 
-Do NOT call M4-D runtime-accepted until this solo QC passes.
+## ACTIVE NEXT GATE — M4-D.1 PUBLISH + MOBILE VISUAL QC
+1. publish exact M4-D.1 source and verify deploy receipt sourceCommit;
+2. join solo and confirm room is brighter but still night-shift;
+3. Station A bay boundaries + floor marker obvious;
+4. owner sign readable from normal approach;
+5. RETURN / STORE / QUARANTINE / SECURITY readable from third-person mobile view;
+6. public serial label visible nearby but does not float aggressively over HUD;
+7. complete one personal case and confirm no gameplay/reward regression.
 
 ## DEFERRED MULTIPLAYER QC
 When a second tester is available:
@@ -166,7 +205,7 @@ When a second tester is available:
 - same-server serialized trade still works;
 - swapped serial ownership survives both-account rejoin with no duplicate serial.
 
-## Next after solo pass
+## Next after M4-D.1 visual pass
 1. Station Shop v1: Credits purchase/equip for earnable station skins;
 2. optional Robux premium cosmetic integration only after intentional product IDs/prices exist;
 3. manual featured-showcase selection;
