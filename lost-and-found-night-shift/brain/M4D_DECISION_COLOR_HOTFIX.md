@@ -1,6 +1,6 @@
 # LOST & FOUND: NIGHT SHIFT — M4-D.1 DECISION COLOR HOTFIX
 
-Status: SOURCE READY / PUBLISH PENDING
+Status: LIVE_PUBLISHED v36 / MOBILE QC PENDING
 Updated: 2026-08-28
 
 ## Runtime finding
@@ -22,5 +22,14 @@ Station skins may change station body, panel, trim, lighting and general accent 
 - preserves decision-face text colors;
 - no reward, drop, progression, trading, persistence, station allocation, or HUD behavior changes.
 
+## Verified deployment
+- source commit: `44e3b0c8046627375eb52e9d4d9ea18e5ca0e1c6`
+- workflow run: `33105083714`
+- Roblox version: `36`
+- status: `LIVE_PUBLISHED`
+- Rojo: `7.7.0`
+- RBXL bytes: `85865`
+- RBXL SHA256: `a8487f13d33e577c1caa8d42607bbd4771cfe09b2664f99e627735c92cfaec7e`
+
 ## QC gate
-After publish, verify on mobile that all four decision consoles are simultaneously readable with the locked green / cyan / amber / red distinction while the v35 readability improvements remain intact.
+Verify on mobile that all four decision consoles are simultaneously readable with the locked green / cyan / amber / red distinction while the v35 readability improvements remain intact.
