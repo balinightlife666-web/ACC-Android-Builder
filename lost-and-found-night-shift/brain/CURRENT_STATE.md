@@ -44,25 +44,14 @@ Visual authority remains `brain/M1_VISUAL_LOCK.md`:
 - restrained red quarantine/security accents;
 - no neon-arcade floor language.
 
-### M1-A approved room modules
-- premium service/intake counter;
-- premium conveyor;
-- scanner arch / evidence equipment;
-- inspection desk;
-- claimant zone;
-- operational decision consoles;
-- storage dressing;
-- quarantine access;
-- industrial lighting pass.
-
-### M1-B approved base item models
+### M1 approved base item models
 1. `hardcase_suitcase`
 2. `vintage_suitcase`
 3. `backpack`
 4. `cardboard_box`
 5. `teddy_bear`
 
-Mobile runtime exercised the active sequence through the M1 case loop without reported welded-model/conveyor failure. v14 additionally fixed inspection ergonomics by providing floor-accessible interaction anchors with TAG on the left and OPEN on the right.
+v14 fixed inspection ergonomics with floor-accessible TAG-left / OPEN-right interaction anchors.
 
 Registry authority:
 - `registry/ITEM_REGISTRY.json`: five production-approved base types;
@@ -71,7 +60,7 @@ Registry authority:
 ## Active milestone
 **M2 — COLLECTION FOUNDATION**
 
-### M2-A implemented
+### M2-A collection behavior
 Initial collection size: **5 approved base item types**.
 
 Rarity seed:
@@ -85,43 +74,52 @@ Collection behavior:
 - resolving a case registers that base item type for the deciding player;
 - duplicate resolutions do not increase unique discovery count;
 - server owns the session discovery state;
-- client receives `CollectionUpdate` sync/discovery events;
 - top-right `INDEX x/5` button sits below Credits;
-- INDEX popup shows discovered item names + rarity and hides undiscovered entries;
 - first discovery produces a short `NEW DISCOVERY` toast.
 
-Important limits for M2-A:
-- collection is **SESSION-ONLY**;
+### M2-A visual collection upgrade — v16
+The text-only INDEX list was replaced by collectible **3D ViewportFrame cards**.
+
+Visual rules:
+- each of the five item types has an in-UI 3D preview built from the existing item visual language;
+- discovered cards display the full-color item, item name, and rarity;
+- undiscovered cards display a dark 3D silhouette with `? / LOCKED` rather than a plain text row;
+- popup title is `LOST PROPERTY COLLECTION`;
+- no generated images are used for collection cards;
+- preview source: `src/shared/CollectionPreviewFactory.lua`;
+- collection UI source: `src/client/Collection.client.lua`.
+
+Important limits:
+- collection remains **SESSION-ONLY**;
 - no DataStore persistence yet;
 - no trading;
 - no Evidence Tokens;
 - do not expand to 30–40 items in one uncontrolled batch.
 
-## M2-A publish receipt
-Run: `33034725816`
-Source commit: `75b30a3d5ef864af34459f3feb8da821a27fae7d`
+## Latest publish receipt
+Run: `33038345674`
+Source commit: `60f96622b3ae46f9dbaad6a6f008ddc0860ad8b6`
 Rojo: `7.7.0`
 Static QC: **PASS**
 Rojo build: **PASS**
 Roblox publish: **PASS**
-Roblox version: `15`
-RBXL bytes: `32006`
-RBXL SHA256: `3dc04933f291b50bf87684816a649ebedaacf59a2753a15bd67ad30966c89ccf`
+Roblox version: `16`
+RBXL bytes: `34284`
+RBXL SHA256: `da358f5768388940ada8b74c49b5097735f905e7d46353d72a0a6fd73d48cec7`
 Deploy receipt: `deploy-status/lost-and-found-m0.json`
 
 ## LIVE authority
-**LIVE_PUBLISHED — v15 BUILD/DEPLOY VERIFIED.**
-M2-A collection UI/runtime still requires mobile acceptance.
+**LIVE_PUBLISHED — v16 BUILD/DEPLOY VERIFIED.**
+3D collection-card visual/runtime acceptance still requires mobile inspection.
 
 ## Next gate
 **M2-A-RUNTIME:** verify on mobile:
-1. movement and existing case UI remain normal;
-2. `INDEX 0/5` appears below Credits without blocking controls;
-3. resolving the first unique item updates Index to `1/5`;
-4. `NEW DISCOVERY` toast is readable but not intrusive;
-5. INDEX popup opens/closes cleanly;
-6. discovered row reveals correct name + rarity;
-7. duplicate item type does not increase unique count;
-8. case loop remains stable.
+1. INDEX popup opens/closes without blocking movement after close;
+2. five collection cards fit cleanly on landscape mobile;
+3. locked cards visibly read as item silhouettes rather than blank rows;
+4. resolving a unique item changes the corresponding card to full color with correct name + rarity;
+5. `INDEX x/5` increments correctly;
+6. duplicate base item does not increment unique count;
+7. case loop remains stable.
 
-After M2-A runtime acceptance, proceed to M2-B: first controlled item-variant expansion + simple physical showcase/display. Persistence should be added only after the collection rules/UI are accepted.
+After M2-A visual runtime acceptance, proceed to M2-B: controlled item-variant expansion + simple physical showcase/display. Persistence should be added only after the collection rules/UI are accepted.
