@@ -18,7 +18,7 @@ gui.Parent = playerGui
 
 local function corner(target, radius)
     local c = Instance.new("UICorner")
-    c.CornerRadius = UDim.new(0, radius or 9)
+    c.CornerRadius = UDim.new(0, radius or 8)
     c.Parent = target
 end
 
@@ -81,17 +81,17 @@ local toastToken = 0
 local archiveButton = Instance.new("TextButton")
 archiveButton.Name = "ArchiveButton"
 archiveButton.AnchorPoint = Vector2.new(1, 0)
-archiveButton.Size = UDim2.fromOffset(150, 34)
-archiveButton.Position = UDim2.new(1, -18, 0, 102)
+archiveButton.Size = UDim2.fromOffset(128, 30)
+archiveButton.Position = UDim2.new(1, -18, 0, 94)
 archiveButton.BackgroundColor3 = Color3.fromRGB(27, 31, 39)
 archiveButton.BackgroundTransparency = 0.03
 archiveButton.BorderSizePixel = 0
 archiveButton.Text = "ARCHIVE  0/3"
 archiveButton.TextColor3 = Color3.fromRGB(128, 139, 153)
 archiveButton.Font = Enum.Font.GothamBold
-archiveButton.TextSize = 12
+archiveButton.TextSize = 11
 archiveButton.Parent = gui
-corner(archiveButton, 9)
+corner(archiveButton, 8)
 local archiveStroke = stroke(archiveButton, 0.35, Color3.fromRGB(76, 86, 101), 1.1)
 
 local popup = Instance.new("Frame")
@@ -120,14 +120,14 @@ local summary = label(popup, UDim2.new(1, -28, 0, 24), UDim2.fromOffset(14, 40),
 summary.Text = "CONNECTED CASE CHAIN  0/3"
 
 local close = Instance.new("TextButton")
-close.Size = UDim2.fromOffset(34, 30)
-close.Position = UDim2.new(1, -44, 0, 8)
+close.Size = UDim2.fromOffset(30, 30)
+close.Position = UDim2.new(1, -40, 0, 8)
 close.BackgroundColor3 = Color3.fromRGB(37, 44, 56)
 close.BorderSizePixel = 0
 close.Text = "×"
 close.TextColor3 = Color3.fromRGB(240, 242, 246)
 close.Font = Enum.Font.GothamBold
-close.TextSize = 17
+close.TextSize = 16
 close.Parent = popup
 corner(close, 8)
 
