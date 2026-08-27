@@ -1,0 +1,161 @@
+# Owner-approved AFTER SCHOOL CITY Orientation Correction v0.4.7 LIVE publish
+name: After School City Publish Orientation V0.4.7
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/after-school-city-publish-v047-orientation.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: after-school-city-live-publish
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      SOURCE_REPO: ardarawk-cloud/ACC-Roblox-maps
+      SOURCE_SHA: d533a63c1cf33cf2702d97376d816f2c13d7f35d
+      UNIVERSE_ID: '10745359869'
+      PLACE_ID: '121603385909425'
+      ROBLOX_API_KEY: ${{ secrets.ROCKET_RACOON_PUBLISH }}
+
+    steps:
+      - name: Checkout publisher repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Checkout locked After School City source
+        uses: actions/checkout@v4
+        with:
+          repository: ardarawk-cloud/ACC-Roblox-maps
+          ref: d533a63c1cf33cf2702d97376d816f2c13d7f35d
+          token: ${{ secrets.ACC_ROBLOX_MAPS_WRITE_TOKEN }}
+          path: asc-source
+          fetch-depth: 1
+
+      - name: Preflight exact Orientation Correction v0.4.7
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ -n "${ROBLOX_API_KEY:-}" ]] || { echo 'ROCKET_RACOON_PUBLISH missing'; exit 10; }
+          actual=$(git -C asc-source rev-parse HEAD)
+          [[ "$actual" == "$SOURCE_SHA" ]] || { echo "Source SHA mismatch: $actual"; exit 11; }
+
+          project='asc-source/maps/after-school-city/default.project.json'
+          intro='asc-source/maps/after-school-city/after-school-city.intro.client.lua'
+          config='asc-source/maps/after-school-city/after-school-city.config.lua'
+          orient='asc-source/maps/after-school-city/after-school-city.orientation-correction.server.lua'
+
+          jq -e . "$project" >/dev/null
+          grep -Fq 'ASC_OrientationCorrection' "$project"
+          grep -Fq 'after-school-city.orientation-correction.server.lua' "$project"
+          grep -Fq 'PUTU AZYA PUTRI' "$intro"
+          grep -Fq 'BINTANG HARDAJAYA' "$intro"
+          grep -Fq 'WITH LOVE, DAD' "$intro"
+          grep -Fq 'ENTER THE CITY' "$intro"
+          grep -Fq '0.4.7-orientation-correction-1' "$config"
+          grep -Fq 'EnableOrientationCorrectionPass = true' "$config"
+          grep -Fq 'V047_OrientationCorrection' "$orient"
+          grep -Fq 'ASC_SchoolOrientationFixed' "$orient"
+          grep -Fq 'ASC_DowntownSignOrientationFixed' "$orient"
+          grep -Fq 'ASC_TownhouseRoadOrientationFixed' "$orient"
+          grep -Fq 'ASC_StudentRowOrientationVerified' "$orient"
+          echo "LOCK PASS source=$actual orientation_v0_4_7=PASS dedication=PASS"
+
+      - name: Cloud source spatial audit V4
+        shell: pwsh
+        working-directory: asc-source
+        run: |
+          $ErrorActionPreference='Stop'
+          & '.github/scripts/after-school-city-spatial-audit.ps1'
+
+      - name: Cloud source orientation audit V1
+        shell: pwsh
+        working-directory: asc-source
+        run: |
+          $ErrorActionPreference='Stop'
+          & '.github/scripts/after-school-city-orientation-audit.ps1'
+
+      - name: Prepare Rojo 7.7.0
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/asc-rojo"
+          curl -fsSL 'https://github.com/rojo-rbx/rojo/releases/download/v7.7.0/rojo-7.7.0-linux-x86_64.zip' -o "$RUNNER_TEMP/rojo.zip"
+          unzip -q -o "$RUNNER_TEMP/rojo.zip" -d "$RUNNER_TEMP/asc-rojo"
+          rojo=$(find "$RUNNER_TEMP/asc-rojo" -type f -name rojo | head -n1)
+          [[ -n "$rojo" ]] || { echo 'Rojo binary missing'; exit 20; }
+          chmod +x "$rojo"
+          "$rojo" --version
+          echo "ROJO_EXE=$rojo" >> "$GITHUB_ENV"
+
+      - name: Build exact After School City place
+        shell: bash
+        run: |
+          set -euo pipefail
+          place="$RUNNER_TEMP/after-school-city-v047.rbxl"
+          "$ROJO_EXE" build 'asc-source/maps/after-school-city/default.project.json' -o "$place"
+          test -f "$place"
+          bytes=$(stat -c%s "$place")
+          (( bytes >= 1024 )) || { echo "Generated RBXL suspiciously small: $bytes"; exit 21; }
+          sha=$(sha256sum "$place" | awk '{print $1}')
+          echo "PLACE_FILE=$place" >> "$GITHUB_ENV"
+          echo "PLACE_BYTES=$bytes" >> "$GITHUB_ENV"
+          echo "PLACE_SHA256=$sha" >> "$GITHUB_ENV"
+          echo "BUILD PASS bytes=$bytes sha256=$sha"
+
+      - name: Publish Orientation Correction v0.4.7 LIVE to Roblox
+        shell: bash
+        run: |
+          set -euo pipefail
+          url="https://apis.roblox.com/universes/v1/${UNIVERSE_ID}/places/${PLACE_ID}/versions?versionType=Published"
+          http=$(curl -sS --location -o "$RUNNER_TEMP/asc-publish-response.json" -w '%{http_code}' \
+            -X POST "$url" \
+            -H "x-api-key: $ROBLOX_API_KEY" \
+            -H 'Content-Type: application/octet-stream' \
+            --data-binary "@$PLACE_FILE")
+          body=$(cat "$RUNNER_TEMP/asc-publish-response.json")
+          echo "Roblox publish HTTP $http"
+          [[ "$http" =~ ^2[0-9][0-9]$ ]] || { echo "$body"; exit 30; }
+          version=$(jq -r '.versionNumber // empty' "$RUNNER_TEMP/asc-publish-response.json")
+          [[ -n "$version" ]] || { echo "Missing versionNumber: $body"; exit 31; }
+          echo "PUBLISHED_VERSION=$version" >> "$GITHUB_ENV"
+          echo "ROBLOX PUBLISH PASS version=$version"
+
+      - name: Persist LIVE receipt
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p deploy-status
+          jq -n \
+            --arg status 'LIVE_PUBLISHED' \
+            --arg project 'AFTER SCHOOL CITY' \
+            --arg mode 'ORIENTATION_CORRECTION_V0_4_7' \
+            --arg sourceRepo "$SOURCE_REPO" \
+            --arg sourceCommit "$SOURCE_SHA" \
+            --arg universeId "$UNIVERSE_ID" \
+            --arg placeId "$PLACE_ID" \
+            --arg versionNumber "$PUBLISHED_VERSION" \
+            --arg rojoVersion '7.7.0' \
+            --arg placeBytes "$PLACE_BYTES" \
+            --arg placeSha256 "$PLACE_SHA256" \
+            --arg runId "$GITHUB_RUN_ID" \
+            --arg publishedAt "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+            '{status:$status,project:$project,mode:$mode,sourceRepo:$sourceRepo,sourceCommit:$sourceCommit,universeId:$universeId,placeId:$placeId,versionNumber:($versionNumber|tonumber),rojoVersion:$rojoVersion,placeBytes:($placeBytes|tonumber),placeSha256:$placeSha256,runId:$runId,publishedAt:$publishedAt,note:"Orientation Correction v0.4.7; exact locked source; Cloud Spatial V4 + Orientation V1 gates passed; dedication intro preserved."}' \
+            > deploy-status/after-school-city-publish-orientation-v0-4-7.json
+          cat deploy-status/after-school-city-publish-orientation-v0-4-7.json
+
+          git config user.name 'After School City Publish Bot'
+          git config user.email 'actions@users.noreply.github.com'
+          git add deploy-status/after-school-city-publish-orientation-v0-4-7.json
+          git commit -m "Record After School City Orientation publish v${PUBLISHED_VERSION} [skip ci]"
+          git pull --rebase origin main
+          git push origin HEAD:main
