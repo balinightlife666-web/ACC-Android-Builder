@@ -6,10 +6,10 @@ Updated: 2026-08-28
 - Universe ID: `10745354451`
 - Place ID: `93699016600671`
 - Genre: Simulation
-- Subgenre: None
+- Subgenre: Mystery Inspection Simulator with Collection & Supernatural Cases
 
 ## Infrastructure
-- Temporary repo/build home: `balinightlife666-web/ACC-Android-Builder/lost-and-found-night-shift`
+- Repo/build home: `balinightlife666-web/ACC-Android-Builder/lost-and-found-night-shift`
 - Publish workflow is trigger-file/manual only.
 - Deployment authority is `deploy-status/lost-and-found-m0.json`; never claim LIVE from source changes alone.
 
@@ -17,161 +17,195 @@ Updated: 2026-08-28
 - M0 — FIRST SUITCASE — COMPLETE / ACCEPTED.
 - M0.1 FEEL PASS — COMPLETE / ACCEPTED.
 - M1 PREMIUM ROOM — COMPLETE / RUNTIME-APPROVED.
-- M2-A Collection UI — COMPLETE / ACCEPTED.
-- M2-B 10-item variants + showcase — COMPLETE / ACCEPTED.
-- M2-C persistence — COMPLETE / RUNTIME-ACCEPTED.
-- M2-D collection 15 — COMPLETE / RUNTIME-ACCEPTED.
-- M2-E collection 20 — COMPLETE / RUNTIME-ACCEPTED.
-- Credits, XP, and discovered Collection Index IDs persist through `LostAndFound_PlayerData_v1`.
+- M2-A through M2-E Collection Foundation — COMPLETE / RUNTIME-ACCEPTED.
+- M3-A Flight 000 — COMPLETE / USER-ACCEPTED on v27.
+- M3-B Connected Mystery Chain — IMPLEMENTED / LIVE.
+- M4-A serialized item foundation — COMPLETE / RUNTIME-ACCEPTED on v31.
+- M4-B secure same-server serialized trading v1 — LIVE v32; Phase 1 mobile UI accepted; two-account ownership/rejoin QC deferred.
+- M4-C anti-alt/economy telemetry — LIVE_PUBLISHED v33 in build/deploy terms.
 
-## M3 — FLIGHT 000 / CONNECTED MYSTERY
-Authorities:
-- `brain/M3_FLIGHT_000_LOCK.md`
-- `brain/M3B_CONNECTED_CHAIN_LOCK.md`
+## Core canon
+Season 1 connected pillars remain:
+1. Flight 000 — QUARANTINE; final explanation CANON UNKNOWN.
+2. Ownerless Suitcase — QUARANTINE; may reappear.
+3. The Lost Child — missing/archive year 2001; SECURITY/protective escalation; final supernatural explanation CANON UNKNOWN.
 
-### M3-A — FIRST INCIDENT
-**COMPLETE / USER-ACCEPTED ON v27.**
+Core job loop remains:
+`ITEM ARRIVES → SCAN → CHECK TAG → OPEN / INSPECT → DECIDE → RESULT → REWARD → NEXT ITEM`
 
-Flight 000 remains:
-- Jonas Vale;
-- passenger record FOUND;
-- flight record NOT FOUND;
-- tag `F0-00013`;
-- correct action QUARANTINE;
-- CONNECTED / UNRESOLVED;
-- exact final explanation CANON UNKNOWN.
+Decisions remain:
+`RETURN / STORE / QUARANTINE / SECURITY`
 
-### M3-B — CONNECTED MYSTERY CHAIN
-**IMPLEMENTED / LIVE — visual cleanup complete.**
-
-Archive entries:
-1. `000-A — FLIGHT 000`
-2. `000-B — OWNERLESS SUITCASE`
-3. `000-C — THE LOST CHILD`
-
-Archive is historical discovery progress and does not depend on current trade ownership. Lost Child remains 2001 + SECURITY/protective escalation. Final explanation remains unknown.
-
-## M4 — UNIQUE ITEM ECONOMY / TRADING
+## M4 — SOCIAL / ECONOMY HARDENING
 Authorities:
 - `brain/M4_UNIQUE_ITEM_TRADING_LOCK.md` v1.1
 - `brain/M4C_ECONOMY_HARDENING_LOCK.md` v1.0
+- `brain/M4D_PERSONAL_STATION_LOCK.md` v1.1
 
-### M4-A — UNIQUE ITEM INSTANCE + SERIAL FOUNDATION
-**COMPLETE / RUNTIME-ACCEPTED ON v31.**
-
+### M4-A — serialized inventory
 Accepted model:
-- Collection Index = ever discovered;
+- Collection Index = historical discovery/encounter prestige;
 - Inventory Instance = currently owned transferable item;
 - immutable `instanceId` = ownership key;
-- immutable human-readable serial = collector identity;
-- serial minting is server-authoritative with atomic global counters.
+- immutable serial = collector identity;
+- serial minting is server-authoritative with global counters.
 
-Runtime evidence:
-- `SNP-S1-000001`, `ARP-S1-000001`, and `UMR-S1-000001` survived rejoin unchanged on v31.
+Accepted runtime evidence on v31:
+`SNP-S1-000001`, `ARP-S1-000001`, `UMR-S1-000001` survived rejoin unchanged.
 
-### M4-B — SECURE PLAYER TRADING v1
-**LIVE_PUBLISHED v32 — PHASE 1 MOBILE UI PASS / PROVISIONALLY USER-ACCEPTED; TWO-ACCOUNT OWNERSHIP QC DEFERRED.**
-
-Scope:
+### M4-B — secure player trading v1
+Current scope:
 - same-server only;
 - one serialized item ↔ one serialized item;
-- no trade currency and no multi-item bundle yet;
-- exact `instanceId` ownership validation;
+- no trade currency;
+- exact ownership validation by `instanceId`;
 - request / accept / decline;
-- item lock while session active;
-- changing offer resets confirmation;
-- both first-confirm;
-- 3-second final review lock;
-- both final-confirm before commit;
+- server item locks;
+- first confirmation;
+- 3-second review lock;
+- final confirmation;
 - durable trade journal + recovery markers + rollback path.
 
-Phase 1 evidence:
-- `SECURE SERIAL TRADE` panel opened cleanly on mobile;
-- one-player empty-state, refresh and close were accepted.
+Status:
+- Phase 1 mobile UI smoke PASS on v32.
+- True two-account ownership swap, `NOT OWNED`, anti-duplicate and both-account rejoin remain deferred until a second tester is available.
+- Do NOT describe those deferred checks as runtime-proven.
 
-Deferred Phase 2 QC:
-- true two-account serial swap + both-account rejoin remains deferred until a second tester/friend is available;
-- do NOT claim cross-player ownership transfer was independently runtime-proven yet.
+### M4-C — economy hardening
+LIVE_PUBLISHED v33 build/deploy verified.
 
-### M4-C — ANTI-ALT / ECONOMY TELEMETRY HARDENING
-**LIVE_PUBLISHED v33 — BUILD/DEPLOY VERIFIED; RUNTIME QC PENDING.**
+Credits role:
+- non-transferable soft currency;
+- intended for station/customization/display/convenience sinks;
+- cannot directly buy SECRET/ANOMALY instances;
+- cannot replace serialized item-for-item trading.
 
-Authority:
-`brain/M4C_ECONOMY_HARDENING_LOCK.md`
+Trade eligibility:
+- persistence + serialized inventory ready;
+- Roblox account age >= 7 days;
+- >= 5 completed cases OR >= 50 XP;
+- at least one tradeable serialized item.
 
-Credits role is locked:
-- Credits = non-transferable in-game soft currency;
-- intended sinks: cosmetic scanner/desk/room styles, showcase/display upgrades, cosmetic case-file themes/titles/nameplates, controlled convenience such as limited rerolls, seasonal cosmetics, and only later optional processing fees if telemetry supports them;
-- Credits MUST NOT transfer player-to-player;
-- Credits MUST NOT directly purchase SECRET / ANOMALY collectible instances;
-- Credits MUST NOT replace serialized item-for-item trading.
+Telemetry tracks cases, PERFECT outcomes, Credits issued, serial mints and trade events.
 
-M4-C implementation:
-- `EconomyTelemetryService.lua` buffers aggregate daily telemetry in `LostAndFound_EconomyTelemetry_v1`;
-- `M4CEconomy.server.lua` tracks case/reward/mint/playtime economy signals without changing existing rewards;
-- persistent player economy stats are added compatibly to `LostAndFound_PlayerData_v1`; payload version is 5 and the store name is unchanged;
-- stats: `casesCompleted`, `perfectCases`, `creditsEarned`, `creditsSpent`, `serialsMinted`, `tradesCompleted`, `playSeconds`;
-- legacy progression is conservatively seeded from existing XP/Credits rather than resetting established players;
-- serial mint telemetry remains server-side;
-- decision telemetry records completed cases, PERFECT outcomes, and Credits issued;
-- trade request/completion/cancel telemetry is server-side;
-- trade access requires persistence + serialized inventory ready, Roblox account age >= 7 days, and either >= 5 completed cases OR >= 50 XP, plus at least one tradeable serialized item;
-- Credits are NOT required to unlock trading;
-- no SECRET/ANOMALY cap or drop-rate nerf is introduced yet.
+### M4-D — PERSONAL STATION / MULTIPLAYER JOB ISOLATION
+**IMPLEMENTED IN SOURCE — PUBLISH + SOLO RUNTIME QC PENDING.**
 
-M4-C telemetry aggregate counters:
-- `casesCompleted`
-- `perfectCases`
-- `creditsIssued`
-- `serialsMinted`
-- `tradeRequests`
-- `tradeCompleted`
-- `tradeCancelled`
+Goal:
+- prevent job/reward contention when multiple players share one server;
+- preserve one shared social room for flex and same-server trading.
 
-M4-C hard limits:
-- no auto-inspection / auto-decision;
-- no AFK reward loop;
-- no device fingerprinting;
-- no external-payment data;
-- no arbitrary scarcity nerf before telemetry justifies it.
+Initial design target:
+- 8 active job players/server;
+- 8 physical station slots A-H;
+- physical station letter is temporary server placement, not permanent account identity.
 
-## M5 / LIVE-SERVICE SEASONAL PRIORITY
+Source implementation:
+- `PersonalStationWorld.lua` builds shared M4-D room and Station A-H;
+- `PersonalShiftRuntime.lua` replaces global `activeCase` with isolated per-player/per-station runtime state;
+- server validates station ownership for every SCAN / TAG / OPEN / DECIDE action;
+- player receives `SHIFT ASSIGNED — STATION X`, compact persistent station HUD and temporary station highlight;
+- character stages at assigned station on join/respawn;
+- leave cleans active station objects and returns slot to VACANT;
+- if more than 8 players enter before Creator MaxPlayers is configured to 8, extra player receives no job station rather than falling back to a shared job.
+
+Personal case distribution:
+1. fresh progression: fixed cases 001 → 002 → 003;
+2. after onboarding: independent weighted random per-player stream;
+3. server avoids duplicate active cases when another eligible case is available;
+4. mystery eligibility is personal progression;
+5. implementation thresholds: Ownerless >=5 completed, Flight 000 >=7, Changing Weight >=8, Double Identity >=9, Lost Child >=10.
+
+Personal collectible economy:
+`PERSONAL CASE → PERFECT ELIGIBILITY → SERVER-SIDE ROLL → GLOBAL SERIAL MINT → ONLY THAT PLAYER RECEIVES INSTANCE`
+
+Initial ownership roll values:
+- COMMON 100%
+- UNCOMMON 85%
+- RARE 65%
+- EPIC 40%
+- ANOMALY 16%
+- SECRET 8%
+
+Rules:
+- roll is per-player/per-station, not one shared server prize;
+- normal SECRET/ANOMALY is not limited to one drop per server;
+- Index can remain historically discovered even if the player owns zero copies;
+- Index discovery does not create a free replacement;
+- any new copy requires a valid future roll/mint or trade;
+- seasonal limited items may later use global mint caps.
+
+Persistent Personal Station Profile foundation:
+- DataStore remains `LostAndFound_PlayerData_v1`;
+- payload version becomes 6;
+- persisted fields currently include `equippedSkin`, `ownedSkins`, `title`;
+- default is `STANDARD_OPS` + `NIGHT SHIFT OPERATOR`.
+
+Station skin registry source:
+- STANDARD_OPS — FREE
+- INDUSTRIAL_SHIFT — Credits target 8,000
+- RETRO_AIRPORT — Credits target 18,000
+- BLACK_OPS — Credits target 35,000
+- LUXURY_EXECUTIVE — ROBUX, exact product/price TBD
+- HALLOWEEN_2026 — EVENT
+- CHRISTMAS_2026 — EVENT
+
+Important: registry/profile loading exists, but Station Shop purchase/equip UX is NOT live yet.
+Robux cosmetics must never improve collectible chance, reward, farming output, or trading advantage.
+
+Social flex:
+- each occupied station now has a replicated public showcase;
+- automatically displays up to 3 currently owned high-rarity serialized items;
+- nearby players can see serial labels;
+- other players cannot remove or mutate the showcase items;
+- old local-only wall showcase is retired.
+
+## M5 / live-service seasonal priority
 Authority: `brain/SEASONAL_EVENTS_LOCK.md`.
 
 2026 priorities:
 - Halloween 2026 around 31 October;
 - Christmas 2026 around 25 December.
 
-Each major event must include limited collectible pool, event-edition serial identity, in-engine 3D/environment transformation, event-specific case/anomaly hook, and clear edition presentation.
-
-Default serial direction:
-- Halloween 2026: `<PREFIX>-HW26-<NUMBER>`;
-- Christmas 2026: `<PREFIX>-XMAS26-<NUMBER>`.
-
-Seasonal gameplay visuals are Roblox 3D/procedural/in-engine by default. No AI-generated image assets unless Arda explicitly requests image generation.
+Seasonal gameplay visuals remain Roblox 3D/procedural/in-engine by default. No AI-generated image assets unless explicitly requested.
 
 ## Latest VERIFIED LIVE publish receipt
 Run: `33096058726`
 Source commit: `39ba78108fca79b6cb2b5ca04559a3ce8c5fa23a`
 Rojo: `7.7.0`
-Workflow conclusion: **SUCCESS**
-Roblox publish status: **LIVE_PUBLISHED**
+Workflow conclusion: SUCCESS
+Roblox status: LIVE_PUBLISHED
 Roblox version: `33`
 RBXL bytes: `74069`
 RBXL SHA256: `a4ab3172235338033918204922ef5f0bfb343567fc866858b14858da4f141f74`
-Deploy receipt: `deploy-status/lost-and-found-m0.json`
+Receipt: `deploy-status/lost-and-found-m0.json`
 
 ## LIVE authority
-**LIVE_PUBLISHED — v33 BUILD/DEPLOY VERIFIED.**
-M4-C is live in build/deploy terms; runtime regression QC is still pending.
+**Current verified Roblox LIVE remains v33 until a new deploy receipt matches the exact M4-D trigger commit.**
+M4-D source must NOT be called LIVE yet.
 
-## Active next gate — M4-C RUNTIME
-1. rejoin established save: Credits / XP / INDEX / serials must remain intact;
-2. normal case rewards must remain unchanged;
-3. complete one case and confirm no core-loop regression;
-4. established account should remain trade-eligible if age/progression gate is met;
-5. no new mobile UI overlap;
-6. telemetry must not block gameplay if DataStore flush fails;
-7. deferred two-account M4-B Phase 2 remains on regression list.
+## Active next gate — M4-D publish + solo runtime QC
+1. publish exact M4-D source and verify receipt sourceCommit;
+2. join/rejoin with established save and confirm Credits / XP / INDEX / serials remain intact;
+3. confirm `SHIFT ASSIGNED — STATION A` when alone and station indicator appears;
+4. confirm character is placed at Station A and station visibly carries player identity;
+5. run one complete personal SCAN → TAG → OPEN → DECIDE case;
+6. confirm reward remains correct and next personal case starts;
+7. confirm public showcase renders owned serialized items;
+8. confirm old giant local collection showcase is gone;
+9. confirm no obvious mobile HUD overlap or movement regression.
 
-After M4-C passes: collectible 3D visual-quality pass without image generation, then Halloween 2026 production preparation.
+Deferred when a second tester is available:
+- Station A/B assignment isolation;
+- independent case streams;
+- cross-station prompt/reward protection;
+- simultaneous progression isolation;
+- avoid-duplicate case behavior;
+- same-server trade + swapped serial persistence after both players rejoin.
+
+After M4-D solo pass:
+- Station Shop v1 using Credits for earnable station skins;
+- premium Robux cosmetic integration only after intentional product IDs/prices exist;
+- manual featured showcase selection;
+- collectible 3D visual-quality pass;
+- performance telemetry before considering more than 8 active station slots.
