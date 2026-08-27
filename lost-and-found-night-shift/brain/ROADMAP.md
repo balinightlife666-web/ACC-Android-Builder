@@ -41,10 +41,16 @@ First major mystery update.
 ## M4 — SOCIAL / ECONOMY HARDENING
 - unique serialized inventory foundation
 - secure player-to-player item trading
-- player showcase visits
-- social server cases
 - economy telemetry/balancing
 - anti-dupe / anti-double-spend / ownership integrity before broad trading rollout
+- M4-D Personal Station / Multiplayer Job Isolation is a soft-launch blocker; authority: `brain/M4D_PERSONAL_STATION_LOCK.md`
+- initial target: 8 players/server with 8 physical station slots A-H
+- each player receives an independent personal shift/job stream and personal collectible roll
+- persistent station profile loads into whichever physical station slot is assigned on join
+- station is personal workspace + collection showcase + social flex space
+- station cosmetics use a mixed Credits / optional Robux / achievement-event prestige model
+- Robux cosmetics must not improve collectible odds, rewards, or farming output
+- player showcase visits / social station viewing after ownership isolation is safe
 
 ## M5 — LIVE SERVICE
 - daily/weekly cases
