@@ -46,7 +46,6 @@
 - Added 60-second dirty autosave plus `PlayerRemoving` / `BindToClose` saves.
 - Confirmed persistence runtime behavior on mobile.
 - Roblox v21 is the accepted M2-C runtime baseline.
-- Trading remains locked.
 
 ## 2026-08-27 — M2-D controlled expansion accepted
 - Expanded persistent INDEX from 10 to 15 collectible entries.
@@ -66,7 +65,6 @@
 - Expanded physical showcase from 15 to 20 slots across four rows.
 - Existing DataStore payload remains compatible; old saves remain valid and new discoveries persist in the same discovered-ID list.
 - Mobile visual QC and leave/rejoin persistence were accepted on Roblox v24.
-- Trading remains locked.
 
 ## 2026-08-27 — M3-A Flight 000 accepted
 - Added `brain/M3_FLIGHT_000_LOCK.md` as M3 authority.
@@ -82,26 +80,32 @@
 - Added `brain/M3B_CONNECTED_CHAIN_LOCK.md`.
 - Connected the existing Season 1 pillars into three operational Archive entries: Flight 000, Ownerless Suitcase, and The Lost Child.
 - Archive progression is reconstructed from existing persistent PERFECT bonus discoveries rather than adding a second DataStore.
-- Existing saves therefore do not need to replay old cases to restore valid archive progress.
 - `ARCHIVE x/3` shows persistent chain progress.
-- Archive popup shows all three slots as locked/unlocked mobile cards.
 - Lost Child remains SECURITY/protective escalation and the 2001 date remains locked.
-- Flight 000 retains the stronger terminal-incident presentation.
 - Final supernatural explanation remains unknown.
 - v29 standardized Credits / Index / Archive / Case File utility controls.
 - v30 fixed Collection-open visibility so Archive is hidden while the Collection popup is active.
 
 ## 2026-08-27 — M4-A unique serialized item foundation accepted
 - Added `brain/M4_UNIQUE_ITEM_TRADING_LOCK.md` as active M4 authority.
-- Split progression conceptually into permanent Collection Index and owned Inventory Instances.
+- Split progression into permanent Collection Index and owned Inventory Instances.
 - Added stable Season 1 serial prefixes for all 20 collectible types.
 - Added `SerialMintService.lua` with server-authoritative atomic global DataStore counters per collectible type.
 - Display serial format is `<PREFIX>-S1-<GLOBAL MINT NUMBER>`, e.g. `CMB-S1-000001`.
 - Every serialized instance also receives an immutable GUID-based internal `instanceId`.
-- Extended existing `LostAndFound_PlayerData_v1` payload compatibly with optional serialized `inventory` data; persisted payload version is now 2 while the DataStore name is unchanged.
-- Existing Credits / XP / discovered collection IDs remain backward compatible.
-- Old discovered items without serialized inventory are backfilled after a successful profile load; replay is not required.
-- Collection cards show a compact serial line below rarity.
+- Extended `LostAndFound_PlayerData_v1` compatibly with serialized inventory.
 - Runtime evidence on v31 confirmed serials survived rejoin unchanged: `SNP-S1-000001`, `ARP-S1-000001`, and `UMR-S1-000001` matched between first login and rejoin screenshots.
 - M4-A status: COMPLETE / RUNTIME-ACCEPTED.
-- Next gate: M4-B Secure Player Trading with server-side ownership validation, item locking, two-sided confirmation, atomic transfer, trade history/provenance, disconnect recovery, and anti-double-spend protection.
+
+## 2026-08-27 — M4-B secure serialized trading v1 live candidate
+- Upgraded `brain/M4_UNIQUE_ITEM_TRADING_LOCK.md` to v1.1 and activated M4-B scope.
+- Added persisted `serialMigrationComplete` so legacy backfill cannot create a free replacement after an item is traded away.
+- Collection cards now distinguish `NOT OWNED` from `SERIALIZING...`.
+- Added persistent ownership/provenance fields: current owner, trade count, last trade timestamp/ID, bounded provenance.
+- Added `TradeJournalService.lua` using `LostAndFound_TradeJournal_v1` plus per-user `LostAndFound_TradeRecovery_v1` markers.
+- Added `TradeService.lua` with same-server one-item-for-one-item trading, request/accept/decline, exact `instanceId` validation, server item locks, first confirmation, 3-second final review lock, final confirmation, commit/rollback, and disconnect cancellation before commit.
+- Added mobile `Trading.client.lua` with compact TRADE utility control, player lobby, incoming request UI, exact serial picker, offer review, confirmation states, commit state, and completion receipt.
+- Added `HudTradeVisibility.client.lua` so TRADE does not overlap Collection / Archive / Case File / Trade popups.
+- Trading does not add currency, external payment fields, links, QR codes, or off-platform transaction flow.
+- Workflow run `33092557996` succeeded and exact source `4efee7af76775f1142d2b319c74bd55b6da83f07` published as Roblox v32.
+- v32 M4-B status: LIVE_PUBLISHED / RUNTIME QC PENDING.
