@@ -13,161 +13,114 @@ Updated: 2026-08-27
 - Publish workflow is trigger-file/manual only.
 - Deployment authority is `deploy-status/lost-and-found-m0.json`; never claim LIVE from source changes alone.
 
-## M0 — FIRST SUITCASE
-**COMPLETE / ACCEPTED.**
+## Accepted baseline
+- M0 FIRST SUITCASE — COMPLETE / ACCEPTED.
+- M0.1 FEEL PASS — COMPLETE / ACCEPTED.
+- M1 PREMIUM ROOM — COMPLETE / RUNTIME-APPROVED.
+- M2-A Collection UI — COMPLETE / ACCEPTED.
+- M2-B 10-item variants + showcase — COMPLETE / ACCEPTED.
+- M2-C persistence — COMPLETE / RUNTIME-ACCEPTED.
+- M2-D collection 15 — COMPLETE / RUNTIME-ACCEPTED.
+- M2-E collection 20 — COMPLETE / RUNTIME-ACCEPTED.
+- Credits, XP, and discovered collection IDs persist through `LostAndFound_PlayerData_v1`.
+- Trading remains locked.
 
-Core mobile loop is proven:
-`spawn → incoming item → SCAN → CHECK TAG → OPEN → DECIDE → grade/reward → next case`
-
-## M0.1 — FEEL PASS
-**COMPLETE / ACCEPTED.**
-
-Locked feel values:
-- conveyor travel: 2.8s;
-- case advance delay: 3.2s;
-- interaction distance: 7 studs baseline;
-- prompt hold: 0.08s;
-- claimant arrival delay: 0.45s.
-
-## M1 — PREMIUM ROOM
-**COMPLETE / RUNTIME-APPROVED.**
-
-Approved original base geometries:
-1. `hardcase_suitcase`
-2. `vintage_suitcase`
-3. `backpack`
-4. `cardboard_box`
-5. `teddy_bear`
-
-M1 visual authority remains `brain/M1_VISUAL_LOCK.md`.
-
-## M2 — COLLECTION FOUNDATION
-
-### M2-A — COMPLETE / ACCEPTED
-- 3D ViewportFrame collection cards;
-- locked silhouettes + `? / LOCKED`;
-- discovered model + name + rarity;
-- compact horizontal mobile carousel;
-- front-facing 3D preview orientation accepted;
-- no generated images used for collection visuals.
-
-### M2-B — COMPLETE / ACCEPTED
-- 10 stable case-specific collectible variants;
-- stable `collectionId` on all 10 existing cases;
-- per-player physical collection showcase;
-- rarity ladder active through COMMON / UNCOMMON / RARE / EPIC / SECRET / ANOMALY.
-
-### M2-C — COMPLETE / RUNTIME-ACCEPTED
-Persistent payload through `LostAndFound_PlayerData_v1`:
-- Credits;
-- XP;
-- discovered collection IDs.
-
-Runtime leave/rejoin persistence accepted on mobile. DataStore safety fallback remains locked.
-
-### M2-D — COMPLETE / RUNTIME-ACCEPTED
-Collection count reached **15**.
-
-Five PERFECT-only bonus finds accepted on mobile:
-11. Silver Camera Lens — RARE — `LF-M0-005`
-12. Ownerless Tag 000-17284 — ANOMALY — `LF-M0-006`
-13. Flight 000 Boarding Tag — SECRET — `LF-M0-007`
-14. Duplicate Passport — EPIC — `LF-M0-009`
-15. Milo's Toy Train — SECRET — `LF-M0-010`
-
-M2-D introduced new geometries:
-- `camera_lens`
-- `evidence_tag`
-- `passport`
-- `toy_train`
-
-Mobile screenshots confirmed bonus-find collection cards, rarity rendering, locked silhouettes, and carousel behavior. The TAG / OPEN visual panels were subsequently corrected to dedicated upright front-facing panels in Roblox v23 so text remains horizontal/readable.
-
-### M2-E — COMPLETE / RUNTIME-ACCEPTED
-Collection count reached **20**. Every one of the 10 cases has exactly one PERFECT-only bonus collectible.
-
-Five M2-E bonus finds accepted on mobile:
-16. Maya's Power Adapter — UNCOMMON — `LF-M0-001`
-17. Daniel's Formal Shoe — RARE — `LF-M0-002`
-18. Sofia's Stitched Patch — RARE — `LF-M0-003`
-19. Ari's Red Paperback — UNCOMMON — `LF-M0-004`
-20. Unstable Mass Readout — ANOMALY — `LF-M0-008`
-
-M2-E introduced geometries:
-- `power_adapter`
-- `formal_shoe`
-- `name_patch`
-- `paperback`
-- `mass_readout`
-
-Runtime acceptance confirmed:
-- `/20` collection restores after rejoin;
-- new bonus items persist;
-- long card names wrap to two lines;
-- new 3D preview geometries are readable on mobile;
-- physical showcase / collection loop remains stable.
-
-Trading remains locked.
-
-## M3 — FLIGHT 000
-Authority: `brain/M3_FLIGHT_000_LOCK.md`.
+## M3 — FLIGHT 000 / CONNECTED MYSTERY
+Authorities:
+- `brain/M3_FLIGHT_000_LOCK.md`
+- `brain/M3B_CONNECTED_CHAIN_LOCK.md`
 
 ### M3-A — FIRST INCIDENT
 **COMPLETE / USER-ACCEPTED ON v27.**
 
-Trigger:
-- `LF-M0-007 — Flight 000`;
-- complete SCAN / TAG / OPEN;
-- choose `QUARANTINE`;
-- receive `PERFECT`.
-
-Behavior:
-- case reward and bonus discovery still resolve normally;
-- Flight 000 PERFECT raises a server-wide terminal incident;
-- transition to the next case is extended for readability;
-- `ARCHIVE LOCKED` is visible before the incident and becomes `PENDING` during Flight 000;
-- successful Flight 000 resolution unlocks `ARCHIVE 000-A`;
-- archive contains only canon operational facts;
-- exact final explanation remains **CANON UNKNOWN**.
-
-Archive entry:
-- Passenger record: FOUND — Jonas Vale
-- Flight record: NOT FOUND
-- Tag: F0-00013
-- Operational action: QUARANTINE
-- Status: CONNECTED / UNRESOLVED
-- Note: transport origin remains impossible under current records
-- Final explanation: CLASSIFIED / UNKNOWN
+Flight 000 canon remains locked:
+- Passenger: Jonas Vale.
+- Passenger record: FOUND.
+- Flight record: NOT FOUND.
+- Tag: `F0-00013`.
+- Correct action: QUARANTINE.
+- Status: CONNECTED / UNRESOLVED.
+- Exact final explanation: CANON UNKNOWN.
 
 Acceptance note:
 - v26 confirmed Archive control visibility on mobile;
-- v27 fixed the missing incident-banner path by triggering the banner directly from the Flight 000 `RESULT` event while retaining the server incident event for archive synchronization;
-- Arda explicitly accepted M3-A without repeating the full Flight 000 runtime loop again after the v27 hotfix;
-- therefore M3-A is closed as **USER-ACCEPTED**, not independently re-verified end-to-end after v27.
+- v27 fixed the missing incident-banner path;
+- Arda explicitly accepted M3-A without repeating the full Flight 000 runtime loop after the hotfix;
+- therefore M3-A is USER-ACCEPTED rather than independently re-verified end-to-end after v27.
 
-M3-A limits remain locked:
-- no new location/map expansion;
-- no trading;
-- no new currency;
+### M3-B — CONNECTED MYSTERY CHAIN
+**IMPLEMENTED / LIVE v28 — RUNTIME QC PENDING.**
+
+Goal:
+Connect the three existing Season 1 pillars without forcing replay and without revealing the final explanation.
+
+Archive entries:
+1. `000-A — FLIGHT 000`
+   - unlock key: `flight_000_boarding_tag`
+   - Jonas Vale / passenger FOUND / flight NOT FOUND
+   - tag `F0-00013`
+   - action QUARANTINE
+   - status CONNECTED / UNRESOLVED
+2. `000-B — OWNERLESS SUITCASE`
+   - unlock key: `ownerless_tag_00017284`
+   - owner UNKNOWN / flight 000 / database origin NONE
+   - tag `000-17284`
+   - action QUARANTINE
+   - status CONNECTED / UNRESOLVED
+3. `000-C — THE LOST CHILD`
+   - unlock key: `milo_toy_train_2001`
+   - Milo Hart / MISSING PERSON RECORD / 2001
+   - tag `OLD-2001-14`
+   - action SECURITY
+   - status CONNECTED / PROTECTIVE ESCALATION
+
+Persistence compatibility:
+- M3-B derives archive progression from the existing persistent PERFECT bonus discoveries already stored in the Collection save.
+- No second archive DataStore was introduced.
+- Old valid saves automatically rebuild Archive progress after join.
+- Players do not need to replay Ownerless Suitcase, Flight 000, or Lost Child if the matching bonus discovery already exists in their save.
+
+Mobile UX:
+- top-right button displays `ARCHIVE x/3`;
+- archive popup shows all three slots;
+- unlocked slots reveal canon operational facts;
+- locked slots stay visible as locked placeholders;
+- newly earned Ownerless/Lost Child links may show a brief `CASE LINK CONFIRMED` toast;
+- Flight 000 retains the stronger M3-A terminal incident banner;
+- final explanation remains explicitly unknown.
+
+M3-B hard limits:
 - no final supernatural explanation;
-- Lost Child 2001 and Ownerless Suitcase canon remain unchanged.
+- no new location/map expansion;
+- no new currency;
+- no trading;
+- Lost Child remains a person requiring SECURITY/protective escalation;
+- the 2001 date is immutable unless Arda explicitly revises canon.
 
 ## Latest publish receipt
-Run: `33069729711`
-Source commit: `8fff876498aaeb4accdd9d97ae9b2e36da2026b1`
+Run: `33072052969`
+Source commit: `8b71545d25c7a23729d2b2c91e0ce2bc720db5fa`
 Rojo: `7.7.0`
 Static QC: **PASS**
 Rojo build: **PASS**
 Roblox publish: **PASS**
-Roblox version: `27`
-RBXL bytes: `48484`
-RBXL SHA256: `ff184fec93eb04c45493dbac31315ab9120f80eb3ed0a9f6c3557afce2e19da0`
+Roblox version: `28`
+RBXL bytes: `49373`
+RBXL SHA256: `c9e3e21c7948d07757e56e219a3fc03ec9fa77e3a55ee390de5e95a0e915573a`
 Deploy receipt: `deploy-status/lost-and-found-m0.json`
 
 ## LIVE authority
-**LIVE_PUBLISHED — v27 BUILD/DEPLOY VERIFIED.**
-M3-A is user-accepted and closed.
+**LIVE_PUBLISHED — v28 BUILD/DEPLOY VERIFIED.**
+M3-B archive-chain UI/progression still requires mobile runtime acceptance.
 
 ## Next gate
-**M3-B — CONNECTED MYSTERY CHAIN**
-Continue the Flight 000 storyline by connecting it to existing Season 1 pillars and operational evidence without revealing the final explanation. Preserve core loop, persistence, collection, and mobile readability. Trading remains locked until M4 review.
+**M3-B-RUNTIME**
+1. rejoin with existing save;
+2. ARCHIVE button shows the correct old-save count `/3` without replay;
+3. open Archive and confirm three cards render on mobile;
+4. already-earned linked bonuses reveal their corresponding entries;
+5. locked entries remain readable placeholders;
+6. Collection `/20`, Credits, movement, CASE FILE, and case loop remain stable;
+7. no final lore explanation is exposed.
+
+After M3-B passes, continue M3 with a deeper operational escalation/limited anomaly reward before M4 social/economy hardening. Trading remains locked.
