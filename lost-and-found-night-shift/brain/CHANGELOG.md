@@ -97,7 +97,7 @@
 - Runtime evidence on v31 confirmed serials survived rejoin unchanged: `SNP-S1-000001`, `ARP-S1-000001`, and `UMR-S1-000001` matched between first login and rejoin screenshots.
 - M4-A status: COMPLETE / RUNTIME-ACCEPTED.
 
-## 2026-08-27 — M4-B secure serialized trading v1 live candidate
+## 2026-08-27 — M4-B secure serialized trading v1
 - Upgraded `brain/M4_UNIQUE_ITEM_TRADING_LOCK.md` to v1.1 and activated M4-B scope.
 - Added persisted `serialMigrationComplete` so legacy backfill cannot create a free replacement after an item is traded away.
 - Collection cards now distinguish `NOT OWNED` from `SERIALIZING...`.
@@ -117,7 +117,7 @@
 - Keep the full two-account trade test as a deferred regression gate for when a friend/second tester is available.
 - Development may continue to M4-C anti-alt/economy telemetry, collectible 3D visual improvement, and Halloween 2026 preparation without blocking on the unavailable tester.
 
-## 2026-08-28 — M4-C economy hardening source candidate
+## 2026-08-28 — M4-C economy hardening LIVE v33
 - Added `brain/M4C_ECONOMY_HARDENING_LOCK.md`.
 - Locked Credits as non-transferable soft currency for cosmetic/display/convenience sinks rather than direct SECRET/ANOMALY purchase.
 - Added persistent economy stats to `LostAndFound_PlayerData_v1`; payload version advances to 5 while store name stays unchanged.
@@ -127,4 +127,6 @@
 - TradeService records aggregate trade request/completion/cancel telemetry and increments persistent per-player `tradesCompleted` on committed trades.
 - Existing player progression is conservatively seeded from legacy XP/Credits so established saves are not treated like fresh alts.
 - No SECRET/ANOMALY cap, drop-rate nerf, auto-farming feature, device fingerprinting, or off-platform data was added.
-- M4-C remains SOURCE CANDIDATE until a matching deploy receipt is verified.
+- Workflow run `33096058726` succeeded; exact source `39ba78108fca79b6cb2b5ca04559a3ce8c5fa23a` published as Roblox v33.
+- Static QC, Rojo 7.7.0 build, Roblox publish, and deploy receipt all passed.
+- M4-C status: LIVE_PUBLISHED / RUNTIME QC PENDING.
