@@ -10,7 +10,7 @@ Updated: 2026-08-28
 - Deployment authority: `deploy-status/lost-and-found-m0.json`; never claim LIVE from source changes alone.
 
 ## Accepted baseline
-- M0 FIRST SUITCASE — COMPLETE / ACCEPTED.
+- M0 — FIRST SUITCASE — COMPLETE / ACCEPTED.
 - M0.1 FEEL PASS — COMPLETE / ACCEPTED.
 - M1 PREMIUM ROOM — COMPLETE / RUNTIME-APPROVED.
 - M2 Collection Foundation — COMPLETE / RUNTIME-ACCEPTED.
