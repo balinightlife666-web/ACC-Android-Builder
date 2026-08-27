@@ -1,6 +1,6 @@
-LOST FOUND M2-B PUBLISH
+LOST FOUND M2-C PUBLISH
 Triggered: 2026-08-27
-Retry: 17
+Retry: 18
 Universe: 10745354451
 Place: 93699016600671
-Reason: Collection preview orientation fix — rotate all 3D cards so front-facing details point toward the collection camera; no gameplay changes and no generated images.
+Reason: M2-C persistence foundation plus inspection control readability — persist Credits, XP, and discovered collection IDs with safe DataStore fallback; stand TAG and OPEN panels upright toward the player.
