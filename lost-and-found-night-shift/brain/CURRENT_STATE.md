@@ -70,7 +70,7 @@ Runtime acceptance evidence:
 - therefore serial persistence passed.
 
 ### M4-B — SECURE PLAYER TRADING v1
-**LIVE_PUBLISHED v32 — PHASE 1 MOBILE UI SMOKE PASS / PHASE 2 OWNERSHIP TEST PENDING.**
+**LIVE_PUBLISHED v32 — PHASE 1 MOBILE UI PASS / PROVISIONALLY USER-ACCEPTED; TWO-ACCOUNT OWNERSHIP QC DEFERRED.**
 
 Scope:
 - same-server only;
@@ -119,6 +119,12 @@ Phase 1 runtime evidence on v32:
 - panel fits mobile without overlap with movement controls;
 - Phase 1 UI smoke test is accepted.
 
+Deferred Phase 2 QC:
+- Arda currently has only one phone/account available for runtime testing;
+- two-account ownership swap, rejoin persistence, `NOT OWNED`, and duplicate-serial checks are therefore intentionally deferred until a second tester/friend is available;
+- do NOT claim those two-account transfer guarantees were independently runtime-proven yet;
+- this deferred QC must remain on the regression checklist before public economy scaling.
+
 ## M5 / LIVE-SERVICE SEASONAL PRIORITY
 Authority: `brain/SEASONAL_EVENTS_LOCK.md`.
 
@@ -147,9 +153,10 @@ Deploy receipt: `deploy-status/lost-and-found-m0.json`
 
 ## LIVE authority
 **LIVE_PUBLISHED — v32 BUILD/DEPLOY VERIFIED.**
-M4-B Phase 1 mobile UI smoke test passed; trading ownership transfer is NOT runtime-accepted yet.
+M4-B Phase 1 is runtime-accepted; Phase 2 two-account ownership transfer remains deferred rather than failed.
 
-## Next gate — M4-B PHASE 2 OWNERSHIP
+## Deferred regression gate — M4-B PHASE 2 OWNERSHIP
+When a second tester/account is available:
 1. put two persistence-ready accounts in the same server;
 2. request / accept works;
 3. each selects one exact serialized instance;
@@ -162,4 +169,9 @@ M4-B Phase 1 mobile UI smoke test passed; trading ownership transfer is NOT runt
 10. both players leave/rejoin and the swapped serials remain with the new owners;
 11. no duplicate serial appears.
 
-After M4-B passes, harden anti-alt/economy telemetry, improve collectible 3D visual quality, then prepare Halloween 2026 seasonal production.
+## Active next work
+Proceed without blocking on the unavailable second tester:
+1. M4-C anti-alt / economy telemetry hardening;
+2. collectible 3D visual-quality pass without image generation;
+3. Halloween 2026 seasonal production preparation;
+4. return to M4-B Phase 2 as soon as a second tester is available.
