@@ -33,93 +33,94 @@ Locked feel values:
 - lightweight feedback audio retained.
 
 ## M1 — PREMIUM ROOM
-**COMPLETE / RUNTIME-APPROVED FOR CONTINUATION.**
+**COMPLETE / RUNTIME-APPROVED.**
 
-Visual authority remains `brain/M1_VISUAL_LOCK.md`:
-- premium stylized airport Lost & Found back-office;
-- charcoal / graphite architecture;
-- brushed dark metal equipment;
-- warm amber operational lighting;
-- cyan scanner/evidence accents;
-- restrained red quarantine/security accents;
-- no neon-arcade floor language.
-
-### M1 approved base item models
+Approved base geometries:
 1. `hardcase_suitcase`
 2. `vintage_suitcase`
 3. `backpack`
 4. `cardboard_box`
 5. `teddy_bear`
 
-v14 fixed inspection ergonomics with floor-accessible TAG-left / OPEN-right interaction anchors.
+M1 visual authority remains `brain/M1_VISUAL_LOCK.md`.
 
-Registry authority:
-- `registry/ITEM_REGISTRY.json`: five production-approved base types;
-- `registry/ASSET_REGISTRY.json`: `baseItemMeshesApproved = 5`, `m1Complete = true`.
+## M2 — COLLECTION FOUNDATION
 
-## Active milestone
-**M2 — COLLECTION FOUNDATION**
+### M2-A — COMPLETE / ACCEPTED
+Collection UI/runtime has been accepted on mobile.
 
-### M2-A collection behavior
-Initial collection size: **5 approved base item types**.
+Accepted behavior:
+- collection is presented as 3D ViewportFrame cards, not text-only rows;
+- locked entries show dark silhouettes + `? / LOCKED`;
+- discovered entries reveal model + name + rarity;
+- landscape mobile popup uses a compact horizontal carousel;
+- CASE HUD / Credits / INDEX hide temporarily while Collection is open and restore on close;
+- no generated images are used for the collection visuals.
 
-Rarity seed:
-- Hardcase Suitcase — COMMON
-- Vintage Suitcase — UNCOMMON
-- Travel Backpack — COMMON
-- Cardboard Parcel — UNCOMMON
-- Teddy Bear — RARE
+## M2-B — CONTROLLED VARIANTS + PHYSICAL SHOWCASE
+**IMPLEMENTED / LIVE — RUNTIME ACCEPTANCE PENDING.**
 
-Collection behavior:
-- resolving a case registers that base item type for the deciding player;
-- duplicate resolutions do not increase unique discovery count;
-- server owns the session discovery state;
-- top-right `INDEX x/5` button sits below Credits;
-- first discovery produces a short `NEW DISCOVERY` toast.
+Collection expanded from 5 base types to **10 controlled collectible variants**, each reusing one of the five M1-approved base geometries:
+1. Blue Transit Hardcase — COMMON
+2. Crimson Travel Backpack — UNCOMMON
+3. Cream Memory Bear — RARE
+4. Brown Heritage Case — UNCOMMON
+5. Black Security Hardcase — RARE
+6. Ownerless Vintage Case — ANOMALY
+7. Flight 000 Hardcase — SECRET
+8. Unstable Sealed Parcel — ANOMALY
+9. Green Identity Backpack — EPIC
+10. Milo's Small Case — SECRET
 
-### M2-A visual collection upgrade — v16
-The text-only INDEX list was replaced by collectible **3D ViewportFrame cards**.
+Authority:
+- runtime registry: `src/shared/CollectionRegistry.lua`;
+- governance mirror: `registry/COLLECTION_REGISTRY.json`;
+- each existing case now has a stable `collectionId` while preserving its base item geometry;
+- discovery tracks `collectionId`, not merely the five base geometry IDs.
 
-Visual rules:
-- each of the five item types has an in-UI 3D preview built from the existing item visual language;
-- discovered cards display the full-color item, item name, and rarity;
-- undiscovered cards display a dark 3D silhouette with `? / LOCKED` rather than a plain text row;
-- popup title is `LOST PROPERTY COLLECTION`;
-- no generated images are used for collection cards;
-- preview source: `src/shared/CollectionPreviewFactory.lua`;
-- collection UI source: `src/client/Collection.client.lua`.
+### Physical showcase
+Source: `src/client/CollectionShowcase.client.lua`
 
-Important limits:
-- collection remains **SESSION-ONLY**;
+Behavior:
+- client-only/per-player collection wall on the left side of the room;
+- 10 display slots arranged in two rows;
+- undiscovered slots stay dark with `?`;
+- discovered entries spawn a small 3D model on the matching shelf slot;
+- one player's discoveries do not reveal another player's collection;
+- showcase is non-colliding and does not alter core case gameplay.
+
+### M2-B limits
+- collection is still **SESSION-ONLY**;
 - no DataStore persistence yet;
 - no trading;
 - no Evidence Tokens;
-- do not expand to 30–40 items in one uncontrolled batch.
+- 10 variants are a controlled expansion slice, not the final 30–40 item target.
 
 ## Latest publish receipt
-Run: `33038345674`
-Source commit: `60f96622b3ae46f9dbaad6a6f008ddc0860ad8b6`
+Run: `33045703308`
+Source commit: `ce1afa3feb40b0a69acfe4a3af56f3eee3b036f0`
 Rojo: `7.7.0`
 Static QC: **PASS**
 Rojo build: **PASS**
 Roblox publish: **PASS**
-Roblox version: `16`
-RBXL bytes: `34284`
-RBXL SHA256: `da358f5768388940ada8b74c49b5097735f905e7d46353d72a0a6fd73d48cec7`
+Roblox version: `19`
+RBXL bytes: `37766`
+RBXL SHA256: `69f664469f301cf8ea3e776884a637baefc8f0dc81330fbfd468e42a044a59ca`
 Deploy receipt: `deploy-status/lost-and-found-m0.json`
 
 ## LIVE authority
-**LIVE_PUBLISHED — v16 BUILD/DEPLOY VERIFIED.**
-3D collection-card visual/runtime acceptance still requires mobile inspection.
+**LIVE_PUBLISHED — v19 BUILD/DEPLOY VERIFIED.**
+M2-B collection variants + physical showcase still require mobile runtime acceptance.
 
 ## Next gate
-**M2-A-RUNTIME:** verify on mobile:
-1. INDEX popup opens/closes without blocking movement after close;
-2. five collection cards fit cleanly on landscape mobile;
-3. locked cards visibly read as item silhouettes rather than blank rows;
-4. resolving a unique item changes the corresponding card to full color with correct name + rarity;
-5. `INDEX x/5` increments correctly;
-6. duplicate base item does not increment unique count;
-7. case loop remains stable.
+**M2-B-RUNTIME:** verify on mobile:
+1. INDEX reports `0/10` on a fresh session;
+2. first resolved case discovers the correct variant and increments to `1/10`;
+3. Collection carousel displays 10 cards without layout regression;
+4. locked cards remain hidden/silhouetted;
+5. physical showcase appears on the left side of the room;
+6. discovered item appears on its physical showcase slot;
+7. showcase does not block walking, scanner, claimant, decision consoles, or camera;
+8. existing SCAN → TAG → OPEN → DECIDE loop remains stable.
 
-After M2-A visual runtime acceptance, proceed to M2-B: controlled item-variant expansion + simple physical showcase/display. Persistence should be added only after the collection rules/UI are accepted.
+If M2-B-RUNTIME passes, proceed to **M2-C — PERSISTENCE / DATASTORE** so Credits + Collection survive rejoin. Trading remains locked until later economy review.
