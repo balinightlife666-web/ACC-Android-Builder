@@ -1,6 +1,6 @@
-LOST FOUND M3-A VISIBILITY PATCH
+LOST FOUND M3-A INCIDENT BANNER HOTFIX
 Triggered: 2026-08-27
-Retry: 23
+Retry: 24
 Universe: 10745354451
 Place: 93699016600671
-Reason: Keep ARCHIVE visible as LOCKED before Flight 000, switch to PENDING during the case, show a clear locked hint, and unlock ARCHIVE 000-A only after the Flight 000 PERFECT QUARANTINE incident.
+Reason: Ensure Flight 000 PERFECT QUARANTINE shows the terminal incident banner directly from CaseUpdate RESULT, keep IncidentUpdate as archive-data sync, and raise overlay ZIndex for mobile visibility.
