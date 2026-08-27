@@ -1,11 +1,17 @@
 local Players = game:GetService("Players")
 local HttpService = game:GetService("HttpService")
 
+local PlayerDataStore = require(script.Parent:WaitForChild("PlayerDataStore"))
+local EconomyTelemetryService = require(script.Parent:WaitForChild("EconomyTelemetryService"))
+
 local TradeService = {}
 
 local REQUEST_TTL = 20
 local REQUEST_COOLDOWN = 3
 local REVIEW_LOCK_SECONDS = 3
+local MIN_ACCOUNT_AGE_DAYS = 7
+local MIN_CASES_COMPLETED = 5
+local MIN_XP = 50
 
 local function cloneTable(value)
     if type(value) ~= "table" then return value end
@@ -36,6 +42,23 @@ local function removeInstance(inventory, instanceId)
     local _, index = findInstance(inventory, instanceId)
     if not index then return nil end
     return table.remove(inventory, index)
+end
+
+local function progressionReady(player)
+    if player.AccountAge < MIN_ACCOUNT_AGE_DAYS then
+        return false, "ACCOUNT_TOO_NEW"
+    end
+
+    local leaderstats = player:FindFirstChild("leaderstats")
+    local xpValue = leaderstats and leaderstats:FindFirstChild("XP")
+    local xp = xpValue and xpValue.Value or 0
+    local stats = PlayerDataStore.GetEconomyStats(player.UserId)
+    local casesCompleted = math.max(0, math.floor(tonumber(stats.casesCompleted) or 0))
+
+    if casesCompleted < MIN_CASES_COMPLETED and xp < MIN_XP then
+        return false, "PROGRESSION_LOCKED"
+    end
+    return true
 end
 
 function TradeService.Start(context)
@@ -96,6 +119,12 @@ function TradeService.Start(context)
         if not context.isPersistenceReady(player) then
             return false, "SAVE_NOT_READY"
         end
+
+        local progressionOk, progressionReason = progressionReady(player)
+        if not progressionOk then
+            return false, progressionReason
+        end
+
         local tradeableCount = 0
         for _, instance in ipairs(context.getInventory(player)) do
             if instance.tradeable ~= false then
@@ -232,6 +261,7 @@ function TradeService.Start(context)
         local a = Players:GetPlayerByUserId(session.userA)
         local b = Players:GetPlayerByUserId(session.userB)
         finishSession(session)
+        EconomyTelemetryService.Record("tradeCancelled", 1)
         if a then tradeUpdate:FireClient(a, "TRADE_CANCELLED", { reason = reason or "CANCELLED" }) end
         if b then tradeUpdate:FireClient(b, "TRADE_CANCELLED", { reason = reason or "CANCELLED" }) end
     end
@@ -301,6 +331,13 @@ function TradeService.Start(context)
             return
         end
 
+        local progressionA = progressionReady(playerA)
+        local progressionB = progressionReady(playerB)
+        if not progressionA or not progressionB then
+            cancelSession(session, "ELIGIBILITY_CHANGED")
+            return
+        end
+
         session.stage = "COMMITTING"
         commitLockedUsers[playerA.UserId] = true
         commitLockedUsers[playerB.UserId] = true
@@ -358,6 +395,13 @@ function TradeService.Start(context)
             commitLockedUsers[playerA.UserId] = nil
             commitLockedUsers[playerB.UserId] = nil
             session.stage = "COMPLETED"
+
+            PlayerDataStore.IncrementEconomy(playerA.UserId, "tradesCompleted", 1)
+            PlayerDataStore.IncrementEconomy(playerB.UserId, "tradesCompleted", 1)
+            context.markDirty(playerA)
+            context.markDirty(playerB)
+            EconomyTelemetryService.Record("tradeCompleted", 1)
+
             context.sendCollectionSync(playerA)
             context.sendCollectionSync(playerB)
             tradeUpdate:FireClient(playerA, "TRADE_COMPLETED", {
@@ -389,6 +433,7 @@ function TradeService.Start(context)
         commitLockedUsers[playerA.UserId] = nil
         commitLockedUsers[playerB.UserId] = nil
         finishSession(session)
+        EconomyTelemetryService.Record("tradeCancelled", 1)
         context.sendCollectionSync(playerA)
         context.sendCollectionSync(playerB)
         tradeUpdate:FireClient(playerA, "TRADE_CANCELLED", { reason = "PERSISTENCE_FAILED" })
@@ -459,6 +504,7 @@ function TradeService.Start(context)
             pendingRequests[target.UserId] = pendingRequests[target.UserId] or {}
             pendingRequests[target.UserId][player.UserId] = os.clock() + REQUEST_TTL
             requestCooldowns[player.UserId] = now
+            EconomyTelemetryService.Record("tradeRequests", 1)
             tradeUpdate:FireClient(target, "REQUEST_INCOMING", {
                 fromUserId = player.UserId,
                 fromName = player.DisplayName,
