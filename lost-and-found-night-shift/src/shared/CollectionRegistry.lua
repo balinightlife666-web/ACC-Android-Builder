@@ -23,27 +23,39 @@ CollectionRegistry.Order = {
     "unstable_mass_readout",
 }
 
+local function item(id, baseItemId, name, rarity, serialPrefix)
+    return {
+        id = id,
+        baseItemId = baseItemId,
+        name = name,
+        rarity = rarity,
+        serialPrefix = serialPrefix,
+        edition = "S1",
+        tradeable = true,
+    }
+end
+
 CollectionRegistry.Items = {
-    blue_transit_hardcase = { id = "blue_transit_hardcase", baseItemId = "hardcase_suitcase", name = "Blue Transit Hardcase", rarity = "COMMON" },
-    crimson_travel_backpack = { id = "crimson_travel_backpack", baseItemId = "backpack", name = "Crimson Travel Backpack", rarity = "UNCOMMON" },
-    cream_memory_bear = { id = "cream_memory_bear", baseItemId = "teddy_bear", name = "Cream Memory Bear", rarity = "RARE" },
-    brown_heritage_case = { id = "brown_heritage_case", baseItemId = "vintage_suitcase", name = "Brown Heritage Case", rarity = "UNCOMMON" },
-    black_security_hardcase = { id = "black_security_hardcase", baseItemId = "hardcase_suitcase", name = "Black Security Hardcase", rarity = "RARE" },
-    ownerless_vintage_case = { id = "ownerless_vintage_case", baseItemId = "vintage_suitcase", name = "Ownerless Vintage Case", rarity = "ANOMALY" },
-    flight_000_hardcase = { id = "flight_000_hardcase", baseItemId = "hardcase_suitcase", name = "Flight 000 Hardcase", rarity = "SECRET" },
-    unstable_sealed_parcel = { id = "unstable_sealed_parcel", baseItemId = "cardboard_box", name = "Unstable Sealed Parcel", rarity = "ANOMALY" },
-    green_identity_backpack = { id = "green_identity_backpack", baseItemId = "backpack", name = "Green Identity Backpack", rarity = "EPIC" },
-    milo_small_case = { id = "milo_small_case", baseItemId = "vintage_suitcase", name = "Milo's Small Case", rarity = "SECRET" },
-    silver_camera_lens = { id = "silver_camera_lens", baseItemId = "camera_lens", name = "Silver Camera Lens", rarity = "RARE" },
-    ownerless_tag_00017284 = { id = "ownerless_tag_00017284", baseItemId = "evidence_tag", name = "Ownerless Tag 000-17284", rarity = "ANOMALY" },
-    flight_000_boarding_tag = { id = "flight_000_boarding_tag", baseItemId = "evidence_tag", name = "Flight 000 Boarding Tag", rarity = "SECRET" },
-    duplicate_passport = { id = "duplicate_passport", baseItemId = "passport", name = "Duplicate Passport", rarity = "EPIC" },
-    milo_toy_train_2001 = { id = "milo_toy_train_2001", baseItemId = "toy_train", name = "Milo's Toy Train", rarity = "SECRET" },
-    maya_power_adapter = { id = "maya_power_adapter", baseItemId = "power_adapter", name = "Maya's Power Adapter", rarity = "UNCOMMON" },
-    daniel_formal_shoe = { id = "daniel_formal_shoe", baseItemId = "formal_shoe", name = "Daniel's Formal Shoe", rarity = "RARE" },
-    sofia_name_patch = { id = "sofia_name_patch", baseItemId = "name_patch", name = "Sofia's Stitched Patch", rarity = "RARE" },
-    ari_red_paperback = { id = "ari_red_paperback", baseItemId = "paperback", name = "Ari's Red Paperback", rarity = "UNCOMMON" },
-    unstable_mass_readout = { id = "unstable_mass_readout", baseItemId = "mass_readout", name = "Unstable Mass Readout", rarity = "ANOMALY" },
+    blue_transit_hardcase = item("blue_transit_hardcase", "hardcase_suitcase", "Blue Transit Hardcase", "COMMON", "BTH"),
+    crimson_travel_backpack = item("crimson_travel_backpack", "backpack", "Crimson Travel Backpack", "UNCOMMON", "CTB"),
+    cream_memory_bear = item("cream_memory_bear", "teddy_bear", "Cream Memory Bear", "RARE", "CMB"),
+    brown_heritage_case = item("brown_heritage_case", "vintage_suitcase", "Brown Heritage Case", "UNCOMMON", "BHC"),
+    black_security_hardcase = item("black_security_hardcase", "hardcase_suitcase", "Black Security Hardcase", "RARE", "BSH"),
+    ownerless_vintage_case = item("ownerless_vintage_case", "vintage_suitcase", "Ownerless Vintage Case", "ANOMALY", "OVC"),
+    flight_000_hardcase = item("flight_000_hardcase", "hardcase_suitcase", "Flight 000 Hardcase", "SECRET", "F0H"),
+    unstable_sealed_parcel = item("unstable_sealed_parcel", "cardboard_box", "Unstable Sealed Parcel", "ANOMALY", "USP"),
+    green_identity_backpack = item("green_identity_backpack", "backpack", "Green Identity Backpack", "EPIC", "GIB"),
+    milo_small_case = item("milo_small_case", "vintage_suitcase", "Milo's Small Case", "SECRET", "MSC"),
+    silver_camera_lens = item("silver_camera_lens", "camera_lens", "Silver Camera Lens", "RARE", "SCL"),
+    ownerless_tag_00017284 = item("ownerless_tag_00017284", "evidence_tag", "Ownerless Tag 000-17284", "ANOMALY", "OT0"),
+    flight_000_boarding_tag = item("flight_000_boarding_tag", "evidence_tag", "Flight 000 Boarding Tag", "SECRET", "F0T"),
+    duplicate_passport = item("duplicate_passport", "passport", "Duplicate Passport", "EPIC", "DPP"),
+    milo_toy_train_2001 = item("milo_toy_train_2001", "toy_train", "Milo's Toy Train", "SECRET", "MTT"),
+    maya_power_adapter = item("maya_power_adapter", "power_adapter", "Maya's Power Adapter", "UNCOMMON", "MPA"),
+    daniel_formal_shoe = item("daniel_formal_shoe", "formal_shoe", "Daniel's Formal Shoe", "RARE", "DFS"),
+    sofia_name_patch = item("sofia_name_patch", "name_patch", "Sofia's Stitched Patch", "RARE", "SNP"),
+    ari_red_paperback = item("ari_red_paperback", "paperback", "Ari's Red Paperback", "UNCOMMON", "ARP"),
+    unstable_mass_readout = item("unstable_mass_readout", "mass_readout", "Unstable Mass Readout", "ANOMALY", "UMR"),
 }
 
 function CollectionRegistry.Get(collectionId)
@@ -57,12 +69,15 @@ end
 function CollectionRegistry.PublicEntries()
     local entries = {}
     for _, collectionId in ipairs(CollectionRegistry.Order) do
-        local item = CollectionRegistry.Items[collectionId]
+        local entry = CollectionRegistry.Items[collectionId]
         table.insert(entries, {
-            id = item.id,
-            baseItemId = item.baseItemId,
-            name = item.name,
-            rarity = item.rarity,
+            id = entry.id,
+            baseItemId = entry.baseItemId,
+            name = entry.name,
+            rarity = entry.rarity,
+            serialPrefix = entry.serialPrefix,
+            edition = entry.edition,
+            tradeable = entry.tradeable,
         })
     end
     return entries
