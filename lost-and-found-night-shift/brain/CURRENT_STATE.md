@@ -83,68 +83,98 @@ M2-D introduced new geometries:
 
 Mobile screenshots confirmed bonus-find collection cards, rarity rendering, locked silhouettes, and carousel behavior. The TAG / OPEN visual panels were subsequently corrected to dedicated upright front-facing panels in Roblox v23 so text remains horizontal/readable.
 
-### M2-E — CONTROLLED COLLECTION EXPANSION
-**IMPLEMENTED / LIVE v24 — RUNTIME QC PENDING.**
+### M2-E — COMPLETE / RUNTIME-ACCEPTED
+Collection count reached **20**. Every one of the 10 cases has exactly one PERFECT-only bonus collectible.
 
-Collection count is now **20**. Every one of the 10 cases now has exactly one PERFECT-only bonus collectible.
-
-Five new M2-E bonus finds:
+Five M2-E bonus finds accepted on mobile:
 16. Maya's Power Adapter — UNCOMMON — `LF-M0-001`
 17. Daniel's Formal Shoe — RARE — `LF-M0-002`
 18. Sofia's Stitched Patch — RARE — `LF-M0-003`
 19. Ari's Red Paperback — UNCOMMON — `LF-M0-004`
 20. Unstable Mass Readout — ANOMALY — `LF-M0-008`
 
-New M2-E collectible geometries:
+M2-E introduced geometries:
 - `power_adapter`
 - `formal_shoe`
 - `name_patch`
 - `paperback`
 - `mass_readout`
 
-M2-E rules:
-- resolving any case still discovers its normal case collectible;
-- a PERFECT result also discovers that case's mapped bonus collectible;
-- all 20 IDs persist through the existing DataStore payload;
-- long collection names wrap to two lines instead of truncating with ellipsis;
-- physical showcase expanded to 20 non-colliding slots / four rows;
-- no trading.
+Runtime acceptance confirmed:
+- `/20` collection restores after rejoin;
+- new bonus items persist;
+- long card names wrap to two lines;
+- new 3D preview geometries are readable on mobile;
+- physical showcase / collection loop remains stable.
 
-Authority:
-- runtime collection registry: `src/shared/CollectionRegistry.lua`;
-- governance mirror: `registry/COLLECTION_REGISTRY.json`;
-- bonus mappings: `src/shared/CaseRegistry.lua`;
-- bonus award logic: `src/server/Main.server.lua`;
-- preview geometry: `src/shared/CollectionPreviewFactory.lua`;
-- 20-slot room showcase: `src/client/CollectionShowcase.client.lua`;
-- mobile collection UI: `src/client/Collection.client.lua`.
+Trading remains locked.
+
+## M3 — FLIGHT 000
+Authority: `brain/M3_FLIGHT_000_LOCK.md`.
+
+### M3-A — FIRST INCIDENT
+**IMPLEMENTED / LIVE v25 — RUNTIME QC PENDING.**
+
+Trigger:
+- `LF-M0-007 — Flight 000`;
+- complete SCAN / TAG / OPEN;
+- choose `QUARANTINE`;
+- receive `PERFECT`.
+
+Behavior:
+- case reward and bonus discovery still resolve normally;
+- Flight 000 PERFECT raises a **server-wide terminal incident**;
+- transition to the next case is extended to 6.2 seconds for readability;
+- all connected clients receive a restrained incident presentation;
+- `ARCHIVE 000-A` becomes available for the current server session;
+- players joining the same server after the incident receive the archive sync;
+- archive contains only canon operational facts;
+- exact final explanation remains **CANON UNKNOWN**.
+
+Archive entry:
+- Passenger record: FOUND — Jonas Vale
+- Flight record: NOT FOUND
+- Tag: F0-00013
+- Operational action: QUARANTINE
+- Status: CONNECTED / UNRESOLVED
+- Note: transport origin remains impossible under current records
+- Final explanation: CLASSIFIED / UNKNOWN
+
+M3-A limits:
+- archive unlock is server-session scoped for this slice;
+- no new location/map expansion;
+- no trading;
+- no new currency;
+- no final supernatural explanation;
+- Lost Child 2001 and Ownerless Suitcase canon remain unchanged.
 
 ## Latest publish receipt
-Run: `33058949238`
-Source commit: `dad3f6ef90620e4d711607d955022d56c270cba1`
+Run: `33064733408`
+Source commit: `fdd62354db0fd893d5d7ab72b2b73df312605d68`
 Rojo: `7.7.0`
 Static QC: **PASS**
 Rojo build: **PASS**
 Roblox publish: **PASS**
-Roblox version: `24`
-RBXL bytes: `43805`
-RBXL SHA256: `5f7f7961d1d38bc675754b57ce727b2d8ceac3ce6d48e66bee74120f13ea2809`
+Roblox version: `25`
+RBXL bytes: `47259`
+RBXL SHA256: `353d13da3b941dcf262a12854a8572c34932855ca440930fc19a523992d6a60f`
 Deploy receipt: `deploy-status/lost-and-found-m0.json`
 
 ## LIVE authority
-**LIVE_PUBLISHED — v24 BUILD/DEPLOY VERIFIED.**
-M2-E collection runtime visuals require mobile acceptance before locking the slice complete.
+**LIVE_PUBLISHED — v25 BUILD/DEPLOY VERIFIED.**
+M3-A incident/archive still requires mobile runtime acceptance.
 
 ## Next gate
-**M2-E-RUNTIME**
-1. existing Credits + prior INDEX discoveries restore without regression;
-2. INDEX total displays `/20`;
-3. long names render on two lines without clipping rarity labels;
-4. five new locked silhouettes render without broken geometry;
-5. complete one of cases 1/2/3/4/8 with the correct PERFECT decision;
-6. mapped new BONUS FIND appears and INDEX increments;
-7. new discovery persists after leave/rejoin;
-8. 20-slot physical showcase remains inside the room and does not block movement/camera;
-9. existing case loop, Collection carousel, TAG / OPEN, and decision flow remain stable.
+**M3-A-RUNTIME**
+1. saved Credits + INDEX /20 still restore normally;
+2. reach `LF-M0-007 — Flight 000`;
+3. SCAN / TAG / OPEN remain unchanged;
+4. choose `QUARANTINE` and confirm `PERFECT`;
+5. Flight 000 Boarding Tag bonus remains compatible;
+6. terminal incident presentation appears without movement/camera lock;
+7. `ARCHIVE 000-A` button becomes available;
+8. archive popup is readable on mobile and dismissible;
+9. next case starts automatically after the incident window;
+10. no Collection/DataStore regression.
 
-After M2-E runtime acceptance, evaluate moving directly into **M3 — FLIGHT 000** rather than expanding collection indefinitely. Trading remains locked.
+After M3-A passes, continue M3 as a connected mystery chain rather than revealing the final explanation. Trading remains locked until M4 review.
