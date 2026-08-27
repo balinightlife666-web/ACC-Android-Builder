@@ -4,7 +4,7 @@
   "universeId": "10745359869",
   "placeId": "121603385909425",
   "ok": true,
-  "recordedAt": "2026-08-26T07:28:52Z",
+  "recordedAt": "2026-08-27T09:38:42Z",
   "http": {
     "root": 200,
     "workspace": 200
@@ -13,529 +13,523 @@
     {
       "name": "Workspace",
       "className": "?",
-      "id": "43d8b47d-c641-568f-0a98-a60000000002",
+      "id": "27e8d6f3-63ad-fadc-0aa1-9fa100000002",
       "hasChildren": true
     },
     {
       "name": "Run Service",
       "className": "?",
-      "id": "001a985c-cb68-d449-0aa0-2f9200000003",
+      "id": "27e8d6f3-63ad-fadc-0aa1-9fa100000003",
       "hasChildren": false
     },
     {
       "name": "GuiService",
       "className": "?",
-      "id": "001a985c-cb68-d449-0aa0-2f9200000004",
+      "id": "27e8d6f3-63ad-fadc-0aa1-9fa100000004",
       "hasChildren": true
     },
     {
       "name": "Stats",
       "className": "?",
-      "id": "001a985c-cb68-d449-0aa0-2f9200000006",
+      "id": "27e8d6f3-63ad-fadc-0aa1-9fa100000006",
       "hasChildren": true
     },
     {
-      "name": "Instance",
+      "name": "TimerService",
       "className": "?",
-      "id": "43d8b47d-c641-568f-0a98-a60000000349",
+      "id": "27e8d6f3-63ad-fadc-0aa1-9fa100000354",
       "hasChildren": false
     },
     {
       "name": "SoundService",
       "className": "?",
-      "id": "43d8b47d-c641-568f-0a98-a6000000034b",
+      "id": "27e8d6f3-63ad-fadc-0aa1-9fa100000355",
       "hasChildren": false
     },
     {
       "name": "VideoCaptureService",
       "className": "?",
-      "id": "43d8b47d-c641-568f-0a98-a60000000357",
+      "id": "27e8d6f3-63ad-fadc-0aa1-9fa100000361",
       "hasChildren": false
     },
     {
       "name": "LogService",
       "className": "?",
-      "id": "001a985c-cb68-d449-0aa0-2f9200000365",
+      "id": "27e8d6f3-63ad-fadc-0aa1-9fa100000364",
       "hasChildren": false
     },
     {
       "name": "MicroProfilerService",
       "className": "?",
-      "id": "001a985c-cb68-d449-0aa0-2f9200000366",
+      "id": "27e8d6f3-63ad-fadc-0aa1-9fa100000365",
       "hasChildren": false
     },
     {
       "name": "ContentProvider",
       "className": "?",
-      "id": "001a985c-cb68-d449-0aa0-2f9200000367",
+      "id": "27e8d6f3-63ad-fadc-0aa1-9fa100000366",
       "hasChildren": false
     },
     {
       "name": "KeyframeSequenceProvider",
       "className": "?",
-      "id": "001a985c-cb68-d449-0aa0-2f9200000368",
+      "id": "27e8d6f3-63ad-fadc-0aa1-9fa100000367",
       "hasChildren": false
     },
     {
       "name": "AnimationClipProvider",
       "className": "?",
-      "id": "001a985c-cb68-d449-0aa0-2f9200000369",
+      "id": "27e8d6f3-63ad-fadc-0aa1-9fa100000368",
       "hasChildren": false
     },
     {
       "name": "Chat",
       "className": "?",
-      "id": "43d8b47d-c641-568f-0a98-a6000000035f",
+      "id": "27e8d6f3-63ad-fadc-0aa1-9fa100000369",
       "hasChildren": false
     },
     {
       "name": "Players",
       "className": "?",
-      "id": "43d8b47d-c641-568f-0a98-a60000000361",
+      "id": "27e8d6f3-63ad-fadc-0aa1-9fa10000036a",
       "hasChildren": false
     },
     {
       "name": "MarketplaceService",
       "className": "?",
-      "id": "001a985c-cb68-d449-0aa0-2f920000036c",
+      "id": "27e8d6f3-63ad-fadc-0aa1-9fa10000036b",
       "hasChildren": false
     },
     {
       "name": "PointsService",
       "className": "?",
-      "id": "001a985c-cb68-d449-0aa0-2f920000036d",
+      "id": "27e8d6f3-63ad-fadc-0aa1-9fa10000036c",
       "hasChildren": false
     },
     {
       "name": "NotificationService",
       "className": "?",
-      "id": "001a985c-cb68-d449-0aa0-2f920000036e",
+      "id": "27e8d6f3-63ad-fadc-0aa1-9fa10000036d",
       "hasChildren": false
     },
     {
       "name": "ReplicatedFirst",
       "className": "?",
-      "id": "43d8b47d-c641-568f-0a98-a60000000364",
+      "id": "27e8d6f3-63ad-fadc-0aa1-9fa10000036e",
       "hasChildren": false
     },
     {
       "name": "HttpRbxApiService",
       "className": "?",
-      "id": "001a985c-cb68-d449-0aa0-2f9200000370",
+      "id": "27e8d6f3-63ad-fadc-0aa1-9fa10000036f",
       "hasChildren": false
     },
     {
       "name": "TweenService",
       "className": "?",
-      "id": "43d8b47d-c641-568f-0a98-a60000000366",
+      "id": "27e8d6f3-63ad-fadc-0aa1-9fa100000370",
       "hasChildren": false
     },
     {
       "name": "MaterialService",
       "className": "?",
-      "id": "43d8b47d-c641-568f-0a98-a60000000367",
+      "id": "27e8d6f3-63ad-fadc-0aa1-9fa100000371",
       "hasChildren": false
     },
     {
       "name": "TextChatService",
       "className": "?",
-      "id": "43d8b47d-c641-568f-0a98-a60000000368",
+      "id": "27e8d6f3-63ad-fadc-0aa1-9fa100000372",
       "hasChildren": true
     },
     {
       "name": "TextService",
       "className": "?",
-      "id": "001a985c-cb68-d449-0aa0-2f9200000374",
+      "id": "27e8d6f3-63ad-fadc-0aa1-9fa100000373",
       "hasChildren": false
     },
     {
       "name": "SharedTableRegistry",
       "className": "?",
-      "id": "001a985c-cb68-d449-0aa0-2f9200000379",
+      "id": "27e8d6f3-63ad-fadc-0aa1-9fa100000378",
       "hasChildren": false
     },
     {
       "name": "StarterPlayer",
       "className": "?",
-      "id": "43d8b47d-c641-568f-0a98-a60000000370",
+      "id": "27e8d6f3-63ad-fadc-0aa1-9fa100000379",
       "hasChildren": true
     },
     {
       "name": "StarterPack",
       "className": "?",
-      "id": "43d8b47d-c641-568f-0a98-a60000000371",
+      "id": "27e8d6f3-63ad-fadc-0aa1-9fa10000037a",
       "hasChildren": false
     },
     {
       "name": "StarterGui",
       "className": "?",
-      "id": "43d8b47d-c641-568f-0a98-a60000000372",
-      "hasChildren": false
+      "id": "27e8d6f3-63ad-fadc-0aa1-9fa10000037b",
+      "hasChildren": true
     },
     {
       "name": "LocalizationService",
       "className": "?",
-      "id": "43d8b47d-c641-568f-0a98-a60000000374",
+      "id": "27e8d6f3-63ad-fadc-0aa1-9fa10000037d",
       "hasChildren": false
     },
     {
       "name": "PolicyService",
       "className": "?",
-      "id": "001a985c-cb68-d449-0aa0-2f9200000380",
+      "id": "27e8d6f3-63ad-fadc-0aa1-9fa10000037f",
       "hasChildren": false
     },
     {
       "name": "Teleport Service",
       "className": "?",
-      "id": "43d8b47d-c641-568f-0a98-a60000000378",
+      "id": "27e8d6f3-63ad-fadc-0aa1-9fa100000382",
       "hasChildren": false
     },
     {
       "name": "JointsService",
       "className": "?",
-      "id": "001a985c-cb68-d449-0aa0-2f9200000384",
+      "id": "27e8d6f3-63ad-fadc-0aa1-9fa100000383",
       "hasChildren": false
     },
     {
       "name": "CollectionService",
       "className": "?",
-      "id": "43d8b47d-c641-568f-0a98-a6000000034a",
+      "id": "27e8d6f3-63ad-fadc-0aa1-9fa100000384",
       "hasChildren": false
     },
     {
       "name": "PhysicsService",
       "className": "?",
-      "id": "43d8b47d-c641-568f-0a98-a6000000037a",
+      "id": "27e8d6f3-63ad-fadc-0aa1-9fa100000385",
       "hasChildren": false
     },
     {
       "name": "BadgeService",
       "className": "?",
-      "id": "001a985c-cb68-d449-0aa0-2f9200000387",
+      "id": "27e8d6f3-63ad-fadc-0aa1-9fa100000386",
       "hasChildren": false
     },
     {
       "name": "FriendService",
       "className": "?",
-      "id": "001a985c-cb68-d449-0aa0-2f9200000388",
+      "id": "27e8d6f3-63ad-fadc-0aa1-9fa100000387",
       "hasChildren": false
     },
     {
       "name": "InsertService",
       "className": "?",
-      "id": "43d8b47d-c641-568f-0a98-a6000000037d",
-      "hasChildren": true
+      "id": "27e8d6f3-63ad-fadc-0aa1-9fa100000388",
+      "hasChildren": false
     },
     {
       "name": "GamePassService",
       "className": "?",
-      "id": "43d8b47d-c641-568f-0a98-a6000000037e",
+      "id": "27e8d6f3-63ad-fadc-0aa1-9fa100000389",
       "hasChildren": false
     },
     {
       "name": "Debris",
       "className": "?",
-      "id": "43d8b47d-c641-568f-0a98-a6000000037f",
+      "id": "27e8d6f3-63ad-fadc-0aa1-9fa10000038a",
       "hasChildren": false
     },
     {
       "name": "CookiesService",
       "className": "?",
-      "id": "43d8b47d-c641-568f-0a98-a60000000380",
+      "id": "27e8d6f3-63ad-fadc-0aa1-9fa10000038b",
       "hasChildren": false
     },
     {
       "name": "Selection",
       "className": "?",
-      "id": "43d8b47d-c641-568f-0a98-a60000000381",
+      "id": "27e8d6f3-63ad-fadc-0aa1-9fa10000038c",
       "hasChildren": false
     },
     {
       "name": "UserInputService",
       "className": "?",
-      "id": "001a985c-cb68-d449-0aa0-2f920000038e",
+      "id": "27e8d6f3-63ad-fadc-0aa1-9fa10000038d",
       "hasChildren": false
     },
     {
       "name": "KeyboardService",
       "className": "?",
-      "id": "001a985c-cb68-d449-0aa0-2f920000038f",
+      "id": "27e8d6f3-63ad-fadc-0aa1-9fa10000038e",
       "hasChildren": false
     },
     {
       "name": "MouseService",
       "className": "?",
-      "id": "001a985c-cb68-d449-0aa0-2f9200000390",
+      "id": "27e8d6f3-63ad-fadc-0aa1-9fa10000038f",
       "hasChildren": false
     },
     {
       "name": "VRService",
       "className": "?",
-      "id": "43d8b47d-c641-568f-0a98-a60000000385",
+      "id": "27e8d6f3-63ad-fadc-0aa1-9fa100000390",
       "hasChildren": false
     },
     {
       "name": "ContextActionService",
       "className": "?",
-      "id": "43d8b47d-c641-568f-0a98-a60000000386",
+      "id": "27e8d6f3-63ad-fadc-0aa1-9fa100000391",
       "hasChildren": false
     },
     {
-      "name": "Instance",
+      "name": "ScriptService",
       "className": "?",
-      "id": "43d8b47d-c641-568f-0a98-a60000000387",
+      "id": "27e8d6f3-63ad-fadc-0aa1-9fa100000392",
       "hasChildren": false
     },
     {
       "name": "AssetService",
       "className": "?",
-      "id": "43d8b47d-c641-568f-0a98-a60000000388",
+      "id": "27e8d6f3-63ad-fadc-0aa1-9fa100000393",
       "hasChildren": false
     },
     {
       "name": "TouchInputService",
       "className": "?",
-      "id": "43d8b47d-c641-568f-0a98-a6000000038a",
+      "id": "27e8d6f3-63ad-fadc-0aa1-9fa100000395",
       "hasChildren": false
     },
     {
       "name": "BrowserService",
       "className": "?",
-      "id": "001a985c-cb68-d449-0aa0-2f9200000397",
+      "id": "27e8d6f3-63ad-fadc-0aa1-9fa100000396",
       "hasChildren": false
     },
     {
       "name": "CaptureService",
       "className": "?",
-      "id": "001a985c-cb68-d449-0aa0-2f9200000398",
+      "id": "27e8d6f3-63ad-fadc-0aa1-9fa100000397",
       "hasChildren": false
     },
     {
       "name": "SlimContentProvider",
       "className": "?",
-      "id": "001a985c-cb68-d449-0aa0-2f920000039c",
+      "id": "27e8d6f3-63ad-fadc-0aa1-9fa10000039b",
       "hasChildren": false
     },
     {
       "name": "Packages",
       "className": "?",
-      "id": "43d8b47d-c641-568f-0a98-a60000000394",
+      "id": "27e8d6f3-63ad-fadc-0aa1-9fa1000003a0",
       "hasChildren": false
     },
     {
       "name": "GuidRegistryService",
       "className": "?",
-      "id": "43d8b47d-c641-568f-0a98-a60000000395",
+      "id": "27e8d6f3-63ad-fadc-0aa1-9fa1000003a1",
       "hasChildren": false
     },
     {
       "name": "AvatarCreationService",
       "className": "?",
-      "id": "001a985c-cb68-d449-0aa0-2f92000003a4",
+      "id": "27e8d6f3-63ad-fadc-0aa1-9fa1000003a3",
       "hasChildren": false
     },
     {
       "name": "GenerationService",
       "className": "?",
-      "id": "001a985c-cb68-d449-0aa0-2f92000003a5",
+      "id": "27e8d6f3-63ad-fadc-0aa1-9fa1000003a4",
       "hasChildren": false
     },
     {
       "name": "MatchmakingService",
       "className": "?",
-      "id": "001a985c-cb68-d449-0aa0-2f92000003a6",
+      "id": "27e8d6f3-63ad-fadc-0aa1-9fa1000003a5",
       "hasChildren": false
     },
     {
       "name": "ConfigureServerService",
       "className": "?",
-      "id": "19875de8-f5aa-3173-0a98-a61400000398",
+      "id": "27e8d6f3-63ad-fadc-0aa1-9fa1000003a6",
       "hasChildren": false
     },
     {
       "name": "ChangeHistoryService",
       "className": "?",
-      "id": "001a985c-cb68-d449-0aa0-2f92000003a9",
+      "id": "27e8d6f3-63ad-fadc-0aa1-9fa1000003a8",
       "hasChildren": false
     },
     {
       "name": "NetworkServer",
       "className": "?",
-      "id": "001a985c-cb68-d449-0aa0-2f92000003ae",
+      "id": "27e8d6f3-63ad-fadc-0aa1-9fa1000003ad",
       "hasChildren": false
     },
     {
       "name": "ClusterPacketCache",
       "className": "?",
-      "id": "001a985c-cb68-d449-0aa0-2f92000003b6",
-      "hasChildren": false
-    },
-    {
-      "name": "DataStoreService",
-      "className": "?",
-      "id": "43d8b47d-c641-568f-0a98-a600000003c5",
-      "hasChildren": false
-    },
-    {
-      "name": "HttpService",
-      "className": "?",
-      "id": "43d8b47d-c641-568f-0a98-a600000003b8",
+      "id": "27e8d6f3-63ad-fadc-0aa1-9fa1000003b5",
       "hasChildren": false
     },
     {
       "name": "Lighting",
       "className": "?",
-      "id": "43d8b47d-c641-568f-0a98-a600000003c6",
-      "hasChildren": true
-    },
-    {
-      "name": "ProximityPromptService",
-      "className": "?",
-      "id": "43d8b47d-c641-568f-0a98-a600000003c8",
+      "id": "27e8d6f3-63ad-fadc-0aa1-9fa100000e2f",
       "hasChildren": false
     },
     {
       "name": "ReplicatedStorage",
       "className": "?",
-      "id": "43d8b47d-c641-568f-0a98-a6000000039e",
-      "hasChildren": false
+      "id": "27e8d6f3-63ad-fadc-0aa1-9fa100000e30",
+      "hasChildren": true
     },
     {
       "name": "ServerScriptService",
       "className": "?",
-      "id": "43d8b47d-c641-568f-0a98-a6000000039f",
-      "hasChildren": false
+      "id": "27e8d6f3-63ad-fadc-0aa1-9fa100000e31",
+      "hasChildren": true
     },
     {
-      "name": "ServerStorage",
+      "name": "Script Context",
       "className": "?",
-      "id": "43d8b47d-c641-568f-0a98-a600000003a0",
-      "hasChildren": false
-    },
-    {
-      "name": "ServiceVisibilityService",
-      "className": "?",
-      "id": "43d8b47d-c641-568f-0a98-a600000003a3",
-      "hasChildren": false
-    },
-    {
-      "name": "Teams",
-      "className": "?",
-      "id": "43d8b47d-c641-568f-0a98-a600000003c9",
-      "hasChildren": false
-    },
-    {
-      "name": "TestService",
-      "className": "?",
-      "id": "43d8b47d-c641-568f-0a98-a600000003ca",
-      "hasChildren": false
-    },
-    {
-      "name": "VideoService",
-      "className": "?",
-      "id": "43d8b47d-c641-568f-0a98-a600000003ef",
-      "hasChildren": false
-    },
-    {
-      "name": "VoiceChatService",
-      "className": "?",
-      "id": "43d8b47d-c641-568f-0a98-a600000003cd",
-      "hasChildren": false
-    },
-    {
-      "name": "SpawnerService",
-      "className": "?",
-      "id": "001a985c-cb68-d449-0aa0-2f9200000e2a",
+      "id": "27e8d6f3-63ad-fadc-0aa1-9fa100000e35",
       "hasChildren": false
     },
     {
       "name": "PackageService",
       "className": "?",
-      "id": "001a985c-cb68-d449-0aa0-2f9200000e2b",
+      "id": "27e8d6f3-63ad-fadc-0aa1-9fa100000e4b",
+      "hasChildren": false
+    },
+    {
+      "name": "VoiceChatService",
+      "className": "?",
+      "id": "27e8d6f3-63ad-fadc-0aa1-9fa100000e4d",
+      "hasChildren": false
+    },
+    {
+      "name": "SpawnerService",
+      "className": "?",
+      "id": "27e8d6f3-63ad-fadc-0aa1-9fa100000e4f",
+      "hasChildren": false
+    },
+    {
+      "name": "Teams",
+      "className": "?",
+      "id": "27e8d6f3-63ad-fadc-0aa1-9fa100000e50",
       "hasChildren": false
     },
     {
       "name": "FeatureRestrictionManager",
       "className": "?",
-      "id": "001a985c-cb68-d449-0aa0-2f9200000e2e",
+      "id": "27e8d6f3-63ad-fadc-0aa1-9fa100000e51",
       "hasChildren": false
     },
     {
       "name": "CommerceService",
       "className": "?",
-      "id": "001a985c-cb68-d449-0aa0-2f9200000e30",
+      "id": "27e8d6f3-63ad-fadc-0aa1-9fa100000e53",
       "hasChildren": false
     },
     {
       "name": "RecommendationService",
       "className": "?",
-      "id": "001a985c-cb68-d449-0aa0-2f9200000e31",
+      "id": "27e8d6f3-63ad-fadc-0aa1-9fa100000e54",
+      "hasChildren": false
+    },
+    {
+      "name": "TestService",
+      "className": "?",
+      "id": "27e8d6f3-63ad-fadc-0aa1-9fa100000e55",
       "hasChildren": false
     },
     {
       "name": "AdService",
       "className": "?",
-      "id": "001a985c-cb68-d449-0aa0-2f9200000e32",
+      "id": "27e8d6f3-63ad-fadc-0aa1-9fa100000e56",
       "hasChildren": false
     },
     {
       "name": "SocialService",
       "className": "?",
-      "id": "001a985c-cb68-d449-0aa0-2f9200000e33",
+      "id": "27e8d6f3-63ad-fadc-0aa1-9fa100000e57",
+      "hasChildren": false
+    },
+    {
+      "name": "ProximityPromptService",
+      "className": "?",
+      "id": "27e8d6f3-63ad-fadc-0aa1-9fa100000e58",
       "hasChildren": false
     },
     {
       "name": "AvatarEditorService",
       "className": "?",
-      "id": "001a985c-cb68-d449-0aa0-2f9200000e35",
+      "id": "27e8d6f3-63ad-fadc-0aa1-9fa100000e5a",
       "hasChildren": false
     },
     {
       "name": "ScriptProfilerService",
       "className": "?",
-      "id": "001a985c-cb68-d449-0aa0-2f9200000e37",
+      "id": "27e8d6f3-63ad-fadc-0aa1-9fa100000e5c",
       "hasChildren": false
     },
     {
       "name": "HeapProfilerService",
       "className": "?",
-      "id": "001a985c-cb68-d449-0aa0-2f9200000e38",
+      "id": "27e8d6f3-63ad-fadc-0aa1-9fa100000e5d",
       "hasChildren": false
     },
     {
       "name": "ModerationService",
       "className": "?",
-      "id": "001a985c-cb68-d449-0aa0-2f9200000e3a",
+      "id": "27e8d6f3-63ad-fadc-0aa1-9fa100000e5f",
+      "hasChildren": false
+    },
+    {
+      "name": "VideoService",
+      "className": "?",
+      "id": "27e8d6f3-63ad-fadc-0aa1-9fa100000e60",
+      "hasChildren": false
+    },
+    {
+      "name": "ServerStorage",
+      "className": "?",
+      "id": "27e8d6f3-63ad-fadc-0aa1-9fa100000e61",
+      "hasChildren": false
+    },
+    {
+      "name": "HttpService",
+      "className": "?",
+      "id": "27e8d6f3-63ad-fadc-0aa1-9fa100000e62",
       "hasChildren": false
     },
     {
       "name": "AnalyticsService",
       "className": "?",
-      "id": "001a985c-cb68-d449-0aa0-2f9200000e3b",
+      "id": "27e8d6f3-63ad-fadc-0aa1-9fa100000e63",
       "hasChildren": false
     },
     {
       "name": "VersionControlService",
       "className": "?",
-      "id": "001a985c-cb68-d449-0aa0-2f9200000e3c",
+      "id": "27e8d6f3-63ad-fadc-0aa1-9fa100000e64",
       "hasChildren": false
     },
     {
       "name": "RemoteCommandService",
       "className": "?",
-      "id": "001a985c-cb68-d449-0aa0-2f9200000e40",
+      "id": "27e8d6f3-63ad-fadc-0aa1-9fa100000e68",
       "hasChildren": false
     },
     {
-      "name": "Script Context",
+      "name": "Instance",
       "className": "?",
-      "id": "001a985c-cb68-d449-0aa0-2f9200000e41",
+      "id": "27e8d6f3-63ad-fadc-0aa1-9fa100000e6a",
       "hasChildren": false
     },
     {
       "name": "PermissionsService",
       "className": "?",
-      "id": "001a985c-cb68-d449-0aa0-2f9200000e53",
+      "id": "27e8d6f3-63ad-fadc-0aa1-9fa100000e78",
       "hasChildren": false
     }
   ],
@@ -543,26 +537,14 @@
     {
       "name": "Camera",
       "className": "?",
-      "id": "43d8b47d-c641-568f-0a98-a600000003ce",
+      "id": "27e8d6f3-63ad-fadc-0aa1-9fa1000003a2",
       "hasChildren": false
-    },
-    {
-      "name": "Baseplate",
-      "className": "?",
-      "id": "43d8b47d-c641-568f-0a98-a600000003cf",
-      "hasChildren": true
     },
     {
       "name": "Terrain",
       "className": "?",
-      "id": "43d8b47d-c641-568f-0a98-a600000003d1",
+      "id": "27e8d6f3-63ad-fadc-0aa1-9fa100000e44",
       "hasChildren": false
-    },
-    {
-      "name": "SpawnLocation",
-      "className": "?",
-      "id": "43d8b47d-c641-568f-0a98-a600000003d2",
-      "hasChildren": true
     }
   ],
   "tree": [
@@ -570,53 +552,21 @@
       "path": "Workspace/Camera",
       "name": "Camera",
       "className": "?",
-      "id": "43d8b47d-c641-568f-0a98-a600000003ce",
+      "id": "27e8d6f3-63ad-fadc-0aa1-9fa1000003a2",
       "depth": 1,
       "hasChildren": false
-    },
-    {
-      "path": "Workspace/Baseplate",
-      "name": "Baseplate",
-      "className": "?",
-      "id": "43d8b47d-c641-568f-0a98-a600000003cf",
-      "depth": 1,
-      "hasChildren": true
     },
     {
       "path": "Workspace/Terrain",
       "name": "Terrain",
       "className": "?",
-      "id": "43d8b47d-c641-568f-0a98-a600000003d1",
+      "id": "27e8d6f3-63ad-fadc-0aa1-9fa100000e44",
       "depth": 1,
-      "hasChildren": false
-    },
-    {
-      "path": "Workspace/SpawnLocation",
-      "name": "SpawnLocation",
-      "className": "?",
-      "id": "43d8b47d-c641-568f-0a98-a600000003d2",
-      "depth": 1,
-      "hasChildren": true
-    },
-    {
-      "path": "Workspace/Baseplate/Texture",
-      "name": "Texture",
-      "className": "?",
-      "id": "43d8b47d-c641-568f-0a98-a600000003d0",
-      "depth": 2,
-      "hasChildren": false
-    },
-    {
-      "path": "Workspace/SpawnLocation/Decal",
-      "name": "Decal",
-      "className": "?",
-      "id": "43d8b47d-c641-568f-0a98-a600000003d3",
-      "depth": 2,
       "hasChildren": false
     }
   ],
   "classCounts": {
-    "?": 6
+    "?": 2
   },
   "notable": [
     {
@@ -632,20 +582,13 @@
       "properties": {
         "engineInstance.Name": "Terrain"
       }
-    },
-    {
-      "path": "Workspace/SpawnLocation",
-      "className": "?",
-      "properties": {
-        "engineInstance.Name": "SpawnLocation"
-      }
     }
   ],
   "geometrySamples": [],
   "stats": {
-    "nodesVisited": 6,
-    "detailCalls": 3,
-    "workspaceTopLevelCount": 4,
+    "nodesVisited": 2,
+    "detailCalls": 2,
+    "workspaceTopLevelCount": 2,
     "treeDepthCap": 8,
     "nodeCap": 1200,
     "truncated": false
