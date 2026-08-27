@@ -109,9 +109,9 @@ local function collectionSnapshot(player)
     local discoveredIds = {}
     local count = 0
 
-    for _, itemId in ipairs(CollectionRegistry.Order) do
-        if found[itemId] then
-            discoveredIds[itemId] = true
+    for _, collectionId in ipairs(CollectionRegistry.Order) do
+        if found[collectionId] then
+            discoveredIds[collectionId] = true
             count += 1
         end
     end
@@ -129,8 +129,8 @@ local function sendCollectionSync(player)
     collectionUpdate:FireClient(player, "SYNC", collectionSnapshot(player))
 end
 
-local function markDiscovered(player, itemId)
-    local entry = CollectionRegistry.Get(itemId)
+local function markDiscovered(player, collectionId)
+    local entry = CollectionRegistry.Get(collectionId)
     if not entry then return end
 
     local found = discoveries[player.UserId]
@@ -139,12 +139,13 @@ local function markDiscovered(player, itemId)
         discoveries[player.UserId] = found
     end
 
-    local isNew = not found[itemId]
-    found[itemId] = true
+    local isNew = not found[collectionId]
+    found[collectionId] = true
 
     local snapshot = collectionSnapshot(player)
     snapshot.item = {
         id = entry.id,
+        baseItemId = entry.baseItemId,
         name = entry.name,
         rarity = entry.rarity,
     }
@@ -163,12 +164,14 @@ local function setupPlayer(player)
 end
 
 local function publicCase(caseData)
-    local collectionItem = CollectionRegistry.Get(caseData.itemId)
+    local collectionId = caseData.collectionId or caseData.itemId
+    local collectionItem = CollectionRegistry.Get(collectionId)
     return {
         id = caseData.id,
         title = caseData.title,
         caseType = caseData.caseType,
         itemId = caseData.itemId,
+        collectionId = collectionId,
         itemName = caseData.itemName,
         itemRarity = collectionItem and collectionItem.rarity or "UNRATED",
         owner = caseData.owner,
@@ -345,7 +348,7 @@ for decision, decisionPrompt in pairs(refs.DecisionPrompts) do
 
         local grade = gradeDecision(decision)
         local reward, totalCredits, totalXP = grant(player, grade)
-        markDiscovered(player, activeCase.itemId)
+        markDiscovered(player, activeCase.collectionId or activeCase.itemId)
 
         broadcast("RESULT", {
             decision = decision,
