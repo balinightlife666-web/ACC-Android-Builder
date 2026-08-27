@@ -12,6 +12,18 @@ local function keyFor(userId)
     return "u_" .. tostring(userId)
 end
 
+local function defaultEconomyStats()
+    return {
+        casesCompleted = 0,
+        perfectCases = 0,
+        creditsEarned = 0,
+        creditsSpent = 0,
+        serialsMinted = 0,
+        tradesCompleted = 0,
+        playSeconds = 0,
+    }
+end
+
 local function defaults()
     return {
         credits = 0,
@@ -19,6 +31,7 @@ local function defaults()
         discovered = {},
         inventory = {},
         serialMigrationComplete = false,
+        economyStats = defaultEconomyStats(),
     }
 end
 
@@ -88,6 +101,16 @@ local function sanitizeInstance(raw)
     }
 end
 
+local function sanitizeEconomyStats(raw)
+    local result = defaultEconomyStats()
+    if type(raw) ~= "table" then return result end
+
+    for key in pairs(result) do
+        result[key] = math.max(0, math.floor(tonumber(raw[key]) or 0))
+    end
+    return result
+end
+
 local function sanitize(raw)
     local data = defaults()
     if type(raw) ~= "table" then
@@ -101,6 +124,7 @@ local function sanitize(raw)
         data.xp = math.max(0, math.floor(raw.xp))
     end
     data.serialMigrationComplete = raw.serialMigrationComplete == true
+    data.economyStats = sanitizeEconomyStats(raw.economyStats)
 
     if type(raw.discovered) == "table" then
         local seen = {}
@@ -147,12 +171,13 @@ function PlayerDataStore.Save(userId, payload)
     local ok, err = pcall(function()
         store:UpdateAsync(keyFor(userId), function()
             return {
-                version = 4,
+                version = 5,
                 credits = clean.credits,
                 xp = clean.xp,
                 discovered = clean.discovered,
                 inventory = clean.inventory,
                 serialMigrationComplete = clean.serialMigrationComplete,
+                economyStats = clean.economyStats,
                 updatedAt = os.time(),
             }
         end)
