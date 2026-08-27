@@ -1,4 +1,4 @@
-# Owner-approved AFTER SCHOOL CITY Spatial Cleanup v0.4.1 LIVE publish
+# Owner-approved AFTER SCHOOL CITY Structural Realignment v0.4.2 LIVE publish
 name: After School City Publish Hosted V1
 
 on:
@@ -21,7 +21,7 @@ jobs:
     timeout-minutes: 15
     env:
       SOURCE_REPO: ardarawk-cloud/ACC-Roblox-maps
-      SOURCE_SHA: 47cbf0f61c08d7ba691170476b9ce43f2f234b36
+      SOURCE_SHA: 1205e8bda6de776ae00ba498a43047438bb53dd6
       UNIVERSE_ID: '10745359869'
       PLACE_ID: '121603385909425'
       ROBLOX_API_KEY: ${{ secrets.ROCKET_RACOON_PUBLISH }}
@@ -36,12 +36,12 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: ardarawk-cloud/ACC-Roblox-maps
-          ref: 47cbf0f61c08d7ba691170476b9ce43f2f234b36
+          ref: 1205e8bda6de776ae00ba498a43047438bb53dd6
           token: ${{ secrets.ACC_ROBLOX_MAPS_WRITE_TOKEN }}
           path: asc-source
           fetch-depth: 1
 
-      - name: Preflight target and Spatial Cleanup v0.4.1
+      - name: Preflight target and Structural Realignment v0.4.2
         shell: bash
         run: |
           set -euo pipefail
@@ -52,21 +52,22 @@ jobs:
           project='asc-source/maps/after-school-city/default.project.json'
           intro='asc-source/maps/after-school-city/after-school-city.intro.client.lua'
           config='asc-source/maps/after-school-city/after-school-city.config.lua'
-          spatial='asc-source/maps/after-school-city/after-school-city.spatial-cleanup.server.lua'
+          realign='asc-source/maps/after-school-city/after-school-city.structural-realignment.server.lua'
 
           jq -e . "$project" >/dev/null
-          grep -Fq 'after-school-city.spatial-cleanup.server.lua' "$project"
-          grep -Fq 'ASC_SpatialCleanup' "$project"
+          grep -Fq 'ASC_StructuralRealignment' "$project"
+          grep -Fq 'after-school-city.structural-realignment.server.lua' "$project"
           grep -Fq 'PUTU AZYA PUTRI' "$intro"
           grep -Fq 'BINTANG HARDAJAYA' "$intro"
           grep -Fq 'WITH LOVE, DAD' "$intro"
-          grep -Fq '0.4.1-spatial-cleanup-1' "$config"
-          grep -Fq 'EnableSpatialCleanupPass = true' "$config"
-          grep -Fq 'V041_SpatialCleanup' "$spatial"
-          grep -Fq 'ASC_ClearanceChecked' "$spatial"
-          grep -Fq 'V041_SchoolDowntownCorridor' "$spatial"
-          grep -Fq 'SchoolSportsRoad' "$spatial"
-          echo "LOCK PASS source=$actual spatial_cleanup_v0_4_1=PASS dedication=PASS"
+          grep -Fq '0.4.2-structural-realignment-1' "$config"
+          grep -Fq 'EnableStructuralRealignmentPass = true' "$config"
+          grep -Fq 'V042_StructuralRealignment' "$realign"
+          grep -Fq 'ASC_RoadBuildingOverlapFixed' "$realign"
+          grep -Fq 'ASC_ClubSportsClearanceFixed' "$realign"
+          grep -Fq 'ASC_EndsBeforeSchool' "$realign"
+          grep -Fq 'ASC_StopsAtEntrance' "$realign"
+          echo "LOCK PASS source=$actual structural_realign_v0_4_2=PASS dedication=PASS"
 
       - name: Prepare Rojo 7.7.0
         shell: bash
@@ -94,8 +95,9 @@ jobs:
           echo "PLACE_FILE=$place" >> "$GITHUB_ENV"
           echo "PLACE_BYTES=$bytes" >> "$GITHUB_ENV"
           echo "PLACE_SHA256=$sha" >> "$GITHUB_ENV"
+          echo "BUILD PASS bytes=$bytes sha256=$sha"
 
-      - name: Publish Spatial Cleanup v0.4.1 LIVE to Roblox
+      - name: Publish Structural Realignment v0.4.2 LIVE to Roblox
         shell: bash
         run: |
           set -euo pipefail
@@ -121,7 +123,7 @@ jobs:
           jq -n \
             --arg status 'LIVE_PUBLISHED' \
             --arg project 'AFTER SCHOOL CITY' \
-            --arg mode 'SPATIAL_CLEANUP_V0_4_1' \
+            --arg mode 'STRUCTURAL_REALIGNMENT_V0_4_2' \
             --arg sourceRepo "$SOURCE_REPO" \
             --arg sourceCommit "$SOURCE_SHA" \
             --arg universeId "$UNIVERSE_ID" \
@@ -132,13 +134,13 @@ jobs:
             --arg placeSha256 "$PLACE_SHA256" \
             --arg runId "$GITHUB_RUN_ID" \
             --arg publishedAt "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
-            '{status:$status,project:$project,mode:$mode,sourceRepo:$sourceRepo,sourceCommit:$sourceCommit,universeId:$universeId,placeId:$placeId,versionNumber:($versionNumber|tonumber),rojoVersion:$rojoVersion,placeBytes:($placeBytes|tonumber),placeSha256:$placeSha256,runId:$runId,publishedAt:$publishedAt,note:"Spatial Cleanup v0.4.1 plus dedication intro."}' \
-            > deploy-status/after-school-city-publish-spatial-cleanup-v0-4-1.json
-          cat deploy-status/after-school-city-publish-spatial-cleanup-v0-4-1.json
+            '{status:$status,project:$project,mode:$mode,sourceRepo:$sourceRepo,sourceCommit:$sourceCommit,universeId:$universeId,placeId:$placeId,versionNumber:($versionNumber|tonumber),rojoVersion:$rojoVersion,placeBytes:($placeBytes|tonumber),placeSha256:$placeSha256,runId:$runId,publishedAt:$publishedAt,note:"Structural Realignment v0.4.2 plus dedication intro."}' \
+            > deploy-status/after-school-city-publish-structural-realignment-v0-4-2.json
+          cat deploy-status/after-school-city-publish-structural-realignment-v0-4-2.json
 
           git config user.name 'After School City Publish Bot'
           git config user.email 'actions@users.noreply.github.com'
-          git add deploy-status/after-school-city-publish-spatial-cleanup-v0-4-1.json
-          git commit -m "Record After School City Spatial Cleanup publish v${PUBLISHED_VERSION} [skip ci]"
+          git add deploy-status/after-school-city-publish-structural-realignment-v0-4-2.json
+          git commit -m "Record After School City Structural Realignment publish v${PUBLISHED_VERSION} [skip ci]"
           git pull --rebase origin main
           git push origin HEAD:main
