@@ -1,15 +1,15 @@
 {
   "status": "LIVE_PUBLISHED",
   "project": "LOST & FOUND: NIGHT SHIFT",
-  "milestone": "M0_FIRST_SUITCASE",
+  "milestone": "M4D_PERSONAL_SHIFTS",
   "sourceRepo": "balinightlife666-web/ACC-Android-Builder",
-  "sourceCommit": "39ba78108fca79b6cb2b5ca04559a3ce8c5fa23a",
+  "sourceCommit": "950eeb1e7b4c6119292340f4e630b8fa3e589461",
   "universeId": "10745354451",
   "placeId": "93699016600671",
-  "versionNumber": 33,
+  "versionNumber": 34,
   "rojoVersion": "7.7.0",
-  "placeBytes": 74069,
-  "placeSha256": "a4ab3172235338033918204922ef5f0bfb343567fc866858b14858da4f141f74",
-  "runId": "33096058726",
-  "publishedAt": "2026-08-27T16:59:24Z"
+  "placeBytes": 83918,
+  "placeSha256": "b70b00eaeab8cdfc6cb72b1ea881625ddc75995d2903c6ed3cae903436692612",
+  "runId": "33100322285",
+  "publishedAt": "2026-08-27T17:49:02Z"
 }
