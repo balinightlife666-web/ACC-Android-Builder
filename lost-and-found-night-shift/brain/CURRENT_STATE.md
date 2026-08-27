@@ -32,7 +32,7 @@ Locked feel values:
 ## M1 — PREMIUM ROOM
 **COMPLETE / RUNTIME-APPROVED.**
 
-Approved base geometries:
+Approved original base geometries:
 1. `hardcase_suitcase`
 2. `vintage_suitcase`
 3. `backpack`
@@ -51,82 +51,81 @@ M1 visual authority remains `brain/M1_VISUAL_LOCK.md`.
 - front-facing 3D preview orientation accepted on v20;
 - no generated images used for collection visuals.
 
-### M2-B — CONTROLLED VARIANTS + PHYSICAL SHOWCASE
-**COMPLETE / ACCEPTED.**
+### M2-B — COMPLETE / ACCEPTED
+- 10 stable case-specific collectible variants;
+- stable `collectionId` on all 10 existing cases;
+- per-player physical collection showcase;
+- rarity ladder active through COMMON / UNCOMMON / RARE / EPIC / SECRET / ANOMALY.
 
-Collection expanded to 10 controlled variants:
-1. Blue Transit Hardcase — COMMON
-2. Crimson Travel Backpack — UNCOMMON
-3. Cream Memory Bear — RARE
-4. Brown Heritage Case — UNCOMMON
-5. Black Security Hardcase — RARE
-6. Ownerless Vintage Case — ANOMALY
-7. Flight 000 Hardcase — SECRET
-8. Unstable Sealed Parcel — ANOMALY
-9. Green Identity Backpack — EPIC
-10. Milo's Small Case — SECRET
-
-Authority:
-- `src/shared/CollectionRegistry.lua`;
-- `registry/COLLECTION_REGISTRY.json`;
-- per-case stable `collectionId`;
-- per-player client-side physical collection showcase remains active.
-
-### M2-C — PERSISTENCE / DATASTORE
-**COMPLETE / RUNTIME-ACCEPTED.**
-
-Source:
-- `src/server/PlayerDataStore.lua`
-- `src/server/Main.server.lua`
-
-Persistent payload v1:
+### M2-C — COMPLETE / RUNTIME-ACCEPTED
+Persistent payload through `LostAndFound_PlayerData_v1`:
 - Credits;
 - XP;
 - discovered collection IDs.
 
-Runtime acceptance confirmed on mobile after leave/rejoin:
-- Credits restore correctly;
-- Collection/INDEX restore correctly;
-- physical showcase restoration is accepted for continuation;
-- case loop and movement remain stable.
+Runtime leave/rejoin persistence accepted on mobile. DataStore safety fallback remains locked.
 
-Safety rules remain locked:
-- datastore name: `LostAndFound_PlayerData_v1`;
-- load protected by `pcall`;
-- failed load falls back to session-only and must not overwrite prior persistent data;
-- only successfully-loaded profiles may save;
-- autosave every 60 seconds when dirty;
-- forced save on `PlayerRemoving` and `BindToClose`.
+### M2-D — CONTROLLED COLLECTION EXPANSION
+**IMPLEMENTED / LIVE v22 — RUNTIME QC PENDING.**
 
-### Inspection control readability patch
-`TAG READER` and `OPEN / INSPECT` are tilted upright toward the approaching player while remaining side-by-side and floor-accessible. Source: `src/server/InteractionLayout.server.lua`.
+Collection count is now **15**.
+
+The original 10 case-resolution collectibles remain unchanged. Five new **PERFECT-only bonus finds** were added:
+11. Silver Camera Lens — RARE — `LF-M0-005`
+12. Ownerless Tag 000-17284 — ANOMALY — `LF-M0-006`
+13. Flight 000 Boarding Tag — SECRET — `LF-M0-007`
+14. Duplicate Passport — EPIC — `LF-M0-009`
+15. Milo's Toy Train — SECRET — `LF-M0-010`
+
+New M2-D collectible geometries:
+- `camera_lens`
+- `evidence_tag`
+- `passport`
+- `toy_train`
+
+Rules:
+- resolving a case still discovers its normal case collectible;
+- a mapped bonus collectible is awarded only when that case is graded `PERFECT`;
+- bonus discovery uses a distinct `BONUS FIND` toast;
+- all 15 IDs use the existing persistent DataStore payload;
+- Collection carousel remains horizontal/mobile-first;
+- physical showcase expanded from 10 to 15 slots / three rows;
+- no trading.
+
+Authority:
+- runtime collection registry: `src/shared/CollectionRegistry.lua`;
+- governance mirror: `registry/COLLECTION_REGISTRY.json`;
+- bonus mappings: `src/shared/CaseRegistry.lua`;
+- bonus award logic: `src/server/Main.server.lua`;
+- preview geometry: `src/shared/CollectionPreviewFactory.lua`;
+- 15-slot room showcase: `src/client/CollectionShowcase.client.lua`.
 
 ## Latest publish receipt
-Run: `33049729712`
-Source commit: `2194829ef52f19a883d4ff5603b612c8b96b1494`
+Run: `33051700577`
+Source commit: `7f97d7a7dd34fb3c71081779796750938ff28cfa`
 Rojo: `7.7.0`
 Static QC: **PASS**
 Rojo build: **PASS**
 Roblox publish: **PASS**
-Roblox version: `21`
-RBXL bytes: `39649`
-RBXL SHA256: `6286b58942177e301a98708647064f0357525d93d635f080fd33035cbeeeb800`
+Roblox version: `22`
+RBXL bytes: `41458`
+RBXL SHA256: `1ee0e796bf7eab81cddeee00492077931ebb137e4bdddbc23bd62e7da591db45`
 Deploy receipt: `deploy-status/lost-and-found-m0.json`
 
 ## LIVE authority
-**LIVE_PUBLISHED — v21 BUILD/DEPLOY VERIFIED + M2-C RUNTIME ACCEPTED.**
+**LIVE_PUBLISHED — v22 BUILD/DEPLOY VERIFIED.**
+M2-D bonus collection runtime visuals/gameplay require mobile acceptance before expanding further.
 
 ## Next gate
-**M2-D — CONTROLLED COLLECTION EXPANSION.**
+**M2-D-RUNTIME**
+1. existing saved Credits + prior INDEX discoveries restore correctly;
+2. INDEX total displays `/15` without wiping existing discoveries;
+3. Collection carousel scrolls through all 15 cards;
+4. new locked silhouettes render for lens/tag/passport/train;
+5. complete one mapped case with the correct PERFECT decision;
+6. corresponding `BONUS FIND` appears and INDEX increments by one additional unique item;
+7. bonus item persists after leave/rejoin;
+8. 15-slot physical showcase does not block movement and shows discovered bonus models correctly;
+9. existing case loop remains stable.
 
-Goal:
-- expand the collection in staged batches rather than one uncontrolled jump;
-- move from 10 toward the roadmap target of 30–40 approved collectible items;
-- prioritize new meaningful item shapes plus controlled variants, not color swaps alone;
-- keep mobile Collection UI readable and physical showcase scalable;
-- preserve rarity discipline and mystery-item scarcity;
-- do not unlock trading yet.
-
-Recommended next slice: add 5 new collectible items with at least 2 new base geometries, then runtime-QC before expanding further.
-
-After the collection foundation is materially stronger, proceed to **M3 — FLIGHT 000**.
+After M2-D runtime acceptance, decide whether to take one more controlled collection slice or begin **M3 — FLIGHT 000**. Trading remains locked.
