@@ -20,6 +20,12 @@ local VARIANTS = {
     green_identity_backpack = { base = "backpack", color = Color3.fromRGB(55, 82, 66) },
     milo_small_case = { base = "vintage_suitcase", color = Color3.fromRGB(86, 58, 43), scale = 0.82 },
 
+    silver_camera_lens = { base = "camera_lens", color = Color3.fromRGB(82, 88, 98) },
+    ownerless_tag_00017284 = { base = "evidence_tag", color = Color3.fromRGB(104, 80, 57) },
+    flight_000_boarding_tag = { base = "evidence_tag", color = Color3.fromRGB(55, 67, 82) },
+    duplicate_passport = { base = "passport", color = Color3.fromRGB(67, 42, 58) },
+    milo_toy_train_2001 = { base = "toy_train", color = Color3.fromRGB(112, 42, 38) },
+
     hardcase_suitcase = { base = "hardcase_suitcase", color = Color3.fromRGB(41, 72, 112) },
     vintage_suitcase = { base = "vintage_suitcase", color = Color3.fromRGB(100, 68, 45) },
     backpack = { base = "backpack", color = Color3.fromRGB(122, 44, 48) },
@@ -104,12 +110,55 @@ local function buildTeddy(model, color)
     model.PrimaryPart = root
 end
 
+local function buildCameraLens(model, color)
+    local root = makePart(model, "LensBody", Vector3.new(3.1, 3.1, 2.4), CFrame.new() * CFrame.Angles(0, 0, math.rad(90)), color, Enum.Material.Metal, Enum.PartType.Cylinder)
+    child(model, root, "GripRing", Vector3.new(2.45, 3.35, 3.35), CFrame.new(-0.15, 0, 0), Color3.fromRGB(35, 38, 44), Enum.Material.Metal, Enum.PartType.Cylinder)
+    child(model, root, "FrontGlass", Vector3.new(0.22, 2.45, 2.45), CFrame.new(-1.3, 0, 0), Color3.fromRGB(47, 90, 112), Enum.Material.Glass, Enum.PartType.Cylinder)
+    child(model, root, "SilverRing", Vector3.new(0.22, 3.0, 3.0), CFrame.new(-1.08, 0, 0), Color3.fromRGB(145, 151, 162), Enum.Material.Metal, Enum.PartType.Cylinder)
+    model.PrimaryPart = root
+end
+
+local function buildEvidenceTag(model, color)
+    local root = makePart(model, "Tag", Vector3.new(4.9, 2.8, 0.28), CFrame.new(), color, Enum.Material.SmoothPlastic)
+    child(model, root, "Header", Vector3.new(4.2, 0.4, 0.12), CFrame.new(0, 0.82, -0.2), Color3.fromRGB(218, 183, 91), Enum.Material.SmoothPlastic)
+    for i = -2, 2 do
+        child(model, root, "CodeBar", Vector3.new(0.18, 0.75, 0.1), CFrame.new(i * 0.55, -0.55, -0.2), Color3.fromRGB(28, 31, 36), Enum.Material.SmoothPlastic)
+    end
+    child(model, root, "Punch", Vector3.new(0.38, 0.38, 0.12), CFrame.new(-2.0, 0.9, -0.2), Color3.fromRGB(20, 22, 26), Enum.Material.SmoothPlastic, Enum.PartType.Ball)
+    model.PrimaryPart = root
+end
+
+local function buildPassport(model, color)
+    local root = makePart(model, "Cover", Vector3.new(3.4, 4.6, 0.48), CFrame.new(), color, Enum.Material.SmoothPlastic)
+    child(model, root, "PageBlock", Vector3.new(3.05, 4.25, 0.3), CFrame.new(0.12, 0, 0.35), Color3.fromRGB(214, 208, 186), Enum.Material.SmoothPlastic)
+    child(model, root, "Seal", Vector3.new(1.15, 1.15, 0.12), CFrame.new(0, 0.5, -0.3), Color3.fromRGB(205, 170, 72), Enum.Material.Metal, Enum.PartType.Ball)
+    child(model, root, "GoldLine", Vector3.new(2.1, 0.16, 0.1), CFrame.new(0, -1.3, -0.3), Color3.fromRGB(205, 170, 72), Enum.Material.Metal)
+    model.PrimaryPart = root
+end
+
+local function buildToyTrain(model, color)
+    local root = makePart(model, "Engine", Vector3.new(4.2, 2.1, 2.2), CFrame.new(), color, Enum.Material.Metal)
+    child(model, root, "Cab", Vector3.new(1.8, 2.4, 2.0), CFrame.new(0.9, 1.5, 0), color:Lerp(Color3.fromRGB(20, 22, 26), 0.08), Enum.Material.Metal)
+    child(model, root, "Boiler", Vector3.new(2.8, 1.55, 1.55), CFrame.new(-1.45, 0.45, 0) * CFrame.Angles(0, 0, math.rad(90)), color, Enum.Material.Metal, Enum.PartType.Cylinder)
+    child(model, root, "Chimney", Vector3.new(0.75, 1.8, 0.75), CFrame.new(-1.75, 1.75, 0), Color3.fromRGB(38, 41, 47), Enum.Material.Metal)
+    for _, x in ipairs({-1.35, 1.25}) do
+        for _, z in ipairs({-1.12, 1.12}) do
+            child(model, root, "Wheel", Vector3.new(0.78, 0.78, 0.78), CFrame.new(x, -1.12, z), Color3.fromRGB(26, 28, 32), Enum.Material.Metal, Enum.PartType.Ball)
+        end
+    end
+    model.PrimaryPart = root
+end
+
 local BUILDERS = {
     hardcase_suitcase = buildHardcase,
     vintage_suitcase = buildVintage,
     backpack = buildBackpack,
     cardboard_box = buildCardboard,
     teddy_bear = buildTeddy,
+    camera_lens = buildCameraLens,
+    evidence_tag = buildEvidenceTag,
+    passport = buildPassport,
+    toy_train = buildToyTrain,
 }
 
 function CollectionPreviewFactory.Create(collectionId, parent, locked)
@@ -135,8 +184,8 @@ function CollectionPreviewFactory.Create(collectionId, parent, locked)
         end
     end
 
-    -- Front details are built toward -Z. Rotate the model so that face points
-    -- toward the collection camera (+X/+Z), while keeping a slight 3/4 angle.
+    -- Front details are authored toward -Z; rotate toward the collection camera
+    -- while retaining a slight three-quarter angle for depth readability.
     model:PivotTo(CFrame.Angles(math.rad(-6), math.rad(-148), 0))
     return model
 end
