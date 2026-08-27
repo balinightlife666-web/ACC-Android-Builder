@@ -1,0 +1,27 @@
+{
+  "version": "1.0",
+  "status": "M2_B_CONTROLLED_VARIANTS",
+  "sessionOnly": true,
+  "tradingEnabled": false,
+  "showcaseEnabled": true,
+  "collectionCount": 10,
+  "entries": [
+    {"id":"blue_transit_hardcase","baseItemId":"hardcase_suitcase","name":"Blue Transit Hardcase","rarity":"COMMON","caseId":"LF-M0-001"},
+    {"id":"crimson_travel_backpack","baseItemId":"backpack","name":"Crimson Travel Backpack","rarity":"UNCOMMON","caseId":"LF-M0-002"},
+    {"id":"cream_memory_bear","baseItemId":"teddy_bear","name":"Cream Memory Bear","rarity":"RARE","caseId":"LF-M0-003"},
+    {"id":"brown_heritage_case","baseItemId":"vintage_suitcase","name":"Brown Heritage Case","rarity":"UNCOMMON","caseId":"LF-M0-004"},
+    {"id":"black_security_hardcase","baseItemId":"hardcase_suitcase","name":"Black Security Hardcase","rarity":"RARE","caseId":"LF-M0-005"},
+    {"id":"ownerless_vintage_case","baseItemId":"vintage_suitcase","name":"Ownerless Vintage Case","rarity":"ANOMALY","caseId":"LF-M0-006"},
+    {"id":"flight_000_hardcase","baseItemId":"hardcase_suitcase","name":"Flight 000 Hardcase","rarity":"SECRET","caseId":"LF-M0-007"},
+    {"id":"unstable_sealed_parcel","baseItemId":"cardboard_box","name":"Unstable Sealed Parcel","rarity":"ANOMALY","caseId":"LF-M0-008"},
+    {"id":"green_identity_backpack","baseItemId":"backpack","name":"Green Identity Backpack","rarity":"EPIC","caseId":"LF-M0-009"},
+    {"id":"milo_small_case","baseItemId":"vintage_suitcase","name":"Milo's Small Case","rarity":"SECRET","caseId":"LF-M0-010"}
+  ],
+  "rules": [
+    "A resolved case discovers its collectionId, not merely its base geometry type.",
+    "Variants reuse one of the five M1-approved base geometries.",
+    "Undiscovered collection entries remain hidden in UI and physical showcase.",
+    "No DataStore persistence in M2-B; persistence is a later gate.",
+    "No trading in M2-B."
+  ]
+}
