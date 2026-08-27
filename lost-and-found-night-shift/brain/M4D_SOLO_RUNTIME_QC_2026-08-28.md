@@ -1,8 +1,8 @@
 # LOST & FOUND: NIGHT SHIFT — M4-D SOLO MOBILE RUNTIME QC
 
 Date: 2026-08-28
-Live build under test: Roblox v34
-Deploy source: `950eeb1e7b4c6119292340f4e630b8fa3e589461`
+Live build reviewed: Roblox v34
+Deploy source reviewed: `950eeb1e7b4c6119292340f4e630b8fa3e589461`
 
 ## Runtime evidence supplied from mobile
 Four in-game screenshots were reviewed from a solo server.
@@ -19,24 +19,45 @@ Four in-game screenshots were reviewed from a solo server.
 - The old giant local-only wall showcase is not visible; M4-D replicated station showcase behavior is present instead.
 - No obvious overlap with Roblox top controls or the jump button is visible in the supplied screenshots.
 
-### Visual / UX issues found
-1. **Room readability is too dark on mobile.** Large portions of floor, station structure, player silhouette, and station boundaries collapse into black. Functional controls are visible, but the physical station does not yet read as premium or easy to navigate.
-2. **Station-to-station separation needs stronger visual language.** With multiple players later, bay ownership could be harder to read than intended. Station ID/signage, floor edge/guide lighting, and work-surface illumination need a controlled brightness pass.
-3. **Decision controls read too much like flat floor panels.** They function, but their location and labels are visually weak from normal third-person mobile angles. Improve contrast/height/readability without enlarging the UI.
-4. **Public serial BillboardGui can visually float into the HUD area.** The serial is useful for flex, but `AlwaysOnTop`/distance behavior should be softened so world labels do not compete with screen UI.
-5. The owner/station identity sign is not clearly readable in the supplied framing, so physical owner-sign readability remains a visual QC item even though Station A assignment is confirmed by HUD/prompt.
+## Solo QC decision
+**M4-D SOLO CORE FUNCTIONAL PASS.**
 
-## QC decision
-**M4-D SOLO CORE FUNCTIONAL PASS / VISUAL POLISH REQUIRED.**
+Multiplayer isolation remains deferred until a second tester is available; do not claim two-player isolation runtime-proven yet.
 
-Do not call M4-D fully runtime-accepted yet. The solo gameplay foundation is functioning, but a Station Readability / Lighting pass should be completed before Station Shop becomes the next visible feature.
+## Visual / UX issues found on v34
+1. Room readability is too dark on mobile; large floor/station/character areas collapse into black.
+2. Station-to-station separation needs stronger visible bay boundaries.
+3. Decision controls read too much like flat floor panels from normal third-person mobile angles.
+4. Public serial BillboardGui competes with screen HUD because it is too persistent/on-top.
+5. Physical owner/station identity sign needs stronger readability.
 
-## Recommended immediate next patch
-`M4-D.1 — STATION READABILITY PASS`
-- raise ambient/work-light readability without losing night-shift mood;
-- strengthen station boundary/ID visibility;
-- improve decision-console readability;
-- reduce public serial-label HUD interference;
-- preserve current mobile HUD sizes and current working personal case loop.
+## M4-D.1 — STATION READABILITY PASS
+**IMPLEMENTED IN SOURCE / PUBLISH + RUNTIME QC PENDING.**
 
-Multiplayer isolation QC remains deferred until a second tester is available.
+Changes:
+- raised global indoor ambient/diffuse readability while retaining night-shift color language;
+- reduced atmosphere density/haze and harsh contrast that crushed dark geometry;
+- strengthened ceiling illumination with one controlled central fill light;
+- added only one soft non-shadow station fill light per bay to protect mobile performance;
+- added neon perimeter boundaries to each Station A-H without extra point lights;
+- added visible floor `STATION X` marker near each personal bay entrance;
+- enlarged and illuminated owner identity sign;
+- raised decision consoles and added vertical decision faces plus low foot glow;
+- brightened Standard Ops base/panel/trim palette;
+- added `StationReadability.server.lua` to make public serial labels shorter-range, non-AlwaysOnTop, smaller and less HUD-competitive.
+
+Hard locks preserved:
+- no gameplay/reward/drop changes;
+- no station ownership logic changes;
+- no HUD size increase;
+- no image generation/assets;
+- no increase beyond 8 planned active stations;
+- no extra shadow-casting lights.
+
+## Next runtime QC after M4-D.1 publish
+1. room should remain clearly night-shift but floor/player/station geometry must be readable;
+2. Station A boundary and floor marker should be obvious;
+3. owner sign should be readable from normal station approach;
+4. RETURN / STORE / QUARANTINE / SECURITY consoles should read from third-person view;
+5. serial showcase label should remain visible nearby but stop floating aggressively over HUD;
+6. complete one case to confirm no functional regression.
