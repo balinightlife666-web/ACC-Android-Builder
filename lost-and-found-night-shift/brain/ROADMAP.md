@@ -39,16 +39,27 @@ First major mystery update.
 - first limited anomaly collectible
 
 ## M4 — SOCIAL / ECONOMY HARDENING
+- unique serialized inventory foundation
+- secure player-to-player item trading
 - player showcase visits
 - social server cases
 - economy telemetry/balancing
-- trading only after exploit/economy review
+- anti-dupe / anti-double-spend / ownership integrity before broad trading rollout
 
 ## M5 — LIVE SERVICE
 - daily/weekly cases
 - event scheduler
 - seasonal item pools
+- seasonal room/environment transformations
+- seasonal edition serials
 - content update pipeline
+
+### 2026 seasonal priorities
+Authority: `brain/SEASONAL_EVENTS_LOCK.md`
+- Halloween 2026: limited event collectibles + in-engine seasonal visual transformation around the 31 October real-world event.
+- Christmas 2026: limited event collectibles + in-engine seasonal visual transformation around the 25 December real-world event.
+- Exact event windows, item counts, drop rates, and mint caps remain TBD until economy/runtime review.
+- Seasonal gameplay assets should be Roblox 3D/procedural/in-engine by default; no AI image generation unless Arda explicitly requests it.
 
 ## Expansion rule
 New locations are added only when the existing core loop and retention justify them. Do not enlarge the map as a substitute for content quality.
