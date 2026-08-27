@@ -19,12 +19,16 @@ local VARIANTS = {
     unstable_sealed_parcel = { base = "cardboard_box", color = Color3.fromRGB(147, 108, 70) },
     green_identity_backpack = { base = "backpack", color = Color3.fromRGB(55, 82, 66) },
     milo_small_case = { base = "vintage_suitcase", color = Color3.fromRGB(86, 58, 43), scale = 0.82 },
-
     silver_camera_lens = { base = "camera_lens", color = Color3.fromRGB(82, 88, 98) },
     ownerless_tag_00017284 = { base = "evidence_tag", color = Color3.fromRGB(104, 80, 57) },
     flight_000_boarding_tag = { base = "evidence_tag", color = Color3.fromRGB(55, 67, 82) },
     duplicate_passport = { base = "passport", color = Color3.fromRGB(67, 42, 58) },
     milo_toy_train_2001 = { base = "toy_train", color = Color3.fromRGB(112, 42, 38) },
+    maya_power_adapter = { base = "power_adapter", color = Color3.fromRGB(224, 224, 218) },
+    daniel_formal_shoe = { base = "formal_shoe", color = Color3.fromRGB(38, 35, 34) },
+    sofia_name_patch = { base = "name_patch", color = Color3.fromRGB(196, 169, 133) },
+    ari_red_paperback = { base = "paperback", color = Color3.fromRGB(132, 47, 44) },
+    unstable_mass_readout = { base = "mass_readout", color = Color3.fromRGB(57, 65, 76) },
 
     hardcase_suitcase = { base = "hardcase_suitcase", color = Color3.fromRGB(41, 72, 112) },
     vintage_suitcase = { base = "vintage_suitcase", color = Color3.fromRGB(100, 68, 45) },
@@ -55,25 +59,25 @@ end
 
 local function buildHardcase(model, color)
     local root = makePart(model, "Body", Vector3.new(5.6, 3.8, 2.35), CFrame.new(), color, Enum.Material.SmoothPlastic)
-    for x = -2.0, 2.0, 1.0 do
+    for x = -2, 2, 1 do
         child(model, root, "ShellRib", Vector3.new(0.14, 3.25, 0.16), CFrame.new(x, 0, -1.2), Color3.fromRGB(24, 27, 33), Enum.Material.Metal)
     end
     child(model, root, "TopHandle", Vector3.new(2.1, 0.28, 0.34), CFrame.new(0, 2.05, 0), COLORS.Dark, Enum.Material.Metal)
     child(model, root, "HandlePostL", Vector3.new(0.22, 1.05, 0.22), CFrame.new(-0.85, 1.6, 0), COLORS.Dark, Enum.Material.Metal)
     child(model, root, "HandlePostR", Vector3.new(0.22, 1.05, 0.22), CFrame.new(0.85, 1.6, 0), COLORS.Dark, Enum.Material.Metal)
     for _, x in ipairs({-2.1, 2.1}) do
-        makePart(model, "Wheel", Vector3.new(0.5, 0.5, 0.5), root.CFrame * CFrame.new(x, -2.0, 0.75), Color3.fromRGB(18, 20, 24), Enum.Material.Metal, Enum.PartType.Ball)
+        child(model, root, "Wheel", Vector3.new(0.5, 0.5, 0.5), CFrame.new(x, -2, 0.75), Color3.fromRGB(18, 20, 24), Enum.Material.Metal, Enum.PartType.Ball)
     end
     model.PrimaryPart = root
 end
 
 local function buildVintage(model, color)
     local root = makePart(model, "Body", Vector3.new(5.2, 3.35, 2.25), CFrame.new(), color, Enum.Material.Wood)
-    child(model, root, "LeatherBandL", Vector3.new(0.35, 3.45, 2.34), CFrame.new(-1.55, 0, 0), COLORS.Leather, Enum.Material.SmoothPlastic)
-    child(model, root, "LeatherBandR", Vector3.new(0.35, 3.45, 2.34), CFrame.new(1.55, 0, 0), COLORS.Leather, Enum.Material.SmoothPlastic)
-    child(model, root, "LatchL", Vector3.new(0.5, 0.52, 0.2), CFrame.new(-1.0, 0.35, -1.2), Color3.fromRGB(180, 139, 62), Enum.Material.Metal)
-    child(model, root, "LatchR", Vector3.new(0.5, 0.52, 0.2), CFrame.new(1.0, 0.35, -1.2), Color3.fromRGB(180, 139, 62), Enum.Material.Metal)
-    child(model, root, "TopHandle", Vector3.new(1.8, 0.3, 0.38), CFrame.new(0, 1.95, 0), COLORS.Leather, Enum.Material.SmoothPlastic)
+    child(model, root, "LeatherBandL", Vector3.new(0.35, 3.45, 2.34), CFrame.new(-1.55, 0, 0), COLORS.Leather)
+    child(model, root, "LeatherBandR", Vector3.new(0.35, 3.45, 2.34), CFrame.new(1.55, 0, 0), COLORS.Leather)
+    child(model, root, "LatchL", Vector3.new(0.5, 0.52, 0.2), CFrame.new(-1, 0.35, -1.2), Color3.fromRGB(180, 139, 62), Enum.Material.Metal)
+    child(model, root, "LatchR", Vector3.new(0.5, 0.52, 0.2), CFrame.new(1, 0.35, -1.2), Color3.fromRGB(180, 139, 62), Enum.Material.Metal)
+    child(model, root, "TopHandle", Vector3.new(1.8, 0.3, 0.38), CFrame.new(0, 1.95, 0), COLORS.Leather)
     model.PrimaryPart = root
 end
 
@@ -81,32 +85,32 @@ local function buildBackpack(model, color)
     local root = makePart(model, "Body", Vector3.new(4.2, 4.8, 2.05), CFrame.new(), color, Enum.Material.Fabric)
     child(model, root, "FrontPocket", Vector3.new(3.3, 1.75, 0.7), CFrame.new(0, -0.9, -1.35), color:Lerp(Color3.fromRGB(20, 22, 26), 0.2), Enum.Material.Fabric)
     child(model, root, "TopCap", Vector3.new(3.7, 1.1, 1.9), CFrame.new(0, 2.2, 0), color, Enum.Material.Fabric, Enum.PartType.Ball)
-    child(model, root, "GrabHandle", Vector3.new(1.55, 0.24, 0.3), CFrame.new(0, 2.75, 0.55), COLORS.Dark, Enum.Material.SmoothPlastic)
+    child(model, root, "GrabHandle", Vector3.new(1.55, 0.24, 0.3), CFrame.new(0, 2.75, 0.55), COLORS.Dark)
     child(model, root, "StrapL", Vector3.new(0.35, 3.6, 0.28), CFrame.new(-1.15, 0, 1.17), Color3.fromRGB(32, 35, 40), Enum.Material.Fabric)
     child(model, root, "StrapR", Vector3.new(0.35, 3.6, 0.28), CFrame.new(1.15, 0, 1.17), Color3.fromRGB(32, 35, 40), Enum.Material.Fabric)
     model.PrimaryPart = root
 end
 
 local function buildCardboard(model, color)
-    local root = makePart(model, "Body", Vector3.new(5.15, 3.45, 3.25), CFrame.new(), color or COLORS.Cardboard, Enum.Material.SmoothPlastic)
-    child(model, root, "TapeLong", Vector3.new(0.65, 3.55, 3.35), CFrame.new(), COLORS.Tape, Enum.Material.SmoothPlastic)
-    child(model, root, "TapeCross", Vector3.new(5.25, 0.58, 3.35), CFrame.new(0, 0.45, 0), COLORS.Tape, Enum.Material.SmoothPlastic)
-    child(model, root, "LabelPlate", Vector3.new(2.25, 1.15, 0.1), CFrame.new(-0.75, 0.35, -1.68), Color3.fromRGB(224, 220, 205), Enum.Material.SmoothPlastic)
+    local root = makePart(model, "Body", Vector3.new(5.15, 3.45, 3.25), CFrame.new(), color or COLORS.Cardboard)
+    child(model, root, "TapeLong", Vector3.new(0.65, 3.55, 3.35), CFrame.new(), COLORS.Tape)
+    child(model, root, "TapeCross", Vector3.new(5.25, 0.58, 3.35), CFrame.new(0, 0.45, 0), COLORS.Tape)
+    child(model, root, "LabelPlate", Vector3.new(2.25, 1.15, 0.1), CFrame.new(-0.75, 0.35, -1.68), Color3.fromRGB(224, 220, 205))
     model.PrimaryPart = root
 end
 
 local function buildTeddy(model, color)
-    local root = makePart(model, "Body", Vector3.new(3.25, 3.25, 3.0), CFrame.new(), color, Enum.Material.Fabric, Enum.PartType.Ball)
+    local root = makePart(model, "Body", Vector3.new(3.25, 3.25, 3), CFrame.new(), color, Enum.Material.Fabric, Enum.PartType.Ball)
     child(model, root, "Head", Vector3.new(2.8, 2.8, 2.65), CFrame.new(0, 2.55, -0.15), color, Enum.Material.Fabric, Enum.PartType.Ball)
-    child(model, root, "EarL", Vector3.new(1.1, 1.1, 0.75), CFrame.new(-1.15, 3.45, 0), color:Lerp(Color3.fromRGB(90, 60, 45), 0.12), Enum.Material.Fabric, Enum.PartType.Ball)
-    child(model, root, "EarR", Vector3.new(1.1, 1.1, 0.75), CFrame.new(1.15, 3.45, 0), color:Lerp(Color3.fromRGB(90, 60, 45), 0.12), Enum.Material.Fabric, Enum.PartType.Ball)
+    child(model, root, "EarL", Vector3.new(1.1, 1.1, 0.75), CFrame.new(-1.15, 3.45, 0), color, Enum.Material.Fabric, Enum.PartType.Ball)
+    child(model, root, "EarR", Vector3.new(1.1, 1.1, 0.75), CFrame.new(1.15, 3.45, 0), color, Enum.Material.Fabric, Enum.PartType.Ball)
     child(model, root, "Muzzle", Vector3.new(1.35, 0.95, 0.65), CFrame.new(0, 2.25, -1.35), Color3.fromRGB(210, 184, 151), Enum.Material.Fabric, Enum.PartType.Ball)
     child(model, root, "ArmL", Vector3.new(1.15, 2.6, 1.15), CFrame.new(-1.7, 0.45, 0) * CFrame.Angles(0, 0, math.rad(-22)), color, Enum.Material.Fabric)
     child(model, root, "ArmR", Vector3.new(1.15, 2.6, 1.15), CFrame.new(1.7, 0.45, 0) * CFrame.Angles(0, 0, math.rad(22)), color, Enum.Material.Fabric)
-    child(model, root, "LegL", Vector3.new(1.35, 2.1, 1.45), CFrame.new(-0.9, -2.0, 0.2), color, Enum.Material.Fabric)
-    child(model, root, "LegR", Vector3.new(1.35, 2.1, 1.45), CFrame.new(0.9, -2.0, 0.2), color, Enum.Material.Fabric)
-    child(model, root, "EyeL", Vector3.new(0.25, 0.25, 0.18), CFrame.new(-0.55, 2.85, -1.33), Color3.fromRGB(20, 20, 22), Enum.Material.SmoothPlastic, Enum.PartType.Ball)
-    child(model, root, "EyeR", Vector3.new(0.25, 0.25, 0.18), CFrame.new(0.55, 2.85, -1.33), Color3.fromRGB(20, 20, 22), Enum.Material.SmoothPlastic, Enum.PartType.Ball)
+    child(model, root, "LegL", Vector3.new(1.35, 2.1, 1.45), CFrame.new(-0.9, -2, 0.2), color, Enum.Material.Fabric)
+    child(model, root, "LegR", Vector3.new(1.35, 2.1, 1.45), CFrame.new(0.9, -2, 0.2), color, Enum.Material.Fabric)
+    child(model, root, "EyeL", Vector3.new(0.25, 0.25, 0.18), CFrame.new(-0.55, 2.85, -1.33), Color3.fromRGB(20, 20, 22), nil, Enum.PartType.Ball)
+    child(model, root, "EyeR", Vector3.new(0.25, 0.25, 0.18), CFrame.new(0.55, 2.85, -1.33), Color3.fromRGB(20, 20, 22), nil, Enum.PartType.Ball)
     model.PrimaryPart = root
 end
 
@@ -114,23 +118,21 @@ local function buildCameraLens(model, color)
     local root = makePart(model, "LensBody", Vector3.new(3.1, 3.1, 2.4), CFrame.new() * CFrame.Angles(0, 0, math.rad(90)), color, Enum.Material.Metal, Enum.PartType.Cylinder)
     child(model, root, "GripRing", Vector3.new(2.45, 3.35, 3.35), CFrame.new(-0.15, 0, 0), Color3.fromRGB(35, 38, 44), Enum.Material.Metal, Enum.PartType.Cylinder)
     child(model, root, "FrontGlass", Vector3.new(0.22, 2.45, 2.45), CFrame.new(-1.3, 0, 0), Color3.fromRGB(47, 90, 112), Enum.Material.Glass, Enum.PartType.Cylinder)
-    child(model, root, "SilverRing", Vector3.new(0.22, 3.0, 3.0), CFrame.new(-1.08, 0, 0), Color3.fromRGB(145, 151, 162), Enum.Material.Metal, Enum.PartType.Cylinder)
+    child(model, root, "SilverRing", Vector3.new(0.22, 3, 3), CFrame.new(-1.08, 0, 0), Color3.fromRGB(145, 151, 162), Enum.Material.Metal, Enum.PartType.Cylinder)
     model.PrimaryPart = root
 end
 
 local function buildEvidenceTag(model, color)
-    local root = makePart(model, "Tag", Vector3.new(4.9, 2.8, 0.28), CFrame.new(), color, Enum.Material.SmoothPlastic)
-    child(model, root, "Header", Vector3.new(4.2, 0.4, 0.12), CFrame.new(0, 0.82, -0.2), Color3.fromRGB(218, 183, 91), Enum.Material.SmoothPlastic)
-    for i = -2, 2 do
-        child(model, root, "CodeBar", Vector3.new(0.18, 0.75, 0.1), CFrame.new(i * 0.55, -0.55, -0.2), Color3.fromRGB(28, 31, 36), Enum.Material.SmoothPlastic)
-    end
-    child(model, root, "Punch", Vector3.new(0.38, 0.38, 0.12), CFrame.new(-2.0, 0.9, -0.2), Color3.fromRGB(20, 22, 26), Enum.Material.SmoothPlastic, Enum.PartType.Ball)
+    local root = makePart(model, "Tag", Vector3.new(4.9, 2.8, 0.28), CFrame.new(), color)
+    child(model, root, "Header", Vector3.new(4.2, 0.4, 0.12), CFrame.new(0, 0.82, -0.2), Color3.fromRGB(218, 183, 91))
+    for i = -2, 2 do child(model, root, "CodeBar", Vector3.new(0.18, 0.75, 0.1), CFrame.new(i * 0.55, -0.55, -0.2), Color3.fromRGB(28, 31, 36)) end
+    child(model, root, "Punch", Vector3.new(0.38, 0.38, 0.12), CFrame.new(-2, 0.9, -0.2), Color3.fromRGB(20, 22, 26), nil, Enum.PartType.Ball)
     model.PrimaryPart = root
 end
 
 local function buildPassport(model, color)
-    local root = makePart(model, "Cover", Vector3.new(3.4, 4.6, 0.48), CFrame.new(), color, Enum.Material.SmoothPlastic)
-    child(model, root, "PageBlock", Vector3.new(3.05, 4.25, 0.3), CFrame.new(0.12, 0, 0.35), Color3.fromRGB(214, 208, 186), Enum.Material.SmoothPlastic)
+    local root = makePart(model, "Cover", Vector3.new(3.4, 4.6, 0.48), CFrame.new(), color)
+    child(model, root, "PageBlock", Vector3.new(3.05, 4.25, 0.3), CFrame.new(0.12, 0, 0.35), Color3.fromRGB(214, 208, 186))
     child(model, root, "Seal", Vector3.new(1.15, 1.15, 0.12), CFrame.new(0, 0.5, -0.3), Color3.fromRGB(205, 170, 72), Enum.Material.Metal, Enum.PartType.Ball)
     child(model, root, "GoldLine", Vector3.new(2.1, 0.16, 0.1), CFrame.new(0, -1.3, -0.3), Color3.fromRGB(205, 170, 72), Enum.Material.Metal)
     model.PrimaryPart = root
@@ -138,14 +140,56 @@ end
 
 local function buildToyTrain(model, color)
     local root = makePart(model, "Engine", Vector3.new(4.2, 2.1, 2.2), CFrame.new(), color, Enum.Material.Metal)
-    child(model, root, "Cab", Vector3.new(1.8, 2.4, 2.0), CFrame.new(0.9, 1.5, 0), color:Lerp(Color3.fromRGB(20, 22, 26), 0.08), Enum.Material.Metal)
+    child(model, root, "Cab", Vector3.new(1.8, 2.4, 2), CFrame.new(0.9, 1.5, 0), color, Enum.Material.Metal)
     child(model, root, "Boiler", Vector3.new(2.8, 1.55, 1.55), CFrame.new(-1.45, 0.45, 0) * CFrame.Angles(0, 0, math.rad(90)), color, Enum.Material.Metal, Enum.PartType.Cylinder)
     child(model, root, "Chimney", Vector3.new(0.75, 1.8, 0.75), CFrame.new(-1.75, 1.75, 0), Color3.fromRGB(38, 41, 47), Enum.Material.Metal)
     for _, x in ipairs({-1.35, 1.25}) do
-        for _, z in ipairs({-1.12, 1.12}) do
-            child(model, root, "Wheel", Vector3.new(0.78, 0.78, 0.78), CFrame.new(x, -1.12, z), Color3.fromRGB(26, 28, 32), Enum.Material.Metal, Enum.PartType.Ball)
-        end
+        for _, z in ipairs({-1.12, 1.12}) do child(model, root, "Wheel", Vector3.new(0.78, 0.78, 0.78), CFrame.new(x, -1.12, z), Color3.fromRGB(26, 28, 32), Enum.Material.Metal, Enum.PartType.Ball) end
     end
+    model.PrimaryPart = root
+end
+
+local function buildPowerAdapter(model, color)
+    local root = makePart(model, "Adapter", Vector3.new(3.2, 2.45, 1.55), CFrame.new(), color)
+    child(model, root, "Inset", Vector3.new(2.35, 1.5, 0.12), CFrame.new(0, 0, -0.84), Color3.fromRGB(182, 184, 180))
+    child(model, root, "ProngL", Vector3.new(0.28, 1.2, 0.28), CFrame.new(-0.65, 1.7, 0.15), Color3.fromRGB(154, 158, 164), Enum.Material.Metal)
+    child(model, root, "ProngR", Vector3.new(0.28, 1.2, 0.28), CFrame.new(0.65, 1.7, 0.15), Color3.fromRGB(154, 158, 164), Enum.Material.Metal)
+    child(model, root, "Port", Vector3.new(1.2, 0.5, 0.18), CFrame.new(0, -0.55, -0.88), Color3.fromRGB(35, 38, 43))
+    model.PrimaryPart = root
+end
+
+local function buildFormalShoe(model, color)
+    local root = makePart(model, "Sole", Vector3.new(5.2, 0.62, 2.05), CFrame.new(), Color3.fromRGB(28, 27, 27))
+    child(model, root, "Upper", Vector3.new(3.7, 1.55, 1.85), CFrame.new(-0.35, 0.95, -0.08), color, Enum.Material.SmoothPlastic)
+    child(model, root, "Toe", Vector3.new(1.9, 1.35, 1.92), CFrame.new(-2.05, 0.72, -0.08), color, Enum.Material.SmoothPlastic, Enum.PartType.Ball)
+    child(model, root, "Heel", Vector3.new(1.15, 1.4, 1.85), CFrame.new(2.05, 0.9, 0), color)
+    child(model, root, "Lace", Vector3.new(1.7, 0.13, 0.13), CFrame.new(0.45, 1.82, -0.98), Color3.fromRGB(120, 116, 108))
+    model.PrimaryPart = root
+end
+
+local function buildNamePatch(model, color)
+    local root = makePart(model, "Patch", Vector3.new(4.9, 2.6, 0.22), CFrame.new(), color, Enum.Material.Fabric)
+    for _, x in ipairs({-2.2, 2.2}) do child(model, root, "StitchV", Vector3.new(0.12, 2.25, 0.08), CFrame.new(x, 0, -0.16), Color3.fromRGB(108, 75, 52), Enum.Material.Fabric) end
+    for _, y in ipairs({-1.05, 1.05}) do child(model, root, "StitchH", Vector3.new(4.4, 0.12, 0.08), CFrame.new(0, y, -0.16), Color3.fromRGB(108, 75, 52), Enum.Material.Fabric) end
+    child(model, root, "NameBarA", Vector3.new(2.7, 0.28, 0.09), CFrame.new(0, 0.35, -0.18), Color3.fromRGB(65, 54, 46))
+    child(model, root, "NameBarB", Vector3.new(1.8, 0.22, 0.09), CFrame.new(-0.45, -0.35, -0.18), Color3.fromRGB(65, 54, 46))
+    model.PrimaryPart = root
+end
+
+local function buildPaperback(model, color)
+    local root = makePart(model, "Cover", Vector3.new(3.6, 5, 0.55), CFrame.new(), color)
+    child(model, root, "Pages", Vector3.new(3.25, 4.65, 0.42), CFrame.new(0.12, 0, 0.42), Color3.fromRGB(218, 208, 180))
+    child(model, root, "Spine", Vector3.new(0.35, 5.0, 0.7), CFrame.new(-1.65, 0, 0.05), color:Lerp(Color3.fromRGB(35, 28, 26), 0.2))
+    child(model, root, "TitleBand", Vector3.new(2.45, 0.35, 0.1), CFrame.new(0.15, 1.25, -0.34), Color3.fromRGB(230, 195, 110))
+    model.PrimaryPart = root
+end
+
+local function buildMassReadout(model, color)
+    local root = makePart(model, "Meter", Vector3.new(5.1, 3.3, 1.05), CFrame.new(), color, Enum.Material.Metal)
+    child(model, root, "Screen", Vector3.new(3.7, 1.55, 0.14), CFrame.new(-0.25, 0.45, -0.6), Color3.fromRGB(13, 25, 31), Enum.Material.Glass)
+    child(model, root, "Readout", Vector3.new(2.7, 0.24, 0.08), CFrame.new(-0.35, 0.5, -0.69), Color3.fromRGB(82, 219, 225), Enum.Material.Neon)
+    for i = 0, 2 do child(model, root, "Key", Vector3.new(0.55, 0.4, 0.12), CFrame.new(-1 + i, -0.85, -0.62), Color3.fromRGB(126, 134, 146), Enum.Material.Metal) end
+    child(model, root, "Warning", Vector3.new(0.75, 0.75, 0.1), CFrame.new(1.85, 0.45, -0.64), Color3.fromRGB(205, 144, 56), Enum.Material.Neon, Enum.PartType.Ball)
     model.PrimaryPart = root
 end
 
@@ -159,6 +203,11 @@ local BUILDERS = {
     evidence_tag = buildEvidenceTag,
     passport = buildPassport,
     toy_train = buildToyTrain,
+    power_adapter = buildPowerAdapter,
+    formal_shoe = buildFormalShoe,
+    name_patch = buildNamePatch,
+    paperback = buildPaperback,
+    mass_readout = buildMassReadout,
 }
 
 function CollectionPreviewFactory.Create(collectionId, parent, locked)
@@ -170,9 +219,7 @@ function CollectionPreviewFactory.Create(collectionId, parent, locked)
     local builder = BUILDERS[variant.base] or buildHardcase
     builder(model, variant.color)
 
-    if variant.scale then
-        model:ScaleTo(variant.scale)
-    end
+    if variant.scale then model:ScaleTo(variant.scale) end
 
     if locked then
         for _, descendant in ipairs(model:GetDescendants()) do
@@ -184,8 +231,6 @@ function CollectionPreviewFactory.Create(collectionId, parent, locked)
         end
     end
 
-    -- Front details are authored toward -Z; rotate toward the collection camera
-    -- while retaining a slight three-quarter angle for depth readability.
     model:PivotTo(CFrame.Angles(math.rad(-6), math.rad(-148), 0))
     return model
 end
