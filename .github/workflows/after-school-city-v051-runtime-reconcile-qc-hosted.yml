@@ -1,0 +1,125 @@
+name: After School City V0.5.1 Runtime Reconcile QC Hosted
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/after-school-city-v051-runtime-reconcile-qc-hosted.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  qc:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    env:
+      SOURCE_REPO: ardarawk-cloud/ACC-Roblox-maps
+      SOURCE_SHA: 5c243d51b1ff336598150baf510811c8fbce02e3
+
+    steps:
+      - name: Checkout publisher controller
+        uses: actions/checkout@v4
+
+      - name: Checkout exact AFTER SCHOOL CITY source
+        uses: actions/checkout@v4
+        with:
+          repository: ardarawk-cloud/ACC-Roblox-maps
+          ref: 5c243d51b1ff336598150baf510811c8fbce02e3
+          token: ${{ secrets.ACC_ROBLOX_MAPS_WRITE_TOKEN }}
+          path: asc-source
+          fetch-depth: 1
+
+      - name: Verify exact V0.5.1 source lock
+        shell: bash
+        run: |
+          set -euo pipefail
+          actual=$(git -C asc-source rev-parse HEAD)
+          [[ "$actual" == "$SOURCE_SHA" ]] || { echo "Source SHA mismatch: $actual"; exit 11; }
+          config='asc-source/maps/after-school-city/after-school-city.config.lua'
+          project='asc-source/maps/after-school-city/default.project.json'
+          runtime='asc-source/maps/after-school-city/after-school-city.runtime-reconcile.server.lua'
+          grep -Fq 'RuntimeReconcileVersion = "0.5.1-runtime-reconcile-1"' "$config"
+          grep -Fq 'EnableRuntimeReconcilePass = true' "$config"
+          grep -Fq 'ASC_RuntimeReconcile' "$project"
+          grep -Fq 'after-school-city.runtime-reconcile.server.lua' "$project"
+          grep -Fq 'V051_RuntimeReconcile' "$runtime"
+          grep -Fq 'REQUIRED_COMPLETION_ATTRIBUTES' "$runtime"
+          grep -Fq 'ASC_RuntimeOrderingRaceFixed' "$runtime"
+          echo "EXACT V0.5.1 SOURCE LOCK PASS $actual"
+
+      - name: Cloud source spatial audit V4
+        shell: pwsh
+        working-directory: asc-source
+        run: |
+          $ErrorActionPreference='Stop'
+          & '.github/scripts/after-school-city-spatial-audit.ps1'
+
+      - name: Cloud source orientation audit V1
+        shell: pwsh
+        working-directory: asc-source
+        run: |
+          $ErrorActionPreference='Stop'
+          & '.github/scripts/after-school-city-orientation-audit.ps1'
+
+      - name: Cloud source visual fidelity audit V1
+        shell: pwsh
+        working-directory: asc-source
+        run: |
+          $ErrorActionPreference='Stop'
+          & '.github/scripts/after-school-city-visual-fidelity-audit.ps1'
+
+      - name: Cloud source runtime reconcile audit V1
+        shell: pwsh
+        working-directory: asc-source
+        run: |
+          $ErrorActionPreference='Stop'
+          & '.github/scripts/after-school-city-runtime-reconcile-audit.ps1'
+
+      - name: Static authority and dedication locks
+        shell: bash
+        run: |
+          set -euo pipefail
+          runtime='asc-source/maps/after-school-city/after-school-city.runtime-reconcile.server.lua'
+          intro='asc-source/maps/after-school-city/after-school-city.intro.client.lua'
+          config='asc-source/maps/after-school-city/after-school-city.config.lua'
+          grep -Fq 'EnableActivities = false' "$config"
+          grep -Fq 'EnableEconomy = false' "$config"
+          grep -Fq 'EnablePersistence = false' "$config"
+          grep -Fq 'PUTU AZYA PUTRI' "$intro"
+          grep -Fq 'BINTANG HARDAJAYA' "$intro"
+          grep -Fq 'WITH LOVE, DAD' "$intro"
+          grep -Fq 'ENTER THE CITY' "$intro"
+          if grep -Eq 'MarketplaceService|PromptProductPurchase|ProcessReceipt|DataStoreService|BillboardGui' "$runtime"; then
+            echo 'Forbidden authority/debug marker in V0.5.1 runtime reconcile'
+            exit 12
+          fi
+          echo 'V0.5.1 STATIC AUTHORITY + DEDICATION LOCK PASS'
+
+      - name: Prepare Rojo 7.7.0
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/asc-rojo"
+          curl -fsSL 'https://github.com/rojo-rbx/rojo/releases/download/v7.7.0/rojo-7.7.0-linux-x86_64.zip' -o "$RUNNER_TEMP/rojo.zip"
+          unzip -q -o "$RUNNER_TEMP/rojo.zip" -d "$RUNNER_TEMP/asc-rojo"
+          rojo=$(find "$RUNNER_TEMP/asc-rojo" -type f -name rojo | head -n1)
+          [[ -n "$rojo" ]] || { echo 'rojo binary missing'; exit 20; }
+          chmod +x "$rojo"
+          version=$("$rojo" --version)
+          echo "$version"
+          [[ "$version" == *'7.7.0'* ]] || { echo "Wrong Rojo: $version"; exit 21; }
+          echo "ROJO_EXE=$rojo" >> "$GITHUB_ENV"
+
+      - name: Build exact AFTER SCHOOL CITY V0.5.1
+        shell: bash
+        run: |
+          set -euo pipefail
+          place="$RUNNER_TEMP/after-school-city-v051.rbxl"
+          "$ROJO_EXE" build 'asc-source/maps/after-school-city/default.project.json' -o "$place"
+          test -f "$place"
+          bytes=$(stat -c%s "$place")
+          (( bytes >= 1024 )) || { echo "Generated RBXL suspiciously small: $bytes"; exit 22; }
+          sha=$(sha256sum "$place" | awk '{print $1}')
+          echo "AFTER SCHOOL CITY V0.5.1 HOSTED QC PASS bytes=$bytes sha256=$sha source=$SOURCE_SHA"
