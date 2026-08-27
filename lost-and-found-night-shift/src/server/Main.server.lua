@@ -168,9 +168,9 @@ local function sendCollectionSync(player)
     collectionUpdate:FireClient(player, "SYNC", collectionSnapshot(player))
 end
 
-local function markDiscovered(player, collectionId)
+local function markDiscovered(player, collectionId, newEventKind)
     local entry = CollectionRegistry.Get(collectionId)
-    if not entry then return end
+    if not entry then return false end
 
     local found = discoveries[player.UserId]
     if not found then
@@ -192,7 +192,11 @@ local function markDiscovered(player, collectionId)
         rarity = entry.rarity,
     }
     snapshot.isNew = isNew
-    collectionUpdate:FireClient(player, isNew and "DISCOVERY" or "UPDATE", snapshot)
+    snapshot.bonus = newEventKind == "BONUS_DISCOVERY"
+
+    local kind = isNew and (newEventKind or "DISCOVERY") or "UPDATE"
+    collectionUpdate:FireClient(player, kind, snapshot)
+    return isNew
 end
 
 local function setupPlayer(player)
@@ -412,6 +416,15 @@ for decision, decisionPrompt in pairs(refs.DecisionPrompts) do
         local reward, totalCredits, totalXP = grant(player, grade)
         markDiscovered(player, activeCase.collectionId or activeCase.itemId)
 
+        local bonusId = grade == "PERFECT" and activeCase.bonusCollectionId or nil
+        if bonusId then
+            task.delay(1.35, function()
+                if player.Parent then
+                    markDiscovered(player, bonusId, "BONUS_DISCOVERY")
+                end
+            end)
+        end
+
         broadcast("RESULT", {
             decision = decision,
             grade = grade,
@@ -421,6 +434,7 @@ for decision, decisionPrompt in pairs(refs.DecisionPrompts) do
             reward = reward,
             totalCredits = totalCredits,
             totalXP = totalXP,
+            bonusCollectible = bonusId ~= nil,
             by = player.DisplayName,
         })
 
