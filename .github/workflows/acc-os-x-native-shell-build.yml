@@ -48,13 +48,13 @@ jobs:
       - name: Prepare APK
         run: |
           mkdir -p dist
-          cp tools/acc-os-x-shell/app/build/outputs/apk/debug/app-debug.apk dist/ACC-OS-X-Launcher-v1.apk
+          cp tools/acc-os-x-shell/app/build/outputs/apk/debug/app-debug.apk dist/ACC-OS-X-Launcher-v2.apk
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: ACC-OS-X-Launcher-v1
-          path: dist/ACC-OS-X-Launcher-v1.apk
+          name: ACC-OS-X-Launcher-v2
+          path: dist/ACC-OS-X-Launcher-v2.apk
           retention-days: 30
 
       - name: Publish latest direct-download release
@@ -63,7 +63,7 @@ jobs:
         run: |
           gh release delete acc-os-x-launcher-latest --cleanup-tag -y || true
           gh release create acc-os-x-launcher-latest \
-            dist/ACC-OS-X-Launcher-v1.apk \
+            dist/ACC-OS-X-Launcher-v2.apk \
             --target "$GITHUB_SHA" \
-            --title "ACC OS X · Native Launcher v1" \
-            --notes "Native ACC OS X shell with package-launch bridge for the owner's installed ACC Android apps."
+            --title "ACC OS X · Native Launcher v2" \
+            --notes "v2 adds backward compatibility for legacy intent: launcher URLs, forces fresh WebView assets, and keeps the accapp:// native package bridge."
