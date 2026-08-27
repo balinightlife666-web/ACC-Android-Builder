@@ -16,7 +16,7 @@ jobs:
     timeout-minutes: 12
     env:
       SOURCE_REPO: ardarawk-cloud/ACC-Roblox-maps
-      SOURCE_SHA: 5c243d51b1ff336598150baf510811c8fbce02e3
+      SOURCE_SHA: 308d54bce74539369f39bb9645aff2e82fd2a06d
 
     steps:
       - name: Checkout publisher controller
@@ -26,7 +26,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: ardarawk-cloud/ACC-Roblox-maps
-          ref: 5c243d51b1ff336598150baf510811c8fbce02e3
+          ref: 308d54bce74539369f39bb9645aff2e82fd2a06d
           token: ${{ secrets.ACC_ROBLOX_MAPS_WRITE_TOKEN }}
           path: asc-source
           fetch-depth: 1
