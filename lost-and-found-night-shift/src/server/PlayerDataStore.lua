@@ -18,6 +18,7 @@ local function defaults()
         xp = 0,
         discovered = {},
         inventory = {},
+        serialMigrationComplete = false,
     }
 end
 
@@ -99,6 +100,8 @@ local function sanitize(raw)
     if type(raw.xp) == "number" then
         data.xp = math.max(0, math.floor(raw.xp))
     end
+    data.serialMigrationComplete = raw.serialMigrationComplete == true
+
     if type(raw.discovered) == "table" then
         local seen = {}
         for _, value in ipairs(raw.discovered) do
@@ -144,11 +147,12 @@ function PlayerDataStore.Save(userId, payload)
     local ok, err = pcall(function()
         store:UpdateAsync(keyFor(userId), function()
             return {
-                version = 3,
+                version = 4,
                 credits = clean.credits,
                 xp = clean.xp,
                 discovered = clean.discovered,
                 inventory = clean.inventory,
+                serialMigrationComplete = clean.serialMigrationComplete,
                 updatedAt = os.time(),
             }
         end)
