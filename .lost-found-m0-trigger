@@ -1,6 +1,6 @@
-LOST FOUND M4-D.1 STATION READABILITY
+LOST FOUND M4-D.1 DECISION COLOR HOTFIX
 Triggered: 2026-08-28
-Retry: 33
+Retry: 34
 Universe: 10745354451
 Place: 93699016600671
-Reason: Publish mobile station readability pass with brighter controlled night-shift lighting, bay boundaries, floor station IDs, improved owner signs, raised decision consoles, brighter Standard Ops palette, and reduced public serial-label HUD interference. No gameplay/reward/drop changes.
+Reason: Preserve locked decision colors across station skins: RETURN green, STORE cyan, QUARANTINE amber, SECURITY red. No gameplay/reward/drop/progression changes.
