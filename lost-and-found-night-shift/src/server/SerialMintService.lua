@@ -47,6 +47,7 @@ function SerialMintService.Mint(entry, originalFinderUserId, sourceCaseId, sourc
     local prefix = tostring(entry.serialPrefix or "LNF")
     local edition = tostring(entry.edition or "S1")
     local serial = string.format("%s-%s-%06d", prefix, edition, serialNumber)
+    local finderUserId = math.max(0, math.floor(tonumber(originalFinderUserId) or 0))
 
     return {
         instanceId = HttpService:GenerateGUID(false),
@@ -55,10 +56,15 @@ function SerialMintService.Mint(entry, originalFinderUserId, sourceCaseId, sourc
         serialNumber = serialNumber,
         edition = edition,
         mintedAt = os.time(),
-        originalFinderUserId = math.max(0, math.floor(tonumber(originalFinderUserId) or 0)),
+        originalFinderUserId = finderUserId,
+        currentOwnerUserId = finderUserId,
         sourceCaseId = tostring(sourceCaseId or "UNKNOWN"),
         sourceKind = tostring(sourceKind or "DISCOVERY"),
         tradeable = entry.tradeable ~= false,
+        tradeCount = 0,
+        lastTradeAt = 0,
+        lastTradeId = nil,
+        provenance = {},
     }
 end
 
