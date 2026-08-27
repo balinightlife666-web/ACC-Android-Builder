@@ -9,7 +9,7 @@ local collectionUpdate = remotes:WaitForChild("CollectionUpdate")
 
 local SHOWCASE_NAME = "LocalCollectionShowcase"
 local PANEL_X = -44.55
-local PANEL_Y = 6.2
+local PANEL_Y = 8.0
 local PANEL_Z = 10
 
 local function makePart(parent, name, size, cframe, color, material, transparency)
@@ -56,10 +56,10 @@ local showcase = Instance.new("Model")
 showcase.Name = SHOWCASE_NAME
 showcase.Parent = workspace
 
-local panel = makePart(
+makePart(
     showcase,
     "BackPanel",
-    Vector3.new(0.5, 11.6, 24),
+    Vector3.new(0.5, 15.7, 24),
     CFrame.new(PANEL_X, PANEL_Y, PANEL_Z),
     Color3.fromRGB(20, 25, 33),
     Enum.Material.Metal,
@@ -69,20 +69,20 @@ local panel = makePart(
 local titlePlate = makePart(
     showcase,
     "TitlePlate",
-    Vector3.new(0.16, 1.4, 20),
-    CFrame.new(PANEL_X + 0.34, 10.85, PANEL_Z),
+    Vector3.new(0.16, 1.35, 20),
+    CFrame.new(PANEL_X + 0.34, 15.0, PANEL_Z),
     Color3.fromRGB(31, 37, 46),
     Enum.Material.Metal,
     0
 )
-addSurfaceText(titlePlate, "LOST PROPERTY COLLECTION", Enum.NormalId.Right, Color3.fromRGB(235, 177, 78), 18)
+addSurfaceText(titlePlate, "LOST PROPERTY COLLECTION  •  15", Enum.NormalId.Right, Color3.fromRGB(235, 177, 78), 18)
 
-for _, y in ipairs({3.1, 7.25}) do
+for _, shelfY in ipairs({1.55, 5.45, 9.35}) do
     makePart(
         showcase,
         "Shelf",
         Vector3.new(2.1, 0.22, 22),
-        CFrame.new(PANEL_X + 0.9, y - 1.55, PANEL_Z),
+        CFrame.new(PANEL_X + 0.9, shelfY, PANEL_Z),
         Color3.fromRGB(64, 72, 84),
         Enum.Material.Metal,
         0
@@ -91,19 +91,20 @@ end
 
 local slots = {}
 local zPositions = {2, 6, 10, 14, 18}
+local rowY = {2.8, 6.7, 10.6}
 local slotIndex = 0
 
-for row = 1, 2 do
+for row = 1, 3 do
     for col = 1, 5 do
         slotIndex += 1
-        local y = row == 1 and 3.2 or 7.35
+        local y = rowY[row]
         local z = zPositions[col]
 
         local pedestal = makePart(
             showcase,
             "Slot_" .. tostring(slotIndex),
             Vector3.new(1.8, 0.22, 3.2),
-            CFrame.new(PANEL_X + 1.15, y - 1.25, z),
+            CFrame.new(PANEL_X + 1.15, y - 1.15, z),
             Color3.fromRGB(34, 41, 52),
             Enum.Material.Metal,
             0
@@ -155,7 +156,7 @@ local function rebuildShowcase()
             if isDiscovered then
                 local model = PreviewFactory.Create(entry.id, showcase, false)
                 model.Name = "Display_" .. entry.id
-                model:ScaleTo(0.32)
+                model:ScaleTo(0.3)
                 model:PivotTo(CFrame.new(slot.position) * CFrame.Angles(0, math.rad(-90), 0))
                 displayedModels[entry.id] = model
             end
