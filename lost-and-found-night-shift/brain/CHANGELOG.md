@@ -108,4 +108,11 @@
 - Added `HudTradeVisibility.client.lua` so TRADE does not overlap Collection / Archive / Case File / Trade popups.
 - Trading does not add currency, external payment fields, links, QR codes, or off-platform transaction flow.
 - Workflow run `33092557996` succeeded and exact source `4efee7af76775f1142d2b319c74bd55b6da83f07` published as Roblox v32.
-- v32 M4-B status: LIVE_PUBLISHED / RUNTIME QC PENDING.
+- v32 Phase 1 mobile UI smoke test passed: trade panel, one-player empty-state, refresh, close, and mobile layout were accepted.
+
+## 2026-08-28 — M4-B Phase 2 deferred by test availability
+- Arda currently has only one phone/account available, so a true two-account ownership swap cannot be runtime-QC'd yet.
+- M4-B remains LIVE v32 and is provisionally user-accepted for continued development based on Phase 1 UI evidence.
+- Do not mislabel two-account ownership transfer, rejoin persistence after trade, `NOT OWNED`, or duplicate-serial protection as runtime-proven yet.
+- Keep the full two-account trade test as a deferred regression gate for when a friend/second tester is available.
+- Development may continue to M4-C anti-alt/economy telemetry, collectible 3D visual improvement, and Halloween 2026 preparation without blocking on the unavailable tester.
