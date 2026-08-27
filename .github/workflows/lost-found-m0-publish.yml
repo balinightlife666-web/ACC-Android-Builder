@@ -54,14 +54,23 @@ jobs:
           test -f "$PROJECT_DIR/brain/MASTERPLAN.md"
           test -f "$PROJECT_DIR/brain/GAME_BIBLE.md"
           test -f "$PROJECT_DIR/brain/CURRENT_STATE.md"
+          test -f "$PROJECT_DIR/brain/M4D_PERSONAL_STATION_LOCK.md"
           test -f "$PROJECT_DIR/src/server/Main.server.lua"
           test -f "$PROJECT_DIR/src/server/WorldBuilder.lua"
+          test -f "$PROJECT_DIR/src/server/PersonalStationWorld.lua"
+          test -f "$PROJECT_DIR/src/server/PersonalShiftRuntime.lua"
+          test -f "$PROJECT_DIR/src/shared/StationSkinRegistry.lua"
           test -f "$PROJECT_DIR/src/shared/CaseRegistry.lua"
           test -f "$PROJECT_DIR/src/client/Main.client.lua"
+          test -f "$PROJECT_DIR/src/client/StationHUD.client.lua"
+          test -f "$PROJECT_DIR/src/client/StationPromptFilter.client.lua"
           grep -Fq '10745354451' "$PROJECT_DIR/brain/CURRENT_STATE.md"
           grep -Fq '93699016600671' "$PROJECT_DIR/brain/CURRENT_STATE.md"
           grep -Fq 'M0 — FIRST SUITCASE' "$PROJECT_DIR/brain/CURRENT_STATE.md"
           grep -Fq 'RETURN' "$PROJECT_DIR/src/server/Main.server.lua"
+          grep -Fq 'InitialServerStationCapacity = 8' "$PROJECT_DIR/src/shared/Config.lua"
+          grep -Fq 'OwnerUserId' "$PROJECT_DIR/src/server/PersonalStationWorld.lua"
+          grep -Fq 'stationOwners' "$PROJECT_DIR/src/server/PersonalShiftRuntime.lua"
           grep -Fq 'QUARANTINE' "$PROJECT_DIR/src/shared/CaseRegistry.lua"
           grep -Fq 'Flight 000' "$PROJECT_DIR/src/shared/CaseRegistry.lua"
           echo 'STATIC QC PASS'
@@ -121,7 +130,7 @@ jobs:
           jq -n \
             --arg status 'LIVE_PUBLISHED' \
             --arg project 'LOST & FOUND: NIGHT SHIFT' \
-            --arg milestone 'M0_FIRST_SUITCASE' \
+            --arg milestone 'M4D_PERSONAL_SHIFTS' \
             --arg sourceRepo "$GITHUB_REPOSITORY" \
             --arg sourceCommit "$SOURCE_SHA" \
             --arg universeId "$UNIVERSE_ID" \
@@ -138,7 +147,7 @@ jobs:
           git config user.name 'Lost Found Publish Bot'
           git config user.email 'actions@users.noreply.github.com'
           git add "$receipt"
-          git commit -m "Record Lost & Found M0 publish v${PUBLISHED_VERSION} [skip ci]"
+          git commit -m "Record Lost & Found publish v${PUBLISHED_VERSION} [skip ci]"
           git pull --rebase origin main
           git push origin HEAD:main
 
@@ -151,5 +160,5 @@ jobs:
               owner: context.repo.owner,
               repo: context.repo.repo,
               issue_number: context.issue.number,
-              body: `PASS — LOST & FOUND M0 published. Roblox version ${process.env.PUBLISHED_VERSION}; source ${process.env.SOURCE_SHA}; Universe ${process.env.UNIVERSE_ID}; Place ${process.env.PLACE_ID}. Runtime gameplay still requires in-Roblox verification.`
+              body: `PASS — LOST & FOUND published. Roblox version ${process.env.PUBLISHED_VERSION}; source ${process.env.SOURCE_SHA}; Universe ${process.env.UNIVERSE_ID}; Place ${process.env.PLACE_ID}. Runtime gameplay still requires in-Roblox verification.`
             })
