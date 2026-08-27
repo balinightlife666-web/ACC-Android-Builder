@@ -2,6 +2,8 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local player = Players.LocalPlayer
+local shared = ReplicatedStorage:WaitForChild("LostAndFoundShared")
+local PreviewFactory = require(shared:WaitForChild("CollectionPreviewFactory"))
 local remotes = ReplicatedStorage:WaitForChild("LostAndFoundRemotes")
 local collectionUpdate = remotes:WaitForChild("CollectionUpdate")
 
@@ -17,9 +19,9 @@ local function corner(target, radius)
     c.Parent = target
 end
 
-local function stroke(target, transparency)
+local function stroke(target, transparency, color)
     local s = Instance.new("UIStroke")
-    s.Color = Color3.fromRGB(82, 96, 114)
+    s.Color = color or Color3.fromRGB(82, 96, 114)
     s.Thickness = 1.1
     s.Transparency = transparency or 0.35
     s.Parent = target
@@ -38,6 +40,17 @@ local function label(parent, size, position, textSize, font, color)
     l.Parent = parent
     return l
 end
+
+local RARITY_COLORS = {
+    COMMON = Color3.fromRGB(177, 187, 201),
+    UNCOMMON = Color3.fromRGB(104, 190, 127),
+    RARE = Color3.fromRGB(95, 167, 232),
+    EPIC = Color3.fromRGB(177, 115, 226),
+    LEGENDARY = Color3.fromRGB(238, 173, 76),
+    MYTHIC = Color3.fromRGB(232, 95, 135),
+    SECRET = Color3.fromRGB(229, 229, 235),
+    ANOMALY = Color3.fromRGB(88, 221, 224),
+}
 
 local indexButton = Instance.new("TextButton")
 indexButton.Name = "IndexButton"
@@ -59,7 +72,7 @@ stroke(indexButton, 0.4)
 local popup = Instance.new("Frame")
 popup.Name = "CollectionPopup"
 popup.AnchorPoint = Vector2.new(1, 0)
-popup.Size = UDim2.fromOffset(320, 258)
+popup.Size = UDim2.fromOffset(560, 350)
 popup.Position = UDim2.new(1, -18, 0, 108)
 popup.BackgroundColor3 = Color3.fromRGB(15, 19, 26)
 popup.BackgroundTransparency = 0.02
@@ -70,11 +83,16 @@ popup.Parent = gui
 corner(popup, 12)
 stroke(popup, 0.2)
 
+local popupConstraint = Instance.new("UISizeConstraint")
+popupConstraint.MinSize = Vector2.new(480, 320)
+popupConstraint.MaxSize = Vector2.new(620, 370)
+popupConstraint.Parent = popup
+
 local title = label(popup, UDim2.new(1, -62, 0, 40), UDim2.fromOffset(14, 8), 16, Enum.Font.GothamBold, Color3.fromRGB(255, 192, 86))
-title.Text = "LOST PROPERTY INDEX"
+title.Text = "LOST PROPERTY COLLECTION"
 
 local subtitle = label(popup, UDim2.new(1, -28, 0, 24), UDim2.fromOffset(14, 43), 11, Enum.Font.GothamMedium, Color3.fromRGB(151, 164, 181))
-subtitle.Text = "Resolve cases to register item types."
+subtitle.Text = "Resolve cases to reveal and register item types."
 
 local close = Instance.new("TextButton")
 close.Size = UDim2.fromOffset(36, 32)
@@ -89,21 +107,25 @@ close.Modal = false
 close.Parent = popup
 corner(close, 8)
 
-local list = Instance.new("Frame")
-list.Size = UDim2.new(1, -28, 0, 170)
-list.Position = UDim2.fromOffset(14, 74)
-list.BackgroundTransparency = 1
-list.Parent = popup
+local grid = Instance.new("Frame")
+grid.Name = "CollectionGrid"
+grid.Size = UDim2.new(1, -28, 1, -88)
+grid.Position = UDim2.fromOffset(14, 76)
+grid.BackgroundTransparency = 1
+grid.Parent = popup
 
-local layout = Instance.new("UIListLayout")
-layout.FillDirection = Enum.FillDirection.Vertical
-layout.Padding = UDim.new(0, 6)
-layout.Parent = list
+local layout = Instance.new("UIGridLayout")
+layout.CellSize = UDim2.new(0, 166, 0, 118)
+layout.CellPadding = UDim2.new(0, 8, 0, 8)
+layout.FillDirectionMaxCells = 3
+layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+layout.SortOrder = Enum.SortOrder.LayoutOrder
+layout.Parent = grid
 
 local toast = Instance.new("TextLabel")
 toast.Name = "DiscoveryToast"
 toast.AnchorPoint = Vector2.new(0.5, 0)
-toast.Size = UDim2.fromOffset(330, 44)
+toast.Size = UDim2.fromOffset(350, 48)
 toast.Position = UDim2.new(0.5, 0, 0, 64)
 toast.BackgroundColor3 = Color3.fromRGB(22, 29, 38)
 toast.BackgroundTransparency = 0.03
@@ -117,39 +139,83 @@ toast.Parent = gui
 corner(toast, 9)
 stroke(toast, 0.4)
 
-local rowById = {}
 local discovered = {}
 local entries = {}
 local toastToken = 0
 
-local function rarityText(rarity)
-    return tostring(rarity or "UNRATED")
+local function rarityColor(rarity)
+    return RARITY_COLORS[tostring(rarity or "COMMON")] or Color3.fromRGB(177, 187, 201)
 end
 
-local function rebuildRows()
-    for _, child in ipairs(list:GetChildren()) do
+local function addPreview(card, entry, isDiscovered)
+    local viewport = Instance.new("ViewportFrame")
+    viewport.Name = "Preview"
+    viewport.Size = UDim2.new(1, -10, 0, 76)
+    viewport.Position = UDim2.fromOffset(5, 5)
+    viewport.BackgroundColor3 = isDiscovered and Color3.fromRGB(20, 25, 33) or Color3.fromRGB(17, 20, 26)
+    viewport.BackgroundTransparency = 0.02
+    viewport.BorderSizePixel = 0
+    viewport.Ambient = isDiscovered and Color3.fromRGB(160, 170, 185) or Color3.fromRGB(70, 76, 86)
+    viewport.LightColor = Color3.fromRGB(245, 237, 220)
+    viewport.LightDirection = Vector3.new(-1, -1, -1)
+    viewport.Parent = card
+    corner(viewport, 7)
+
+    local world = Instance.new("WorldModel")
+    world.Name = "PreviewWorld"
+    world.Parent = viewport
+
+    local model = PreviewFactory.Create(entry.id, world, not isDiscovered)
+    local camera = Instance.new("Camera")
+    camera.FieldOfView = 34
+    camera.Parent = viewport
+    viewport.CurrentCamera = camera
+
+    local boxCF, boxSize = model:GetBoundingBox()
+    local maxDim = math.max(boxSize.X, boxSize.Y, boxSize.Z)
+    local center = boxCF.Position
+    local target = center + Vector3.new(0, boxSize.Y * 0.05, 0)
+    local cameraPos = center + Vector3.new(maxDim * 0.92, maxDim * 0.58, maxDim * 1.45)
+    camera.CFrame = CFrame.lookAt(cameraPos, target)
+
+    if not isDiscovered then
+        local lock = label(viewport, UDim2.fromScale(1, 1), UDim2.new(), 24, Enum.Font.GothamBlack, Color3.fromRGB(157, 165, 178))
+        lock.TextXAlignment = Enum.TextXAlignment.Center
+        lock.TextYAlignment = Enum.TextYAlignment.Center
+        lock.Text = "?"
+        lock.TextTransparency = 0.18
+    end
+end
+
+local function rebuildCards()
+    for _, child in ipairs(grid:GetChildren()) do
         if child:IsA("Frame") then child:Destroy() end
     end
-    rowById = {}
 
-    for _, entry in ipairs(entries) do
-        local row = Instance.new("Frame")
-        row.Name = entry.id
-        row.Size = UDim2.new(1, 0, 0, 28)
-        row.BackgroundColor3 = Color3.fromRGB(24, 29, 38)
-        row.BackgroundTransparency = discovered[entry.id] and 0.05 or 0.35
-        row.BorderSizePixel = 0
-        row.Parent = list
-        corner(row, 7)
+    for order, entry in ipairs(entries) do
+        local isDiscovered = discovered[entry.id] == true
+        local rarity = tostring(entry.rarity or "COMMON")
+        local accent = isDiscovered and rarityColor(rarity) or Color3.fromRGB(72, 80, 92)
 
-        local itemName = label(row, UDim2.new(0.62, -12, 1, 0), UDim2.fromOffset(10, 0), 12, Enum.Font.GothamBold, discovered[entry.id] and Color3.fromRGB(235, 239, 244) or Color3.fromRGB(102, 111, 124))
-        itemName.Text = discovered[entry.id] and entry.name or "LOCKED ITEM"
+        local card = Instance.new("Frame")
+        card.Name = entry.id
+        card.LayoutOrder = order
+        card.BackgroundColor3 = Color3.fromRGB(24, 29, 38)
+        card.BackgroundTransparency = isDiscovered and 0.03 or 0.18
+        card.BorderSizePixel = 0
+        card.Parent = grid
+        corner(card, 9)
+        stroke(card, isDiscovered and 0.18 or 0.55, accent)
 
-        local rarity = label(row, UDim2.new(0.38, -10, 1, 0), UDim2.new(0.62, 0, 0, 0), 11, Enum.Font.GothamBold, discovered[entry.id] and Color3.fromRGB(255, 194, 92) or Color3.fromRGB(86, 94, 106))
-        rarity.TextXAlignment = Enum.TextXAlignment.Right
-        rarity.Text = discovered[entry.id] and rarityText(entry.rarity) or "—"
+        addPreview(card, entry, isDiscovered)
 
-        rowById[entry.id] = row
+        local itemName = label(card, UDim2.new(1, -12, 0, 18), UDim2.fromOffset(6, 82), 11, Enum.Font.GothamBold, isDiscovered and Color3.fromRGB(235, 239, 244) or Color3.fromRGB(125, 134, 147))
+        itemName.TextXAlignment = Enum.TextXAlignment.Center
+        itemName.Text = isDiscovered and entry.name or "???"
+
+        local rarityLabel = label(card, UDim2.new(1, -12, 0, 15), UDim2.fromOffset(6, 99), 9, Enum.Font.GothamBold, accent)
+        rarityLabel.TextXAlignment = Enum.TextXAlignment.Center
+        rarityLabel.Text = isDiscovered and rarity or "LOCKED"
     end
 end
 
@@ -157,7 +223,7 @@ local function applySnapshot(payload)
     entries = payload.entries or entries
     discovered = payload.discovered or discovered
     indexButton.Text = string.format("INDEX  %d/%d", payload.count or 0, payload.total or #entries)
-    rebuildRows()
+    rebuildCards()
 end
 
 local function showToast(item)
