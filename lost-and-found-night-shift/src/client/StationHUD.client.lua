@@ -67,6 +67,7 @@ toastStroke.Parent = toast
 
 local toastToken = 0
 local currentHighlight = nil
+local guidanceShownFor = nil
 
 local function showToast(text, seconds)
     toastToken += 1
@@ -116,17 +117,34 @@ local function applyStation(stationId)
     end
 end
 
+local function showAssignment(stationId, message)
+    if not stationId or tostring(stationId) == "" then return end
+    applyStation(stationId)
+    if guidanceShownFor ~= tostring(stationId) then
+        guidanceShownFor = tostring(stationId)
+        showToast(message or ("SHIFT ASSIGNED — STATION " .. tostring(stationId)), 4.5)
+        guideStation(stationId)
+    end
+end
+
 player:GetAttributeChangedSignal("LostFoundStationId"):Connect(function()
-    applyStation(player:GetAttribute("LostFoundStationId"))
+    local stationId = player:GetAttribute("LostFoundStationId")
+    applyStation(stationId)
+    if stationId and tostring(stationId) ~= "" then
+        showAssignment(stationId)
+    end
 end)
-applyStation(player:GetAttribute("LostFoundStationId"))
+
+local initialStation = player:GetAttribute("LostFoundStationId")
+applyStation(initialStation)
+if initialStation and tostring(initialStation) ~= "" then
+    task.defer(showAssignment, initialStation)
+end
 
 stationUpdate.OnClientEvent:Connect(function(kind, payload)
     payload = payload or {}
     if kind == "ASSIGNED" then
-        applyStation(payload.stationId)
-        showToast(payload.message or ("SHIFT ASSIGNED — STATION " .. tostring(payload.stationId)), 4.5)
-        guideStation(payload.stationId)
+        showAssignment(payload.stationId, payload.message)
     elseif kind == "DENIED" then
         showToast(payload.message or "That is another player's station.", 2.4)
     elseif kind == "NO_STATION" then
