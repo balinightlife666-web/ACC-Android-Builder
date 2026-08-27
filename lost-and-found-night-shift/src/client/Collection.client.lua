@@ -64,7 +64,7 @@ indexButton.BorderSizePixel = 0
 indexButton.TextColor3 = Color3.fromRGB(181, 214, 232)
 indexButton.Font = Enum.Font.GothamBold
 indexButton.TextSize = 13
-indexButton.Text = "INDEX  0/15"
+indexButton.Text = "INDEX  0/20"
 indexButton.Modal = false
 indexButton.Parent = gui
 corner(indexButton, 9)
@@ -175,7 +175,7 @@ end
 local function addPreview(card, entry, isDiscovered)
     local viewport = Instance.new("ViewportFrame")
     viewport.Name = "Preview"
-    viewport.Size = UDim2.new(1, -8, 0, 88)
+    viewport.Size = UDim2.new(1, -8, 0, 84)
     viewport.Position = UDim2.fromOffset(4, 4)
     viewport.BackgroundColor3 = isDiscovered and Color3.fromRGB(20, 25, 33) or Color3.fromRGB(17, 20, 26)
     viewport.BackgroundTransparency = 0.02
@@ -225,7 +225,7 @@ local function rebuildCards()
         local card = Instance.new("Frame")
         card.Name = entry.id
         card.LayoutOrder = order
-        card.Size = UDim2.fromOffset(112, 132)
+        card.Size = UDim2.fromOffset(112, 140)
         card.BackgroundColor3 = Color3.fromRGB(24, 29, 38)
         card.BackgroundTransparency = isDiscovered and 0.03 or 0.18
         card.BorderSizePixel = 0
@@ -235,12 +235,13 @@ local function rebuildCards()
 
         addPreview(card, entry, isDiscovered)
 
-        local itemName = label(card, UDim2.new(1, -8, 0, 17), UDim2.fromOffset(4, 94), 10, Enum.Font.GothamBold, isDiscovered and Color3.fromRGB(235, 239, 244) or Color3.fromRGB(125, 134, 147))
+        local itemName = label(card, UDim2.new(1, -8, 0, 30), UDim2.fromOffset(4, 90), 9, Enum.Font.GothamBold, isDiscovered and Color3.fromRGB(235, 239, 244) or Color3.fromRGB(125, 134, 147))
         itemName.TextXAlignment = Enum.TextXAlignment.Center
+        itemName.TextYAlignment = Enum.TextYAlignment.Center
+        itemName.TextWrapped = true
         itemName.Text = isDiscovered and entry.name or "???"
-        itemName.TextTruncate = Enum.TextTruncate.AtEnd
 
-        local rarityLabel = label(card, UDim2.new(1, -8, 0, 14), UDim2.fromOffset(4, 112), 8, Enum.Font.GothamBold, accent)
+        local rarityLabel = label(card, UDim2.new(1, -8, 0, 14), UDim2.fromOffset(4, 122), 8, Enum.Font.GothamBold, accent)
         rarityLabel.TextXAlignment = Enum.TextXAlignment.Center
         rarityLabel.Text = isDiscovered and rarity or "LOCKED"
     end
