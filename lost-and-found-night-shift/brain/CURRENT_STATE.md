@@ -94,28 +94,28 @@ Deferred Phase 2 QC:
 - do NOT claim cross-player ownership transfer was independently runtime-proven yet.
 
 ### M4-C — ANTI-ALT / ECONOMY TELEMETRY HARDENING
-**IMPLEMENTED IN SOURCE — PUBLISH / RUNTIME QC PENDING.**
+**LIVE_PUBLISHED v33 — BUILD/DEPLOY VERIFIED; RUNTIME QC PENDING.**
 
 Authority:
 `brain/M4C_ECONOMY_HARDENING_LOCK.md`
 
-Credits role is now locked:
+Credits role is locked:
 - Credits = non-transferable in-game soft currency;
 - intended sinks: cosmetic scanner/desk/room styles, showcase/display upgrades, cosmetic case-file themes/titles/nameplates, controlled convenience such as limited rerolls, seasonal cosmetics, and only later optional processing fees if telemetry supports them;
 - Credits MUST NOT transfer player-to-player;
 - Credits MUST NOT directly purchase SECRET / ANOMALY collectible instances;
 - Credits MUST NOT replace serialized item-for-item trading.
 
-M4-C source changes:
-- new `EconomyTelemetryService.lua` with buffered aggregate daily telemetry in `LostAndFound_EconomyTelemetry_v1`;
-- new `M4CEconomy.server.lua` for case/reward/mint/playtime economy tracking;
-- persistent per-player economy stats added compatibly to `LostAndFound_PlayerData_v1`; payload version becomes 5 while store name remains unchanged;
-- player economy stats: `casesCompleted`, `perfectCases`, `creditsEarned`, `creditsSpent`, `serialsMinted`, `tradesCompleted`, `playSeconds`;
+M4-C implementation:
+- `EconomyTelemetryService.lua` buffers aggregate daily telemetry in `LostAndFound_EconomyTelemetry_v1`;
+- `M4CEconomy.server.lua` tracks case/reward/mint/playtime economy signals without changing existing rewards;
+- persistent player economy stats are added compatibly to `LostAndFound_PlayerData_v1`; payload version is 5 and the store name is unchanged;
+- stats: `casesCompleted`, `perfectCases`, `creditsEarned`, `creditsSpent`, `serialsMinted`, `tradesCompleted`, `playSeconds`;
 - legacy progression is conservatively seeded from existing XP/Credits rather than resetting established players;
-- serial mint telemetry is server-side;
-- decision telemetry records completed cases, PERFECT outcomes, and Credits issued without changing existing rewards;
+- serial mint telemetry remains server-side;
+- decision telemetry records completed cases, PERFECT outcomes, and Credits issued;
 - trade request/completion/cancel telemetry is server-side;
-- trade access now requires persistence + serialized inventory ready, Roblox account age >= 7 days, and either >= 5 completed cases OR >= 50 XP, plus at least one tradeable serialized item;
+- trade access requires persistence + serialized inventory ready, Roblox account age >= 7 days, and either >= 5 completed cases OR >= 50 XP, plus at least one tradeable serialized item;
 - Credits are NOT required to unlock trading;
 - no SECRET/ANOMALY cap or drop-rate nerf is introduced yet.
 
@@ -151,28 +151,27 @@ Default serial direction:
 Seasonal gameplay visuals are Roblox 3D/procedural/in-engine by default. No AI-generated image assets unless Arda explicitly requests image generation.
 
 ## Latest VERIFIED LIVE publish receipt
-Run: `33092557996`
-Source commit: `4efee7af76775f1142d2b319c74bd55b6da83f07`
+Run: `33096058726`
+Source commit: `39ba78108fca79b6cb2b5ca04559a3ce8c5fa23a`
 Rojo: `7.7.0`
 Workflow conclusion: **SUCCESS**
 Roblox publish status: **LIVE_PUBLISHED**
-Roblox version: `32`
-RBXL bytes: `69842`
-RBXL SHA256: `b43fbcdfc402173ae4bf63283357c0c1b7be39b7827b066a19ff08de6852c609`
+Roblox version: `33`
+RBXL bytes: `74069`
+RBXL SHA256: `a4ab3172235338033918204922ef5f0bfb343567fc866858b14858da4f141f74`
 Deploy receipt: `deploy-status/lost-and-found-m0.json`
 
 ## LIVE authority
-**LIVE_PUBLISHED — v32 BUILD/DEPLOY VERIFIED.**
-M4-C source is newer than the current LIVE receipt and must not be called LIVE until a new deploy receipt matches its trigger commit.
+**LIVE_PUBLISHED — v33 BUILD/DEPLOY VERIFIED.**
+M4-C is live in build/deploy terms; runtime regression QC is still pending.
 
 ## Active next gate — M4-C RUNTIME
-1. publish exact M4-C source and verify receipt;
-2. rejoin established save: Credits / XP / INDEX / serials must remain intact;
-3. normal case rewards must remain unchanged;
-4. complete one case and confirm no core-loop regression;
-5. established account should remain trade-eligible if age/progression gate is met;
-6. no new mobile UI overlap;
-7. telemetry must not block gameplay if DataStore flush fails;
-8. deferred two-account M4-B Phase 2 remains on regression list.
+1. rejoin established save: Credits / XP / INDEX / serials must remain intact;
+2. normal case rewards must remain unchanged;
+3. complete one case and confirm no core-loop regression;
+4. established account should remain trade-eligible if age/progression gate is met;
+5. no new mobile UI overlap;
+6. telemetry must not block gameplay if DataStore flush fails;
+7. deferred two-account M4-B Phase 2 remains on regression list.
 
 After M4-C passes: collectible 3D visual-quality pass without image generation, then Halloween 2026 production preparation.
