@@ -14,114 +14,114 @@ Updated: 2026-08-27
 - Deployment authority is `deploy-status/lost-and-found-m0.json`; never claim LIVE from source changes alone.
 
 ## M0 — FIRST SUITCASE
-**ACCEPTED FOR CONTINUATION.**
+**COMPLETE / ACCEPTED.**
 
-Runtime proven on mobile:
-- player joins and can move;
-- case arrives on conveyor;
-- enforced sequence is `SCAN → CHECK TAG → OPEN → DECIDE`;
-- claimant data appears;
-- RETURN / STORE / QUARANTINE / SECURITY work;
-- grading and rewards work;
-- Credits amount displays live in the top HUD;
-- next case starts automatically;
-- compact case card + on-demand CASE FILE popup work on mobile.
+Core mobile loop is proven:
+`spawn → incoming item → SCAN → CHECK TAG → OPEN → DECIDE → grade/reward → next case`
+
+Movement/camera safety, compact CASE FILE UI, Credits display, and four operational decisions remain active.
 
 ## M0.1 — FEEL PASS
-**ACCEPTED FOR CONTINUATION INTO M1.**
+**COMPLETE / ACCEPTED.**
 
-Implemented and published in Roblox v11:
-- conveyor travel 2.8s;
-- case advance 3.2s;
-- interaction distance 7 studs;
-- prompt hold 0.08s;
-- short claimant staging delay;
-- lightweight built-in audio feedback;
-- mobile movement/camera safety retained;
-- Credits display retained.
+Locked feel values:
+- conveyor travel: 2.8s;
+- case advance delay: 3.2s;
+- interaction distance: 7 studs baseline;
+- prompt hold: 0.08s;
+- claimant arrival delay: 0.45s;
+- lightweight feedback audio retained.
 
-## Active milestone
-**M1 — PREMIUM ROOM**
+## M1 — PREMIUM ROOM
+**COMPLETE / RUNTIME-APPROVED FOR CONTINUATION.**
 
-Visual authority:
-- `brain/M1_VISUAL_LOCK.md`
+Visual authority remains `brain/M1_VISUAL_LOCK.md`:
 - premium stylized airport Lost & Found back-office;
 - charcoal / graphite architecture;
 - brushed dark metal equipment;
-- warm amber service/task light;
+- warm amber operational lighting;
 - cyan scanner/evidence accents;
 - restrained red quarantine/security accents;
-- operational workplace first, mystery second;
-- no neon arcade floor look.
+- no neon-arcade floor language.
 
-## M1-A — PREMIUM ROOM SHELL + EQUIPMENT
-Implemented and published in Roblox v12:
-- premium room shell with wall panels, trims, floor guides, and hidden spawn pad;
-- layered service counter with wood top, amber task lighting, and monitor;
-- layered conveyor with belt slats and restrained under-lighting;
-- scanner arch with cyan inner scan lines and evidence display;
-- upgraded inspection desk, tag reader, open tray, and evidence screen;
-- claimant waiting zone separated from staff work area;
-- raised operational decision consoles;
-- storage racks / stored-property dressing;
-- quarantine access with restricted frame and red warning lamp;
-- improved procedure board and industrial ceiling lighting;
-- core gameplay refs and sequence preserved.
+### M1-A approved room modules
+- premium service/intake counter;
+- premium conveyor;
+- scanner arch / evidence equipment;
+- inspection desk;
+- claimant zone;
+- operational decision consoles;
+- storage dressing;
+- quarantine access;
+- industrial lighting pass.
 
-## M1-B — FIVE BASE ITEM MODELS
-Implemented in source and published in Roblox v13:
-1. `hardcase_suitcase` — ribbed hard-shell luggage, wheels, telescoping handle;
-2. `vintage_suitcase` — wood/leather body, bands, latches, corner protectors;
-3. `backpack` — fabric body, front pocket, straps, zip detail;
-4. `cardboard_box` — parcel body, tape bands, shipping label plate, corner wear;
-5. `teddy_bear` — articulated stylized soft-toy silhouette with head, ears, muzzle, limbs, eyes.
+### M1-B approved base item models
+1. `hardcase_suitcase`
+2. `vintage_suitcase`
+3. `backpack`
+4. `cardboard_box`
+5. `teddy_bear`
 
-Implementation authority:
-- `src/server/ItemFactory.lua` is the M1 base item factory;
-- active case spawning now routes through `ItemFactory.Create`;
-- no external asset dependency is required for these five models;
-- all child parts are welded to one anchored primary part so conveyor tween behavior is preserved;
-- claim-tag visibility is preserved on every model.
+Mobile runtime exercised the active sequence through the M1 case loop without reported welded-model/conveyor failure. v14 additionally fixed inspection ergonomics by providing floor-accessible interaction anchors with TAG on the left and OPEN on the right.
 
-Case distribution now exercises all five models during the existing 10-case loop while preserving Season 1 pillars:
-- Ownerless Suitcase remains vintage suitcase;
-- Flight 000 remains hardcase suitcase;
-- The Lost Child remains small vintage case;
-- normal/supporting cases introduce backpack, cardboard parcel, and teddy bear variants.
+Registry authority:
+- `registry/ITEM_REGISTRY.json`: five production-approved base types;
+- `registry/ASSET_REGISTRY.json`: `baseItemMeshesApproved = 5`, `m1Complete = true`.
 
-Asset authority:
-- `registry/ITEM_REGISTRY.json` status is `M1_BASE_MODELS`;
-- `registry/ASSET_REGISTRY.json` records all five as `SOURCE_IMPLEMENTED_PENDING_RUNTIME_QC`;
-- `baseItemMeshesImplemented = 5`;
-- `baseItemMeshesApproved = 0` until mobile visual acceptance;
-- M1 is NOT marked complete until runtime visual QC passes.
+## Active milestone
+**M2 — COLLECTION FOUNDATION**
 
-## M1-B publish receipt
-Run: `33006870278`
-Source commit: `0a7f93bbade35045dedfeea54a42c5e7fca57140`
+### M2-A implemented
+Initial collection size: **5 approved base item types**.
+
+Rarity seed:
+- Hardcase Suitcase — COMMON
+- Vintage Suitcase — UNCOMMON
+- Travel Backpack — COMMON
+- Cardboard Parcel — UNCOMMON
+- Teddy Bear — RARE
+
+Collection behavior:
+- resolving a case registers that base item type for the deciding player;
+- duplicate resolutions do not increase unique discovery count;
+- server owns the session discovery state;
+- client receives `CollectionUpdate` sync/discovery events;
+- top-right `INDEX x/5` button sits below Credits;
+- INDEX popup shows discovered item names + rarity and hides undiscovered entries;
+- first discovery produces a short `NEW DISCOVERY` toast.
+
+Important limits for M2-A:
+- collection is **SESSION-ONLY**;
+- no DataStore persistence yet;
+- no trading;
+- no Evidence Tokens;
+- do not expand to 30–40 items in one uncontrolled batch.
+
+## M2-A publish receipt
+Run: `33034725816`
+Source commit: `75b30a3d5ef864af34459f3feb8da821a27fae7d`
 Rojo: `7.7.0`
 Static QC: **PASS**
 Rojo build: **PASS**
 Roblox publish: **PASS**
-Roblox version: `13`
-RBXL bytes: `27610`
-RBXL SHA256: `6141422425f867162c38d94d22b2c0972ea7e38ea6b15038b7976a754a490729`
+Roblox version: `15`
+RBXL bytes: `32006`
+RBXL SHA256: `3dc04933f291b50bf87684816a649ebedaacf59a2753a15bd67ad30966c89ccf`
 Deploy receipt: `deploy-status/lost-and-found-m0.json`
 
 ## LIVE authority
-**LIVE_PUBLISHED — v13 BUILD/DEPLOY VERIFIED.**
-M1-B item visual acceptance still requires mobile runtime inspection.
+**LIVE_PUBLISHED — v15 BUILD/DEPLOY VERIFIED.**
+M2-A collection UI/runtime still requires mobile acceptance.
 
 ## Next gate
-**M1-RUNTIME FINAL:** verify on mobile:
-1. movement/camera remain normal;
-2. premium room modules still read clearly and do not block gameplay;
-3. hardcase and vintage suitcase look distinct;
-4. backpack reads immediately as a backpack, not a box;
-5. cardboard parcel reads immediately as a parcel;
-6. teddy bear reads immediately as a toy and is not visually broken during conveyor movement;
-7. tags remain visible enough for the interaction fantasy;
-8. SCAN → TAG → OPEN → DECIDE still completes on each model;
-9. no welded detail lags behind the item during conveyor tween.
+**M2-A-RUNTIME:** verify on mobile:
+1. movement and existing case UI remain normal;
+2. `INDEX 0/5` appears below Credits without blocking controls;
+3. resolving the first unique item updates Index to `1/5`;
+4. `NEW DISCOVERY` toast is readable but not intrusive;
+5. INDEX popup opens/closes cleanly;
+6. discovered row reveals correct name + rarity;
+7. duplicate item type does not increase unique count;
+8. case loop remains stable.
 
-If M1-RUNTIME FINAL passes, set all five base item models to runtime-approved, mark M1 complete, then proceed to **M2 — COLLECTION FOUNDATION**. Do not begin M2 before this gate passes.
+After M2-A runtime acceptance, proceed to M2-B: first controlled item-variant expansion + simple physical showcase/display. Persistence should be added only after the collection rules/UI are accepted.
