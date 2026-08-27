@@ -9,6 +9,7 @@ local CollectionRegistry = require(shared:WaitForChild("CollectionRegistry"))
 local WorldBuilder = require(script.Parent:WaitForChild("WorldBuilder"))
 local ItemFactory = require(script.Parent:WaitForChild("ItemFactory"))
 local PlayerDataStore = require(script.Parent:WaitForChild("PlayerDataStore"))
+local SerialMintService = require(script.Parent:WaitForChild("SerialMintService"))
 
 local remotes = ReplicatedStorage:FindFirstChild("LostAndFoundRemotes") or Instance.new("Folder")
 remotes.Name = "LostAndFoundRemotes"
@@ -34,6 +35,8 @@ local activeClaimant = nil
 local locked = false
 local inspections = { scanned = false, tagChecked = false, opened = false }
 local discoveries = {}
+local inventories = {}
+local minting = {}
 local persistenceReady = {}
 local dirty = {}
 local flight000IncidentPayload = nil
@@ -114,9 +117,33 @@ local function normalizeCharacter(character)
     end
 end
 
+local function inventoryFor(userId)
+    local inventory = inventories[userId]
+    if not inventory then
+        inventory = {}
+        inventories[userId] = inventory
+    end
+    return inventory
+end
+
+local function firstInstanceFor(userId, collectionId)
+    local best = nil
+    for _, instance in ipairs(inventoryFor(userId)) do
+        if instance.collectionId == collectionId then
+            if not best or (instance.serialNumber or math.huge) < (best.serialNumber or math.huge) then
+                best = instance
+            end
+        end
+    end
+    return best
+end
+
 local function collectionSnapshot(player)
-    local found = discoveries[player.UserId] or {}
+    local userId = player.UserId
+    local found = discoveries[userId] or {}
     local discoveredIds = {}
+    local serialByCollectionId = {}
+    local ownedCounts = {}
     local count = 0
 
     for _, collectionId in ipairs(CollectionRegistry.Order) do
@@ -126,12 +153,30 @@ local function collectionSnapshot(player)
         end
     end
 
+    for _, instance in ipairs(inventoryFor(userId)) do
+        if CollectionRegistry.Get(instance.collectionId) then
+            ownedCounts[instance.collectionId] = (ownedCounts[instance.collectionId] or 0) + 1
+            local current = serialByCollectionId[instance.collectionId]
+            if not current or (instance.serialNumber or math.huge) < (current.serialNumber or math.huge) then
+                serialByCollectionId[instance.collectionId] = {
+                    serial = instance.serial,
+                    serialNumber = instance.serialNumber,
+                    edition = instance.edition,
+                    tradeable = instance.tradeable,
+                }
+            end
+        end
+    end
+
     return {
         discovered = discoveredIds,
         count = count,
         total = CollectionRegistry.Count(),
         entries = CollectionRegistry.PublicEntries(),
-        persistent = persistenceReady[player.UserId] == true,
+        serialByCollectionId = serialByCollectionId,
+        ownedCounts = ownedCounts,
+        inventoryCount = #inventoryFor(userId),
+        persistent = persistenceReady[userId] == true,
     }
 end
 
@@ -146,10 +191,16 @@ local function savePayload(player)
         end
     end
 
+    local inventoryList = {}
+    for _, instance in ipairs(inventoryFor(player.UserId)) do
+        table.insert(inventoryList, instance)
+    end
+
     return {
         credits = credits.Value,
         xp = xp.Value,
         discovered = discoveredList,
+        inventory = inventoryList,
     }
 end
 
@@ -173,7 +224,85 @@ local function sendCollectionSync(player)
     collectionUpdate:FireClient(player, "SYNC", collectionSnapshot(player))
 end
 
-local function markDiscovered(player, collectionId, newEventKind)
+local function sourceForCollection(collectionId)
+    for _, caseData in ipairs(CaseRegistry.Cases) do
+        if caseData.collectionId == collectionId then
+            return caseData.id, "CASE_ITEM"
+        end
+        if caseData.bonusCollectionId == collectionId then
+            return caseData.id, "PERFECT_BONUS"
+        end
+    end
+    return "UNKNOWN", "DISCOVERY"
+end
+
+local function ensureSerializedInstance(player, collectionId, sourceCaseId, sourceKind, silent)
+    local userId = player.UserId
+    if persistenceReady[userId] ~= true then return nil end
+
+    local existing = firstInstanceFor(userId, collectionId)
+    if existing then return existing end
+
+    minting[userId] = minting[userId] or {}
+    if minting[userId][collectionId] then return nil end
+    minting[userId][collectionId] = true
+
+    local entry = CollectionRegistry.Get(collectionId)
+    if not entry then
+        minting[userId][collectionId] = nil
+        return nil
+    end
+
+    local instance = SerialMintService.Mint(entry, userId, sourceCaseId, sourceKind)
+    minting[userId][collectionId] = nil
+
+    if not instance or not player.Parent or persistenceReady[userId] ~= true then
+        return nil
+    end
+
+    table.insert(inventoryFor(userId), instance)
+    dirty[userId] = true
+
+    if not silent then
+        local snapshot = collectionSnapshot(player)
+        snapshot.serialMint = {
+            collectionId = instance.collectionId,
+            serial = instance.serial,
+            edition = instance.edition,
+            sourceKind = instance.sourceKind,
+        }
+        collectionUpdate:FireClient(player, "SERIAL_MINTED", snapshot)
+    end
+
+    return instance
+end
+
+local function backfillSerializedInventory(player)
+    local userId = player.UserId
+    if persistenceReady[userId] ~= true then return end
+
+    local found = discoveries[userId] or {}
+    local changed = false
+
+    for _, collectionId in ipairs(CollectionRegistry.Order) do
+        if not player.Parent then return end
+        if found[collectionId] and not firstInstanceFor(userId, collectionId) then
+            local sourceCaseId = sourceForCollection(collectionId)
+            local instance = ensureSerializedInstance(player, collectionId, sourceCaseId, "LEGACY_BACKFILL", true)
+            if instance then changed = true end
+            task.wait(0.15)
+        end
+    end
+
+    if player.Parent then
+        if changed then
+            savePlayer(player, false)
+        end
+        sendCollectionSync(player)
+    end
+end
+
+local function markDiscovered(player, collectionId, newEventKind, sourceCaseId)
     local entry = CollectionRegistry.Get(collectionId)
     if not entry then return false end
 
@@ -195,12 +324,22 @@ local function markDiscovered(player, collectionId, newEventKind)
         baseItemId = entry.baseItemId,
         name = entry.name,
         rarity = entry.rarity,
+        serialPrefix = entry.serialPrefix,
+        edition = entry.edition,
     }
     snapshot.isNew = isNew
     snapshot.bonus = newEventKind == "BONUS_DISCOVERY"
 
     local kind = isNew and (newEventKind or "DISCOVERY") or "UPDATE"
     collectionUpdate:FireClient(player, kind, snapshot)
+
+    if persistenceReady[player.UserId] == true and not firstInstanceFor(player.UserId, collectionId) then
+        local sourceKind = newEventKind == "BONUS_DISCOVERY" and "PERFECT_BONUS" or "CASE_ITEM"
+        task.spawn(function()
+            ensureSerializedInstance(player, collectionId, sourceCaseId or "UNKNOWN", sourceKind, false)
+        end)
+    end
+
     return isNew
 end
 
@@ -208,6 +347,7 @@ local function setupPlayer(player)
     local credits, xp = ensureStats(player)
     local loaded, ok = PlayerDataStore.Load(player.UserId)
     local found = {}
+    local inventory = {}
 
     if ok then
         credits.Value = loaded.credits or 0
@@ -217,12 +357,20 @@ local function setupPlayer(player)
                 found[collectionId] = true
             end
         end
+        for _, instance in ipairs(loaded.inventory or {}) do
+            if CollectionRegistry.Get(instance.collectionId) then
+                table.insert(inventory, instance)
+            end
+        end
     end
 
     discoveries[player.UserId] = found
+    inventories[player.UserId] = inventory
+    minting[player.UserId] = {}
     persistenceReady[player.UserId] = ok
     dirty[player.UserId] = false
     player:SetAttribute("LostFoundPersistenceReady", ok)
+    player:SetAttribute("LostFoundSerializedInventoryReady", ok and #inventory > 0)
 
     player.CharacterAdded:Connect(function(character)
         task.defer(normalizeCharacter, character)
@@ -309,12 +457,15 @@ Players.PlayerAdded:Connect(function(player)
         if flight000IncidentPayload then
             incidentUpdate:FireClient(player, "ARCHIVE_SYNC", flight000IncidentPayload)
         end
+        task.spawn(backfillSerializedInventory, player)
     end)
 end)
 
 Players.PlayerRemoving:Connect(function(player)
     savePlayer(player, true)
     discoveries[player.UserId] = nil
+    inventories[player.UserId] = nil
+    minting[player.UserId] = nil
     persistenceReady[player.UserId] = nil
     dirty[player.UserId] = nil
 end)
@@ -322,6 +473,7 @@ end)
 for _, player in ipairs(Players:GetPlayers()) do
     setupPlayer(player)
     task.defer(sendCollectionSync, player)
+    task.spawn(backfillSerializedInventory, player)
     if flight000IncidentPayload then
         task.defer(function()
             incidentUpdate:FireClient(player, "ARCHIVE_SYNC", flight000IncidentPayload)
@@ -450,15 +602,16 @@ for decision, decisionPrompt in pairs(refs.DecisionPrompts) do
         locked = true
         refreshPromptState()
 
+        local caseId = activeCase.id
         local grade = gradeDecision(decision)
         local reward, totalCredits, totalXP = grant(player, grade)
-        markDiscovered(player, activeCase.collectionId or activeCase.itemId)
+        markDiscovered(player, activeCase.collectionId or activeCase.itemId, nil, caseId)
 
         local bonusId = grade == "PERFECT" and activeCase.bonusCollectionId or nil
         if bonusId then
             task.delay(1.35, function()
                 if player.Parent then
-                    markDiscovered(player, bonusId, "BONUS_DISCOVERY")
+                    markDiscovered(player, bonusId, "BONUS_DISCOVERY", caseId)
                 end
             end)
         end
