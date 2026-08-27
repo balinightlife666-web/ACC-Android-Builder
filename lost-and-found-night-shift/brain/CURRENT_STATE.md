@@ -23,7 +23,6 @@ Updated: 2026-08-27
 - M2-D collection 15 — COMPLETE / RUNTIME-ACCEPTED.
 - M2-E collection 20 — COMPLETE / RUNTIME-ACCEPTED.
 - Credits, XP, and discovered collection IDs persist through `LostAndFound_PlayerData_v1`.
-- Trading remains locked.
 
 ## M3 — FLIGHT 000 / CONNECTED MYSTERY
 Authorities:
@@ -42,87 +41,93 @@ Flight 000 canon remains locked:
 - Status: CONNECTED / UNRESOLVED.
 - Exact final explanation: CANON UNKNOWN.
 
-Acceptance note:
-- v26 confirmed Archive control visibility on mobile;
-- v27 fixed the missing incident-banner path;
-- Arda explicitly accepted M3-A without repeating the full Flight 000 runtime loop after the hotfix;
-- therefore M3-A is USER-ACCEPTED rather than independently re-verified end-to-end after v27.
-
 ### M3-B — CONNECTED MYSTERY CHAIN
-**IMPLEMENTED / LIVE v29 — RUNTIME QC PENDING.**
+**IMPLEMENTED / LIVE v30 — VISUAL CLEANUP COMPLETE, FULL RUNTIME ACCEPTANCE NOT FORMALLY RECORDED.**
+
+Archive entries remain:
+1. `000-A — FLIGHT 000`
+2. `000-B — OWNERLESS SUITCASE`
+3. `000-C — THE LOST CHILD`
+
+Persistence is rebuilt from the existing PERFECT bonus discoveries. Old valid saves do not need to replay these cases. Lost Child remains 2001 + SECURITY/protective escalation. Final explanation remains unknown.
+
+Mobile cleanup through v30:
+- Credits / Index / Archive use a unified compact utility-button system;
+- popup close controls are standardized;
+- opening Collection hides CASE HUD, Credits, INDEX, and ARCHIVE so the popup is not visually overlapped.
+
+## M4 — UNIQUE ITEM ECONOMY / TRADING
+Authority: `brain/M4_UNIQUE_ITEM_TRADING_LOCK.md`.
+
+### M4-A — UNIQUE ITEM INSTANCE + SERIAL FOUNDATION
+**IMPLEMENTED IN SOURCE — PUBLISH / RUNTIME QC PENDING.**
 
 Goal:
-Connect the three existing Season 1 pillars without forcing replay and without revealing the final explanation.
+Turn collection ownership into actual unique item instances without breaking the existing Collection Index.
 
-Archive entries:
-1. `000-A — FLIGHT 000`
-   - unlock key: `flight_000_boarding_tag`
-   - Jonas Vale / passenger FOUND / flight NOT FOUND
-   - tag `F0-00013`
-   - action QUARANTINE
-   - status CONNECTED / UNRESOLVED
-2. `000-B — OWNERLESS SUITCASE`
-   - unlock key: `ownerless_tag_00017284`
-   - owner UNKNOWN / flight 000 / database origin NONE
-   - tag `000-17284`
-   - action QUARANTINE
-   - status CONNECTED / UNRESOLVED
-3. `000-C — THE LOST CHILD`
-   - unlock key: `milo_toy_train_2001`
-   - Milo Hart / MISSING PERSON RECORD / 2001
-   - tag `OLD-2001-14`
-   - action SECURITY
-   - status CONNECTED / PROTECTIVE ESCALATION
+Model:
+- Collection Index = whether a collectible type has ever been discovered;
+- Inventory Instance = the actual owned item that can later move through trading;
+- trading remains LOCKED until ownership integrity passes runtime QC.
 
-Persistence compatibility:
-- M3-B derives archive progression from the existing persistent PERFECT bonus discoveries already stored in the Collection save.
-- No second archive DataStore was introduced.
-- Old valid saves automatically rebuild Archive progress after join.
-- Players do not need to replay Ownerless Suitcase, Flight 000, or Lost Child if the matching bonus discovery already exists in their save.
+Unique identity fields:
+- immutable internal `instanceId`;
+- human-readable serial;
+- global mint number;
+- edition;
+- mint timestamp;
+- original finder user ID;
+- source case / source kind;
+- tradeable flag.
 
-Mobile UX:
-- top-right button displays `ARCHIVE x/3`;
-- archive popup shows all three slots;
-- unlocked slots reveal canon operational facts;
-- locked slots stay visible as locked placeholders;
-- newly earned Ownerless/Lost Child links may show a brief `CASE LINK CONFIRMED` toast;
-- Flight 000 retains the stronger M3-A terminal incident banner;
-- v29 standardizes the utility-control system across Credits / Index / Archive / Case File and popup close controls: top-right utility controls use 128×30, primary button text 11px, 8px corner radius, and close controls 30×30;
-- final explanation remains explicitly unknown.
+Serial format:
+`<PREFIX>-S1-<GLOBAL MINT NUMBER>`
 
-M3-B hard limits:
-- no final supernatural explanation;
-- no new location/map expansion;
-- no new currency;
-- no trading;
-- Lost Child remains a person requiring SECURITY/protective escalation;
-- the 2001 date is immutable unless Arda explicitly revises canon.
+Example:
+`CMB-S1-000001`
 
-## Latest publish receipt
-Run: `33073692620`
-Source commit: `0acce6014a0b1c8979ff5b753e0ad1518f465c7c`
+Implementation:
+- new `SerialMintService.lua` uses atomic DataStore `UpdateAsync` counters per collectible type;
+- `CollectionRegistry` now defines stable serial prefixes for all 20 collectibles;
+- `LostAndFound_PlayerData_v1` remains the store name and now accepts an optional serialized `inventory` payload (data version 2);
+- old saves remain compatible because missing inventory defaults to empty;
+- after a successful old-save load, discovered collection entries without an owned instance are gradually backfilled with serials;
+- no replay is required for old discoveries;
+- Collection cards can show the owned serial beneath rarity;
+- newly minted discoveries can show a `SERIAL MINTED` toast;
+- no trade request / transfer code is enabled yet.
+
+Safety / anti-dupe direction:
+- client never chooses a serial;
+- global mint counters are server-authoritative;
+- per-profile inventory sanitization rejects duplicate `instanceId` and duplicate serial values within the same payload;
+- atomic ownership transfer / escrow / provenance are deferred to M4-B.
+
+## Latest VERIFIED LIVE publish receipt
+Run: `33078835836`
+Source commit: `581e0bd32ea7c7342ca238b94ca395879237369d`
 Rojo: `7.7.0`
 Static QC: **PASS**
 Rojo build: **PASS**
 Roblox publish: **PASS**
-Roblox version: `29`
-RBXL bytes: `49355`
-RBXL SHA256: `27960b7b63d0fa88678d32ef5acf4f0908dd2a3ce7f518d7da93cf98d0398ada`
+Roblox version: `30`
+RBXL bytes: `49545`
+RBXL SHA256: `702c96f46d5dc4393ea44d2a7f1a77429450bebf32e6a880636d1907e0b6767b`
 Deploy receipt: `deploy-status/lost-and-found-m0.json`
 
 ## LIVE authority
-**LIVE_PUBLISHED — v29 BUILD/DEPLOY VERIFIED.**
-M3-B archive-chain UI/progression and unified mobile button polish still require runtime visual acceptance.
+**LIVE_PUBLISHED — v30 BUILD/DEPLOY VERIFIED.**
+M4-A source is newer than the current LIVE receipt and must not be called LIVE until a new receipt matches the M4-A publish trigger.
 
 ## Next gate
-**M3-B-RUNTIME**
-1. rejoin with existing save;
-2. ARCHIVE button shows the correct old-save count `/3` without replay;
-3. open Archive and confirm three cards render on mobile;
-4. already-earned linked bonuses reveal their corresponding entries;
-5. locked entries remain readable placeholders;
-6. confirm Credits / Index / Archive / Case File and popup close controls are visually consistent and compact;
-7. Collection `/20`, Credits, movement, CASE FILE, and case loop remain stable;
-8. no final lore explanation is exposed.
+**M4-A-RUNTIME**
+1. publish exact M4-A source and verify receipt;
+2. rejoin with the existing save;
+3. Credits and INDEX `/20` must remain intact;
+4. old discovered items should progressively receive stable serials without replay;
+5. open Collection and confirm serials render cleanly below rarity on mobile;
+6. leave/rejoin and confirm the same serials return;
+7. core case loop, Archive, movement, and Collection must remain stable;
+8. trading stays disabled until M4-B.
 
-After M3-B passes, continue M3 with a deeper operational escalation/limited anomaly reward before M4 social/economy hardening. Trading remains locked.
+After M4-A passes, build M4-B Secure Player Trading with server-side ownership validation, item locking/escrow, two-sided confirmation, atomic transfer, trade history, and anti-double-spend checks.
