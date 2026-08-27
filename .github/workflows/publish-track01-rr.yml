@@ -75,8 +75,8 @@ jobs:
           grep -q 'ACC_TRACK01_OPERATIONAL_PA_READY' maps/track-01/place.rbxlx
           grep -q 'ACC_TRACK01_TICKET_ACCESS_READY' maps/track-01/place.rbxlx
           grep -q 'ACC_TRACK01_VESTIBULES_READY' maps/track-01/place.rbxlx
-          grep -q 'Car01InteriorTicketZone' maps/track-01/place.rbxlx
-          grep -q 'Car04InteriorTicketZone' maps/track-01/place.rbxlx
+          grep -q 'TicketCheckpoint' maps/track-01/place.rbxlx
+          grep -q 'InteriorTicketZone' maps/track-01/place.rbxlx
           grep -q 'GangwayFloor' maps/track-01/place.rbxlx
           grep -q 'BellowsLeft' maps/track-01/place.rbxlx
           grep -q 'NIGHT TICKET REQUIRED' maps/track-01/place.rbxlx
