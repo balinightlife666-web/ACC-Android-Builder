@@ -68,15 +68,28 @@
 - Mobile visual QC and leave/rejoin persistence were accepted on Roblox v24.
 - Trading remains locked.
 
-## 2026-08-27 — M3-A Flight 000 first incident live candidate
-- Added `brain/M3_FLIGHT_000_LOCK.md` as active M3 authority.
-- Flight 000 still preserves the canon facts: Jonas Vale passenger record exists, Flight 000 record does not, tag F0-00013, correct action QUARANTINE.
+## 2026-08-27 — M3-A Flight 000 accepted
+- Added `brain/M3_FLIGHT_000_LOCK.md` as M3 authority.
+- Flight 000 preserves Jonas Vale, passenger FOUND, flight NOT FOUND, tag F0-00013, and correct action QUARANTINE.
 - Exact final explanation remains CANON UNKNOWN.
-- A PERFECT resolution of `LF-M0-007 — Flight 000` now raises a server-wide terminal incident.
-- Flight 000 incident extends the next-case delay to 6.2 seconds for readability.
-- Added a separate mobile `ARCHIVE 000-A` interface without modifying the stable CASE FILE / Collection UI.
-- Archive entry exposes only operational facts and `CONNECTED / UNRESOLVED` status.
-- Players joining the same server after the incident receive an archive sync for that server session.
-- Archive progression is session-scoped in M3-A; persistence is deferred to a later M3 slice.
-- Static QC, Rojo 7.7.0 build, and Roblox publish passed as v25.
-- M3-A mobile runtime acceptance remains pending.
+- PERFECT Flight 000 raises a server-wide terminal incident and briefly extends case transition timing.
+- Added mobile Archive control and operational incident entry.
+- v26 exposed Archive visibility clearly; v27 fixed the missing local incident-banner trigger.
+- Arda explicitly accepted M3-A after the v27 hotfix without requiring another full Flight 000 replay.
+- M3-A status: USER-ACCEPTED.
+
+## 2026-08-27 — M3-B connected mystery chain live candidate
+- Added `brain/M3B_CONNECTED_CHAIN_LOCK.md`.
+- Connected the existing Season 1 pillars into three operational Archive entries: Flight 000, Ownerless Suitcase, and The Lost Child.
+- Archive progression is reconstructed from existing persistent PERFECT bonus discoveries rather than adding a second DataStore.
+- Existing saves therefore do not need to replay old cases to restore valid archive progress.
+- `ARCHIVE x/3` now shows persistent chain progress.
+- Archive popup shows all three slots as locked/unlocked mobile cards.
+- 000-A Flight 000 uses `flight_000_boarding_tag`.
+- 000-B Ownerless Suitcase uses `ownerless_tag_00017284`.
+- 000-C Lost Child uses `milo_toy_train_2001`.
+- Lost Child remains SECURITY/protective escalation and the 2001 date remains locked.
+- Flight 000 retains the stronger terminal-incident presentation.
+- Final supernatural explanation remains unknown.
+- Static QC, Rojo 7.7.0 build, and Roblox publish passed as v28.
+- M3-B mobile runtime acceptance remains pending.
