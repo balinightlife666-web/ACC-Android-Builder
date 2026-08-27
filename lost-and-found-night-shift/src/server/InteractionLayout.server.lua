@@ -1,6 +1,7 @@
--- M1 mobile interaction ergonomics.
+-- M1/M2 mobile interaction ergonomics.
 -- Keep TAG and OPEN side-by-side at the front of the inspection desk so
--- players can use both from the floor without climbing onto the furniture.
+-- players can use both from the floor. Panels are tilted upright so their
+-- TOP SurfaceGui labels face the approaching player instead of the ceiling.
 
 task.spawn(function()
     local world = workspace:WaitForChild("LostAndFoundM1", 30)
@@ -14,12 +15,15 @@ task.spawn(function()
     if not tagReader or not openTray then return end
 
     -- Front interaction rail: TAG left, OPEN right, same height/depth.
-    tagReader.Size = Vector3.new(3.2, 0.72, 2.15)
-    tagReader.CFrame = CFrame.new(1.15, 2.18, -2.72)
+    -- +62deg around X turns each TOP face toward the player (+Z side).
+    local tilt = CFrame.Angles(math.rad(62), 0, 0)
+
+    tagReader.Size = Vector3.new(3.2, 0.58, 2.15)
+    tagReader.CFrame = CFrame.new(1.15, 2.75, -2.95) * tilt
     tagReader.CanCollide = false
 
-    openTray.Size = Vector3.new(3.6, 0.72, 2.15)
-    openTray.CFrame = CFrame.new(5.95, 2.18, -2.72)
+    openTray.Size = Vector3.new(3.6, 0.58, 2.15)
+    openTray.CFrame = CFrame.new(5.95, 2.75, -2.95) * tilt
     openTray.CanCollide = false
 
     local tagPrompt = tagReader:FindFirstChildOfClass("ProximityPrompt")
