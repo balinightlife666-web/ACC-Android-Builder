@@ -71,7 +71,7 @@ jobs:
           test -s maps/track-01/place.rbxlx
           grep -q 'TRACK01_SignalNight' maps/track-01/place.rbxlx
           grep -q 'TRACK01_SteamFog' maps/track-01/place.rbxlx
-          grep -q 'TRACK01_EndLineHero' maps/track-01/place.rbxlx
+          grep -q 'TRACK01_EndOfLineHero' maps/track-01/place.rbxlx
           grep -q 'MainSignal_T01' maps/track-01/place.rbxlx
           grep -q 'END OF LINE' maps/track-01/place.rbxlx
           bytes=$(stat -c%s maps/track-01/place.rbxlx)
