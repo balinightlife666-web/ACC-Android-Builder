@@ -20,8 +20,9 @@ Updated: 2026-08-28
 - M4-B secure same-server item trading — LIVE v32; one-player UI accepted; true two-account ownership/rejoin QC deferred.
 - M4-C anti-alt/economy telemetry — LIVE v33 build/deploy verified.
 - M4-D Personal Stations — LIVE v34 core; SOLO CORE FUNCTIONAL PASS; multiplayer isolation QC deferred.
-- M4-D.1 Station Readability — LIVE v35 visual readability improved.
-- M4-D.1 decision color hotfix — LIVE v36 build/deploy verified.
+- M4-D.1 Station Readability — LIVE v35.
+- M4-D.1 decision color hotfix — LIVE v36.
+- M4-E Case Depth + NPC Variation — LIVE v37 build/deploy verified; runtime QC pending.
 
 ## Canon / gameplay locks
 Core loop:
@@ -41,51 +42,49 @@ Mystery canon must not be procedurally rewritten.
 
 ## Personal station architecture
 Authority: `brain/M4D_PERSONAL_STATION_LOCK.md` v1.1.
-
 - initial target: 8 players/server;
 - 8 physical slots A-H in one shared room;
-- station letter is temporary server placement, not permanent account ownership;
-- each player has isolated active case, inspections, item, claimant, decision, rewards and next-case timer;
-- server validates station ownership for SCAN/TAG/OPEN/DECIDE;
-- station releases to VACANT on leave;
-- player Station Profile persists independently of physical slot.
+- station letter is temporary placement, not permanent ownership;
+- isolated per-player case / claimant / inspection / decision / reward / next-case state;
+- server validates station ownership for every job interaction;
+- player Station Profile persists independent of physical slot.
 
-Persistent Station Profile foundation:
+Station Profile foundation:
 - `equippedSkin`
 - `ownedSkins`
 - `title`
 
-Station skin registry foundation:
+Skin registry foundation:
 - STANDARD_OPS — FREE
 - INDUSTRIAL_SHIFT — 8,000 Credits target
 - RETRO_AIRPORT — 18,000 Credits target
 - BLACK_OPS — 35,000 Credits target
-- LUXURY_EXECUTIVE — ROBUX, product/price TBD
+- LUXURY_EXECUTIVE — ROBUX, exact product/price TBD
 - HALLOWEEN_2026 — EVENT
 - CHRISTMAS_2026 — EVENT
 
-Station Shop purchase/equip UX is NOT implemented yet.
+Station Shop UX is not implemented yet.
 
-Functional decision colors are hard-locked independent from station skin:
-- RETURN = green
-- STORE = cyan/blue
-- QUARANTINE = amber/yellow
-- SECURITY = red
+Decision colors are independent from station skins:
+- RETURN green
+- STORE cyan/blue
+- QUARANTINE amber/yellow
+- SECURITY red
 
 ## Collection / economy
 - Collection Index = historical discovery prestige.
-- Inventory Instance = actual currently owned transferable item.
-- every instance has immutable `instanceId`, human-readable serial, global mint number and provenance;
-- traded-away item does not remint for free;
+- Inventory Instance = currently owned transferable item.
+- immutable `instanceId`, serial, global mint number and provenance;
+- no free remint after trade-away;
 - Credits are non-transferable soft currency;
-- Credits cannot directly buy SECRET/ANOMALY instances;
-- same-server trading remains serialized item ↔ serialized item;
+- Credits cannot directly buy SECRET/ANOMALY;
+- same-server trade remains serialized item ↔ serialized item;
 - no off-platform payment flow.
 
-Personal collectible flow:
+Collectible flow:
 `PERSONAL CASE → PERFECT → SERVER DROP ROLL → GLOBAL SERIAL MINT → ONLY THAT PLAYER RECEIVES INSTANCE`
 
-Current drop targets:
+Drop targets remain:
 - COMMON 100%
 - UNCOMMON 85%
 - RARE 65%
@@ -96,26 +95,24 @@ Current drop targets:
 ## M4-E — CASE DEPTH + NPC VARIATION
 Authority: `brain/M4E_CASE_DEPTH_NPC_LOCK.md` v1.0.
 
-**SOURCE IMPLEMENTED / NOT LIVE UNTIL RECEIPT MATCHES NEW TRIGGER COMMIT.**
+**LIVE_PUBLISHED v37 — BUILD/DEPLOY VERIFIED / SOLO RUNTIME QC PENDING.**
 
 Purpose: stop experienced players from solving routine work through memorised case IDs/titles.
 
-Implemented source:
-- `CaseRegistry.Get(1..5)` now generates neutral runtime routine tickets instead of exposing a fixed answer-bearing routine case;
-- runtime routine HUD uses neutral `LF-R-... / Property Review` identity;
+Live implementation:
+- routine jobs are generated as neutral `LF-R-... / Property Review` tickets;
 - broad claimant-name pool;
 - variable tags, flights, weights and contents;
-- 15 evidence archetypes across RETURN / STORE / SECURITY / QUARANTINE outcomes;
-- combinations reuse the five existing routine collection/bonus profiles so collection IDs do not explode;
-- internal scenario names are not exposed to player HUD;
-- progression-gated mystery cases remain canonical but are only candidate incidents some cycles, making mystery appearances materially rarer than routine work;
+- 15 routine evidence archetypes across RETURN / STORE / SECURITY / QUARANTINE;
+- internal scenario IDs are not shown to players;
+- five established routine item/collection profiles are reused, avoiding unnecessary collectible-ID inflation;
+- mystery cases remain progression-gated and canonical but are materially rarer routine candidates;
 - `M4ENpcPolish.server.lua` adds lightweight procedural claimant body/outfit/hair/face/glasses variation using Roblox geometry only;
-- no image generation or external NPC assets.
+- no AI-generated image assets or external NPC dependencies.
 
-M4-E does NOT change:
-- Credits rewards;
-- XP rewards;
-- collectible drop rates;
+M4-E does not change:
+- Credits/XP reward values;
+- drop rates;
 - serial/provenance rules;
 - trading;
 - station ownership;
@@ -124,40 +121,37 @@ M4-E does NOT change:
 ## Latest VERIFIED LIVE authority
 Receipt: `deploy-status/lost-and-found-m0.json`
 
-Roblox v36:
+Roblox v37:
 - status: `LIVE_PUBLISHED`
-- source commit: `44e3b0c8046627375eb52e9d4d9ea18e5ca0e1c6`
-- workflow run: `33105083714`
+- source commit: `268800a54558b27de6e8b6ecfe4d166c7260fe80`
+- workflow run: `33108987965`
 - Rojo: `7.7.0`
-- RBXL bytes: `85865`
-- RBXL SHA256: `a8487f13d33e577c1caa8d42607bbd4771cfe09b2664f99e627735c92cfaec7e`
+- RBXL bytes: `94776`
+- RBXL SHA256: `489259f15237b82e34127b218d4e7927ae212d8888e0b74706d8443fa30458f1`
 
-**Current verified LIVE = Roblox v36. M4-E source is not LIVE yet.**
-
-## Active next gate — M4-E publish + solo QC
-1. publish exact M4-E source and verify receipt sourceCommit;
-2. join established save and confirm Credits / XP / INDEX / ARCHIVE / existing serials remain intact;
-3. routine case HUD should show neutral `Property Review`, not `Tag Mismatch`, `Wrong Color`, `False Claim`, etc.;
-4. run several routine cases and confirm owner/claimant/tag/flight/evidence varies;
-5. confirm correct answer is not a fixed repeating order and evidence must actually be read;
-6. confirm claimant NPCs visibly vary beyond the old torso/head mannequin;
-7. confirm personal Station A interaction/reward/next-case loop remains functional;
-8. when a mystery occurs, verify its canonical decision/evidence is unchanged.
+## Active next gate — M4-E SOLO RUNTIME QC
+1. join established save; Credits / XP / INDEX / ARCHIVE / serials remain intact;
+2. routine HUD shows `Property Review`, not answer-bearing titles like Tag Mismatch / Wrong Color / False Claim;
+3. play several routine jobs and confirm names / tags / flights / evidence vary;
+4. correct decision should require reading evidence rather than remembering case number;
+5. claimant NPCs visibly vary beyond torso/head mannequin;
+6. Station A flow, reward and next-case loop still work;
+7. mystery cases, when they occur, retain canonical evidence/action.
 
 ## Deferred multiplayer QC
 When a second tester is available:
-- Station A/B separate assignment;
+- Station A/B assignment isolation;
 - independent simultaneous case streams;
-- other player cannot operate another station's job/reward;
+- player cannot operate another station's controls/rewards;
 - no item/claimant/HUD leakage;
-- same-server serialized trade still works;
+- same-server serialized trade works;
 - swapped serial ownership survives both-account rejoin with no duplicate serial.
 
 ## Next after M4-E runtime pass
 1. Station Shop v1 using Credits for earnable station skins;
 2. manual featured-showcase selection;
 3. collectible 3D quality pass;
-4. optional Robux premium cosmetics after intentional product IDs/prices exist;
+4. optional Robux cosmetics after deliberate product IDs/prices exist;
 5. Halloween 2026 production preparation.
 
-Seasonal gameplay visuals remain Roblox 3D/procedural/in-engine by default. No AI-generated image assets unless explicitly requested.
+Seasonal visuals remain Roblox 3D/procedural/in-engine by default. No AI-generated image assets unless explicitly requested.
