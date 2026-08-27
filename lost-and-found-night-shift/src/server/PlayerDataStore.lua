@@ -7,6 +7,7 @@ local store = DataStoreService:GetDataStore(STORE_NAME)
 
 local MAX_INVENTORY_ITEMS = 500
 local MAX_PROVENANCE_EVENTS = 12
+local economyCache = {}
 
 local function keyFor(userId)
     return "u_" .. tostring(userId)
@@ -111,6 +112,13 @@ local function sanitizeEconomyStats(raw)
     return result
 end
 
+local function cloneEconomyStats(raw)
+    local clean = sanitizeEconomyStats(raw)
+    local result = {}
+    for key, value in pairs(clean) do result[key] = value end
+    return result
+end
+
 local function sanitize(raw)
     local data = defaults()
     if type(raw) ~= "table" then
@@ -163,11 +171,40 @@ function PlayerDataStore.Load(userId)
         return defaults(), false
     end
 
-    return sanitize(result), true
+    local clean = sanitize(result)
+    economyCache[userId] = cloneEconomyStats(clean.economyStats)
+    return clean, true
+end
+
+function PlayerDataStore.GetEconomyStats(userId)
+    economyCache[userId] = economyCache[userId] or defaultEconomyStats()
+    return economyCache[userId]
+end
+
+function PlayerDataStore.SetEconomyStats(userId, stats)
+    economyCache[userId] = cloneEconomyStats(stats)
+end
+
+function PlayerDataStore.IncrementEconomy(userId, metric, amount)
+    local stats = PlayerDataStore.GetEconomyStats(userId)
+    if stats[metric] == nil then return false end
+    amount = math.floor(tonumber(amount) or 1)
+    stats[metric] = math.max(0, stats[metric] + amount)
+    return true
 end
 
 function PlayerDataStore.Save(userId, payload)
+    payload = type(payload) == "table" and payload or {}
+    if type(payload.economyStats) ~= "table" and economyCache[userId] then
+        local copy = {}
+        for key, value in pairs(payload) do copy[key] = value end
+        copy.economyStats = economyCache[userId]
+        payload = copy
+    end
+
     local clean = sanitize(payload)
+    economyCache[userId] = cloneEconomyStats(clean.economyStats)
+
     local ok, err = pcall(function()
         store:UpdateAsync(keyFor(userId), function()
             return {
