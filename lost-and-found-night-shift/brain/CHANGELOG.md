@@ -28,9 +28,9 @@
 - Added top-right INDEX mobile control and first-discovery toast.
 - Replaced text-only index with 3D ViewportFrame collection cards.
 - Added locked silhouettes and horizontal mobile collection carousel.
-- Collection remains session-only; no trading.
+- Accepted front-facing 3D collection preview orientation on mobile.
 
-## 2026-08-27 — M2-B controlled variants + showcase
+## 2026-08-27 — M2-B controlled variants + showcase accepted
 - Expanded collection from 5 base geometry entries to 10 case-specific collectible variants.
 - Preserved reuse of the five approved M1 base geometries.
 - Added stable `collectionId` mapping to all 10 existing cases.
@@ -38,5 +38,13 @@
 - Added `registry/COLLECTION_REGISTRY.json` as governance mirror.
 - Added per-player physical collection showcase with 10 non-colliding shelf slots.
 - Discovered variants appear as 3D models on the showcase; locked slots remain hidden with `?`.
-- Published as Roblox v19; M2-B runtime acceptance pending.
-- Persistence/DataStore and trading remain locked.
+
+## 2026-08-27 — M2-C persistence accepted
+- Added persistent player data through `LostAndFound_PlayerData_v1`.
+- Credits, XP, and discovered collection IDs survive leave/rejoin.
+- Added protected load/save behavior with session-only fallback when DataStore load fails.
+- Added 60-second dirty autosave plus `PlayerRemoving` / `BindToClose` saves.
+- Confirmed persistence runtime behavior on mobile.
+- Tilted TAG READER and OPEN / INSPECT controls upright toward the player for better readability.
+- Roblox v21 is the accepted M2-C runtime baseline.
+- Trading remains locked.
