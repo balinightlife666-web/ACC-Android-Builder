@@ -1,0 +1,16 @@
+{
+  "status": "LIVE_PUBLISHED",
+  "project": "AFTER SCHOOL CITY",
+  "mode": "CIRCULATION_SANITIZE_V0_4_4",
+  "sourceRepo": "ardarawk-cloud/ACC-Roblox-maps",
+  "sourceCommit": "b23b21a8df3c373f668a2dee86bfadad9539419e",
+  "universeId": "10745359869",
+  "placeId": "121603385909425",
+  "versionNumber": 13,
+  "rojoVersion": "7.7.0",
+  "placeBytes": 39347,
+  "placeSha256": "50e05e427e80a8dde066b910a9501150260e39f665145a8d05faa1386e4b5d05",
+  "runId": "33045230345",
+  "publishedAt": "2026-08-27T06:15:52Z",
+  "note": "Circulation Sanitize v0.4.4 plus dedication intro."
+}
