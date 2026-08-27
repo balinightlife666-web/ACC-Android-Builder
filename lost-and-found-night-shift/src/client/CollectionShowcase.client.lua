@@ -9,7 +9,7 @@ local collectionUpdate = remotes:WaitForChild("CollectionUpdate")
 
 local SHOWCASE_NAME = "LocalCollectionShowcase"
 local PANEL_X = -44.55
-local PANEL_Y = 8.0
+local PANEL_Y = 9.0
 local PANEL_Z = 10
 
 local function makePart(parent, name, size, cframe, color, material, transparency)
@@ -59,7 +59,7 @@ showcase.Parent = workspace
 makePart(
     showcase,
     "BackPanel",
-    Vector3.new(0.5, 15.7, 24),
+    Vector3.new(0.5, 17.6, 24),
     CFrame.new(PANEL_X, PANEL_Y, PANEL_Z),
     Color3.fromRGB(20, 25, 33),
     Enum.Material.Metal,
@@ -69,15 +69,15 @@ makePart(
 local titlePlate = makePart(
     showcase,
     "TitlePlate",
-    Vector3.new(0.16, 1.35, 20),
-    CFrame.new(PANEL_X + 0.34, 15.0, PANEL_Z),
+    Vector3.new(0.16, 1.25, 20),
+    CFrame.new(PANEL_X + 0.34, 16.95, PANEL_Z),
     Color3.fromRGB(31, 37, 46),
     Enum.Material.Metal,
     0
 )
-addSurfaceText(titlePlate, "LOST PROPERTY COLLECTION  •  15", Enum.NormalId.Right, Color3.fromRGB(235, 177, 78), 18)
+addSurfaceText(titlePlate, "LOST PROPERTY COLLECTION  •  20", Enum.NormalId.Right, Color3.fromRGB(235, 177, 78), 18)
 
-for _, shelfY in ipairs({1.55, 5.45, 9.35}) do
+for _, shelfY in ipairs({1.25, 4.95, 8.65, 12.35}) do
     makePart(
         showcase,
         "Shelf",
@@ -91,10 +91,10 @@ end
 
 local slots = {}
 local zPositions = {2, 6, 10, 14, 18}
-local rowY = {2.8, 6.7, 10.6}
+local rowY = {2.45, 6.15, 9.85, 13.55}
 local slotIndex = 0
 
-for row = 1, 3 do
+for row = 1, 4 do
     for col = 1, 5 do
         slotIndex += 1
         local y = rowY[row]
@@ -104,7 +104,7 @@ for row = 1, 3 do
             showcase,
             "Slot_" .. tostring(slotIndex),
             Vector3.new(1.8, 0.22, 3.2),
-            CFrame.new(PANEL_X + 1.15, y - 1.15, z),
+            CFrame.new(PANEL_X + 1.15, y - 1.05, z),
             Color3.fromRGB(34, 41, 52),
             Enum.Material.Metal,
             0
@@ -113,7 +113,7 @@ for row = 1, 3 do
         local lockPlate = makePart(
             showcase,
             "Lock_" .. tostring(slotIndex),
-            Vector3.new(0.14, 1.45, 2.5),
+            Vector3.new(0.14, 1.35, 2.5),
             CFrame.new(PANEL_X + 0.38, y, z),
             Color3.fromRGB(24, 29, 38),
             Enum.Material.SmoothPlastic,
@@ -156,7 +156,7 @@ local function rebuildShowcase()
             if isDiscovered then
                 local model = PreviewFactory.Create(entry.id, showcase, false)
                 model.Name = "Display_" .. entry.id
-                model:ScaleTo(0.3)
+                model:ScaleTo(0.27)
                 model:PivotTo(CFrame.new(slot.position) * CFrame.Angles(0, math.rad(-90), 0))
                 displayedModels[entry.id] = model
             end
