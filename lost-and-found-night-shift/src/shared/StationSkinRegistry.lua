@@ -22,11 +22,11 @@ StationSkinRegistry.Order = {
 
 StationSkinRegistry.Skins = {
     STANDARD_OPS = skin("STANDARD_OPS", "Standard Ops", "FREE", 0, {
-        base = Color3.fromRGB(31, 37, 46),
-        panel = Color3.fromRGB(20, 25, 33),
-        accent = Color3.fromRGB(214, 151, 55),
-        trim = Color3.fromRGB(90, 104, 122),
-        light = Color3.fromRGB(220, 230, 240),
+        base = Color3.fromRGB(40, 48, 59),
+        panel = Color3.fromRGB(28, 35, 45),
+        accent = Color3.fromRGB(224, 163, 64),
+        trim = Color3.fromRGB(108, 122, 141),
+        light = Color3.fromRGB(232, 239, 248),
     }),
     INDUSTRIAL_SHIFT = skin("INDUSTRIAL_SHIFT", "Industrial Shift", "CREDITS", 8000, {
         base = Color3.fromRGB(48, 48, 45),
