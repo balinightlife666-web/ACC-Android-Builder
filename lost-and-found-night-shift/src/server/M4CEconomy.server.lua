@@ -104,7 +104,7 @@ local function connectDecisionPrompt(prompt)
         local beforeXP = xpValue and xpValue.Value or 0
         local beforeCredits = creditsValue and creditsValue.Value or 0
 
-        task.defer(function()
+        task.delay(0.08, function()
             if not player.Parent then return end
             local afterXP = xpValue and xpValue.Value or beforeXP
             local afterCredits = creditsValue and creditsValue.Value or beforeCredits
