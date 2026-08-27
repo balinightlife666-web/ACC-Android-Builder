@@ -22,10 +22,21 @@
 - Implemented and runtime-approved five base item types: hardcase suitcase, vintage suitcase, backpack, cardboard parcel, teddy bear.
 - Added floor-accessible TAG-left / OPEN-right interaction rail.
 
-## 2026-08-27 — M2-A collection foundation
-- Added CollectionRegistry with initial 5-item rarity seed.
+## 2026-08-27 — M2-A collection foundation accepted
+- Added CollectionRegistry with rarity/discovery foundation.
 - Added server-authoritative session discovery tracking.
-- Added top-right INDEX x/5 mobile control and collection popup.
-- Added first-discovery toast.
-- No persistence or trading yet.
-- Published as Roblox v15; runtime acceptance pending.
+- Added top-right INDEX mobile control and first-discovery toast.
+- Replaced text-only index with 3D ViewportFrame collection cards.
+- Added locked silhouettes and horizontal mobile collection carousel.
+- Collection remains session-only; no trading.
+
+## 2026-08-27 — M2-B controlled variants + showcase
+- Expanded collection from 5 base geometry entries to 10 case-specific collectible variants.
+- Preserved reuse of the five approved M1 base geometries.
+- Added stable `collectionId` mapping to all 10 existing cases.
+- Discovery now tracks collectible variant IDs rather than only base geometry IDs.
+- Added `registry/COLLECTION_REGISTRY.json` as governance mirror.
+- Added per-player physical collection showcase with 10 non-colliding shelf slots.
+- Discovered variants appear as 3D models on the showcase; locked slots remain hidden with `?`.
+- Published as Roblox v19; M2-B runtime acceptance pending.
+- Persistence/DataStore and trading remain locked.
