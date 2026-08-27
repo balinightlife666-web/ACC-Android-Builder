@@ -1,0 +1,83 @@
+name: After School City V0.4.7 Orientation QC Hosted
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/after-school-city-v047-orientation-qc-hosted.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  qc:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      SOURCE_REPO: ardarawk-cloud/ACC-Roblox-maps
+      SOURCE_SHA: d533a63c1cf33cf2702d97376d816f2c13d7f35d
+
+    steps:
+      - name: Checkout publisher controller
+        uses: actions/checkout@v4
+
+      - name: Checkout exact AFTER SCHOOL CITY source
+        uses: actions/checkout@v4
+        with:
+          repository: ardarawk-cloud/ACC-Roblox-maps
+          ref: d533a63c1cf33cf2702d97376d816f2c13d7f35d
+          token: ${{ secrets.ACC_ROBLOX_MAPS_WRITE_TOKEN }}
+          path: asc-source
+          fetch-depth: 1
+
+      - name: Verify exact source lock
+        shell: bash
+        run: |
+          set -euo pipefail
+          actual=$(git -C asc-source rev-parse HEAD)
+          [[ "$actual" == "$SOURCE_SHA" ]] || { echo "Source SHA mismatch: $actual"; exit 11; }
+          grep -Fq '0.4.7-orientation-correction-1' asc-source/maps/after-school-city/after-school-city.config.lua
+          grep -Fq 'EnableOrientationCorrectionPass = true' asc-source/maps/after-school-city/after-school-city.config.lua
+          grep -Fq 'ASC_OrientationCorrection' asc-source/maps/after-school-city/default.project.json
+          grep -Fq 'after-school-city.orientation-correction.server.lua' asc-source/maps/after-school-city/default.project.json
+          echo "EXACT SOURCE LOCK PASS $actual"
+
+      - name: Cloud source spatial audit V4
+        shell: pwsh
+        working-directory: asc-source
+        run: |
+          $ErrorActionPreference='Stop'
+          & '.github/scripts/after-school-city-spatial-audit.ps1'
+
+      - name: Cloud source orientation audit V1
+        shell: pwsh
+        working-directory: asc-source
+        run: |
+          $ErrorActionPreference='Stop'
+          & '.github/scripts/after-school-city-orientation-audit.ps1'
+
+      - name: Prepare Rojo 7.7.0
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/asc-rojo"
+          curl -fsSL 'https://github.com/rojo-rbx/rojo/releases/download/v7.7.0/rojo-7.7.0-linux-x86_64.zip' -o "$RUNNER_TEMP/rojo.zip"
+          unzip -q -o "$RUNNER_TEMP/rojo.zip" -d "$RUNNER_TEMP/asc-rojo"
+          rojo=$(find "$RUNNER_TEMP/asc-rojo" -type f -name rojo | head -n1)
+          [[ -n "$rojo" ]] || { echo 'rojo binary missing'; exit 20; }
+          chmod +x "$rojo"
+          "$rojo" --version
+          echo "ROJO_EXE=$rojo" >> "$GITHUB_ENV"
+
+      - name: Build exact AFTER SCHOOL CITY v0.4.7
+        shell: bash
+        run: |
+          set -euo pipefail
+          place="$RUNNER_TEMP/after-school-city-v047.rbxl"
+          "$ROJO_EXE" build 'asc-source/maps/after-school-city/default.project.json' -o "$place"
+          test -f "$place"
+          bytes=$(stat -c%s "$place")
+          (( bytes >= 1024 )) || { echo "Generated RBXL suspiciously small: $bytes"; exit 21; }
+          sha=$(sha256sum "$place" | awk '{print $1}')
+          echo "AFTER SCHOOL CITY V0.4.7 HOSTED QC PASS bytes=$bytes sha256=$sha source=$SOURCE_SHA"
