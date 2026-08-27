@@ -1,6 +1,6 @@
-LOST FOUND M4-A UNIQUE SERIALIZED INVENTORY
+LOST FOUND M4-B SECURE SERIALIZED TRADING V1
 Triggered: 2026-08-27
-Retry: 29
+Retry: 30
 Universe: 10745354451
 Place: 93699016600671
-Reason: Add server-authoritative unique collectible instances with global atomic serial mint counters, backward-compatible inventory persistence and old-save serial backfill, plus compact serial display on Collection cards. Trading remains locked pending runtime persistence QC.
+Reason: Publish same-server one-item-for-one-item serialized player trading with exact instance ownership validation, item locks, request/accept flow, two-stage confirmation, durable trade journal, rollback/recovery markers, provenance persistence, NOT OWNED collection state, and mobile trade UI. No external payment fields.
