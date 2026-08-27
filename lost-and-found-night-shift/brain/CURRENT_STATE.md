@@ -22,7 +22,7 @@ Updated: 2026-08-27
 - M2-C persistence — COMPLETE / RUNTIME-ACCEPTED.
 - M2-D collection 15 — COMPLETE / RUNTIME-ACCEPTED.
 - M2-E collection 20 — COMPLETE / RUNTIME-ACCEPTED.
-- Credits, XP, and discovered collection IDs persist through `LostAndFound_PlayerData_v1`.
+- Credits, XP, and discovered Collection Index IDs persist through `LostAndFound_PlayerData_v1`.
 
 ## M3 — FLIGHT 000 / CONNECTED MYSTERY
 Authorities:
@@ -42,117 +42,126 @@ Flight 000 canon remains locked:
 - Exact final explanation: CANON UNKNOWN.
 
 ### M3-B — CONNECTED MYSTERY CHAIN
-**IMPLEMENTED / LIVE v30 — VISUAL CLEANUP COMPLETE, FULL RUNTIME ACCEPTANCE NOT FORMALLY RECORDED.**
+**IMPLEMENTED / LIVE — visual cleanup complete.**
 
 Archive entries remain:
 1. `000-A — FLIGHT 000`
 2. `000-B — OWNERLESS SUITCASE`
 3. `000-C — THE LOST CHILD`
 
-Persistence is rebuilt from the existing PERFECT bonus discoveries. Old valid saves do not need to replay these cases. Lost Child remains 2001 + SECURITY/protective escalation. Final explanation remains unknown.
-
-Mobile cleanup through v30:
-- Credits / Index / Archive use a unified compact utility-button system;
-- popup close controls are standardized;
-- opening Collection hides CASE HUD, Credits, INDEX, and ARCHIVE so the popup is not visually overlapped.
+Archive progression is historical discovery progress and does not depend on current trade ownership. Lost Child remains 2001 + SECURITY/protective escalation. Final explanation remains unknown.
 
 ## M4 — UNIQUE ITEM ECONOMY / TRADING
-Authority: `brain/M4_UNIQUE_ITEM_TRADING_LOCK.md`.
+Authority: `brain/M4_UNIQUE_ITEM_TRADING_LOCK.md` v1.1.
 
 ### M4-A — UNIQUE ITEM INSTANCE + SERIAL FOUNDATION
 **COMPLETE / RUNTIME-ACCEPTED ON v31.**
 
-Goal:
-Turn collection ownership into actual unique item instances without breaking the existing Collection Index.
-
-Model:
+Accepted model:
 - Collection Index = whether a collectible type has ever been discovered;
-- Inventory Instance = the actual owned item that can later move through trading.
-
-Unique identity fields:
-- immutable internal `instanceId`;
-- human-readable serial;
-- global mint number;
-- edition;
-- mint timestamp;
-- original finder user ID;
-- source case / source kind;
-- tradeable flag.
-
-Serial format:
-`<PREFIX>-S1-<GLOBAL MINT NUMBER>`
-
-Example:
-`CMB-S1-000001`
-
-Implementation:
-- `SerialMintService.lua` uses atomic DataStore `UpdateAsync` counters per collectible type;
-- `CollectionRegistry` defines stable serial prefixes for all 20 collectibles;
-- `LostAndFound_PlayerData_v1` remains the store name and accepts serialized `inventory` data (data version 2);
-- old saves remain compatible because missing inventory defaults to empty;
-- after successful old-save load, discovered collection entries without an owned instance are backfilled with serials;
-- no replay is required for old discoveries;
-- Collection cards show the owned serial beneath rarity;
-- newly minted discoveries can show a `SERIAL MINTED` toast.
+- Inventory Instance = the actual owned item that can move between players;
+- immutable internal `instanceId` is the ownership key;
+- human-readable serial is immutable display identity;
+- serial minting is server-authoritative using atomic global counters.
 
 Runtime acceptance evidence:
-- mobile screenshot on first v31 login showed stable serialized instances, including `SNP-S1-000001`, `ARP-S1-000001`, and `UMR-S1-000001`;
-- second screenshot after rejoin showed the same three serials unchanged;
-- therefore old-save backfill + persistence survived rejoin and M4-A is accepted.
+- first v31 login showed serialized old-save items;
+- after rejoin `SNP-S1-000001`, `ARP-S1-000001`, and `UMR-S1-000001` remained unchanged;
+- therefore serial persistence passed.
 
-Safety / anti-dupe direction:
-- client never chooses a serial;
-- global mint counters are server-authoritative;
-- per-profile inventory sanitization rejects duplicate `instanceId` and duplicate serial values within the same payload.
+### M4-B — SECURE PLAYER TRADING v1
+**LIVE_PUBLISHED v32 — RUNTIME QC PENDING.**
+
+Scope:
+- same-server only;
+- one serialized item ↔ one serialized item;
+- no currency / no multi-item bundle yet;
+- exact instance ownership validation by `instanceId`;
+- request / accept / decline;
+- server item lock during active session;
+- changing an offer resets confirmation;
+- both first-confirm before final review;
+- 3-second server-enforced final review lock;
+- both final-confirm before ownership commit;
+- cancel / disconnect before commit does not move ownership.
+
+Persistence / anti-dupe:
+- new durable `LostAndFound_TradeJournal_v1`;
+- per-user `LostAndFound_TradeRecovery_v1` marker;
+- journal is `PREPARED` before ownership mutation;
+- both player inventories are saved before journal becomes `COMMITTED`;
+- failure attempts rollback to original inventory snapshots;
+- unresolved recovery markers reconcile on future profile load;
+- committed item receives updated `currentOwnerUserId`, `tradeCount`, `lastTradeAt`, `lastTradeId`, and bounded provenance;
+- profile payload version is now 4 while DataStore name remains `LostAndFound_PlayerData_v1`.
+
+Critical migration hardening:
+- added persisted `serialMigrationComplete` flag;
+- legacy backfill runs only once;
+- after migration, trading away the final owned instance MUST NOT mint a free replacement on rejoin;
+- Collection Index stays discovered, but UI shows `NOT OWNED` when current owned count is zero.
+
+Mobile UI:
+- `TRADE` joins the compact top-right utility stack below Archive;
+- same-server player lobby;
+- incoming ACCEPT / DECLINE;
+- local exact-serial item picker;
+- YOUR OFFER / THEIR OFFER review;
+- first confirmation + final confirmation;
+- COMMITTING state;
+- completion summary with sent serial, received serial, and trade ID;
+- utility visibility coordinator prevents TRADE overlap with Collection / Archive / Case File / Trade popups.
 
 ## M5 / LIVE-SERVICE SEASONAL PRIORITY
 Authority: `brain/SEASONAL_EVENTS_LOCK.md`.
 
-2026 priorities are now locked into roadmap planning:
-- Halloween 2026 around the real-world 31 October event;
-- Christmas 2026 around the real-world 25 December event.
+2026 priorities:
+- Halloween 2026 around 31 October;
+- Christmas 2026 around 25 December.
 
-Each major seasonal event must include:
-- limited seasonal collectible pool;
-- event-edition serial identity;
-- visible in-engine room/environment transformation;
-- event-specific case/anomaly hook;
-- collection presentation that clearly distinguishes the edition.
+Each major event must include limited collectible pool, event-edition serial identity, in-engine 3D/environment transformation, event-specific case/anomaly hook, and clear edition presentation.
 
 Default event serial direction:
 - Halloween 2026: `<PREFIX>-HW26-<NUMBER>`;
 - Christmas 2026: `<PREFIX>-XMAS26-<NUMBER>`.
 
-Seasonal gameplay visuals are Roblox 3D/procedural/in-engine by default. No AI-generated image assets are required unless Arda explicitly requests image generation later. Exact item names, mint caps, event windows, and drop rates remain TBD until economy/runtime review.
+Seasonal gameplay visuals are Roblox 3D/procedural/in-engine by default. No AI-generated image assets unless Arda explicitly requests image generation.
 
 ## Latest VERIFIED LIVE publish receipt
-Run: `33089525745`
-Source commit: `0811f21c99b100c650ad5261f7bff3d0743ff4f2`
+Run: `33092557996`
+Source commit: `4efee7af76775f1142d2b319c74bd55b6da83f07`
 Rojo: `7.7.0`
-Static QC: **PASS**
-Rojo build: **PASS**
-Roblox publish: **PASS**
-Roblox version: `31`
-RBXL bytes: `52821`
-RBXL SHA256: `ad0c5baa511a55bbb2b2cdeb46a87621748cc4484b4be18420dcf81d45306a24`
+Workflow conclusion: **SUCCESS**
+Roblox publish status: **LIVE_PUBLISHED**
+Roblox version: `32`
+RBXL bytes: `69842`
+RBXL SHA256: `b43fbcdfc402173ae4bf63283357c0c1b7be39b7827b066a19ff08de6852c609`
 Deploy receipt: `deploy-status/lost-and-found-m0.json`
 
 ## LIVE authority
-**LIVE_PUBLISHED — v31 BUILD/DEPLOY VERIFIED.**
-M4-A serial ownership and rejoin persistence are runtime-accepted.
+**LIVE_PUBLISHED — v32 BUILD/DEPLOY VERIFIED.**
+M4-B is live in build/deploy terms but trading is NOT runtime-accepted yet.
 
-## Next gate
-**M4-B — SECURE PLAYER TRADING**
-Build player-to-player collectible trading on top of serialized ownership with:
-1. player trade request / accept / decline;
-2. server-side ownership validation by immutable `instanceId`;
-3. item lock while a trade is active;
-4. two-sided offer review;
-5. first confirmation + final confirmation;
-6. atomic ownership transfer / anti-double-spend;
-7. trade history / provenance update;
-8. cancel / disconnect recovery;
-9. mobile-readable UI;
-10. no off-platform payment or price fields in the game.
+## Next gate — M4-B RUNTIME
+Phase 1 — one-account UI smoke test:
+1. rejoin v32;
+2. Credits / INDEX / ARCHIVE remain stable;
+3. new compact `TRADE` button appears below Archive;
+4. opening TRADE hides other utility HUD and shows same-server lobby;
+5. with only one player, lobby clearly says no other player is present;
+6. closing TRADE restores normal HUD.
 
-After M4-B integrity passes, improve collectible 3D visual quality and prepare Halloween 2026 content early enough for runtime QC before the event.
+Phase 2 — two-account ownership test:
+1. both accounts must be in the same server and persistence-ready;
+2. request / accept works;
+3. each selects one exact serialized instance;
+4. both first-confirm;
+5. final confirm remains locked for ~3 seconds;
+6. both final-confirm once;
+7. sent serial disappears from original inventory and received serial appears for new owner;
+8. Collection Index remains historical discovery progress;
+9. if a player owns zero copies after trade, card shows `NOT OWNED`;
+10. both players leave/rejoin and the swapped serials remain with the new owners;
+11. no duplicate serial appears.
+
+After M4-B passes, harden anti-alt/economy telemetry, improve collectible 3D visual quality, then prepare Halloween 2026 seasonal production.
