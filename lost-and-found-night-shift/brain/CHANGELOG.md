@@ -116,3 +116,15 @@
 - Do not mislabel two-account ownership transfer, rejoin persistence after trade, `NOT OWNED`, or duplicate-serial protection as runtime-proven yet.
 - Keep the full two-account trade test as a deferred regression gate for when a friend/second tester is available.
 - Development may continue to M4-C anti-alt/economy telemetry, collectible 3D visual improvement, and Halloween 2026 preparation without blocking on the unavailable tester.
+
+## 2026-08-28 — M4-C economy hardening source candidate
+- Added `brain/M4C_ECONOMY_HARDENING_LOCK.md`.
+- Locked Credits as non-transferable soft currency for cosmetic/display/convenience sinks rather than direct SECRET/ANOMALY purchase.
+- Added persistent economy stats to `LostAndFound_PlayerData_v1`; payload version advances to 5 while store name stays unchanged.
+- Added `EconomyTelemetryService.lua` with buffered aggregate UTC-day counters in `LostAndFound_EconomyTelemetry_v1`.
+- Added `M4CEconomy.server.lua` to track decision completions, PERFECT outcomes, Credits issued, serial mints, and playtime without changing existing case rewards.
+- TradeService now enforces account age >= 7 days plus either >= 5 completed cases OR >= 50 XP before trading, in addition to persistence/serialized-inventory readiness and owning a tradeable item.
+- TradeService records aggregate trade request/completion/cancel telemetry and increments persistent per-player `tradesCompleted` on committed trades.
+- Existing player progression is conservatively seeded from legacy XP/Credits so established saves are not treated like fresh alts.
+- No SECRET/ANOMALY cap, drop-rate nerf, auto-farming feature, device fingerprinting, or off-platform data was added.
+- M4-C remains SOURCE CANDIDATE until a matching deploy receipt is verified.
