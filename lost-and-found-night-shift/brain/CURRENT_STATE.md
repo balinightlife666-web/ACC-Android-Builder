@@ -19,8 +19,6 @@ Updated: 2026-08-27
 Core mobile loop is proven:
 `spawn → incoming item → SCAN → CHECK TAG → OPEN → DECIDE → grade/reward → next case`
 
-Movement/camera safety, compact CASE FILE UI, Credits display, and four operational decisions remain active.
-
 ## M0.1 — FEEL PASS
 **COMPLETE / ACCEPTED.**
 
@@ -29,8 +27,7 @@ Locked feel values:
 - case advance delay: 3.2s;
 - interaction distance: 7 studs baseline;
 - prompt hold: 0.08s;
-- claimant arrival delay: 0.45s;
-- lightweight feedback audio retained.
+- claimant arrival delay: 0.45s.
 
 ## M1 — PREMIUM ROOM
 **COMPLETE / RUNTIME-APPROVED.**
@@ -47,20 +44,17 @@ M1 visual authority remains `brain/M1_VISUAL_LOCK.md`.
 ## M2 — COLLECTION FOUNDATION
 
 ### M2-A — COMPLETE / ACCEPTED
-Collection UI/runtime has been accepted on mobile.
+- 3D ViewportFrame collection cards;
+- locked silhouettes + `? / LOCKED`;
+- discovered model + name + rarity;
+- compact horizontal mobile carousel;
+- front-facing 3D preview orientation accepted on v20;
+- no generated images used for collection visuals.
 
-Accepted behavior:
-- collection is presented as 3D ViewportFrame cards, not text-only rows;
-- locked entries show dark silhouettes + `? / LOCKED`;
-- discovered entries reveal model + name + rarity;
-- landscape mobile popup uses a compact horizontal carousel;
-- CASE HUD / Credits / INDEX hide temporarily while Collection is open and restore on close;
-- no generated images are used for the collection visuals.
+### M2-B — CONTROLLED VARIANTS + PHYSICAL SHOWCASE
+**COMPLETE / ACCEPTED FOR CONTINUATION.**
 
-## M2-B — CONTROLLED VARIANTS + PHYSICAL SHOWCASE
-**IMPLEMENTED / LIVE — RUNTIME ACCEPTANCE PENDING.**
-
-Collection expanded from 5 base types to **10 controlled collectible variants**, each reusing one of the five M1-approved base geometries:
+Collection expanded to 10 controlled variants:
 1. Blue Transit Hardcase — COMMON
 2. Crimson Travel Backpack — UNCOMMON
 3. Cream Memory Bear — RARE
@@ -73,54 +67,61 @@ Collection expanded from 5 base types to **10 controlled collectible variants**,
 10. Milo's Small Case — SECRET
 
 Authority:
-- runtime registry: `src/shared/CollectionRegistry.lua`;
-- governance mirror: `registry/COLLECTION_REGISTRY.json`;
-- each existing case now has a stable `collectionId` while preserving its base item geometry;
-- discovery tracks `collectionId`, not merely the five base geometry IDs.
+- `src/shared/CollectionRegistry.lua`;
+- `registry/COLLECTION_REGISTRY.json`;
+- per-case stable `collectionId`;
+- per-player client-side physical collection showcase remains active.
 
-### Physical showcase
-Source: `src/client/CollectionShowcase.client.lua`
+## M2-C — PERSISTENCE / DATASTORE
+**IMPLEMENTED / LIVE — RUNTIME REJOIN QC PENDING.**
 
-Behavior:
-- client-only/per-player collection wall on the left side of the room;
-- 10 display slots arranged in two rows;
-- undiscovered slots stay dark with `?`;
-- discovered entries spawn a small 3D model on the matching shelf slot;
-- one player's discoveries do not reveal another player's collection;
-- showcase is non-colliding and does not alter core case gameplay.
+Source:
+- `src/server/PlayerDataStore.lua`
+- `src/server/Main.server.lua`
 
-### M2-B limits
-- collection is still **SESSION-ONLY**;
-- no DataStore persistence yet;
-- no trading;
-- no Evidence Tokens;
-- 10 variants are a controlled expansion slice, not the final 30–40 item target.
+Persistent payload v1:
+- Credits;
+- XP;
+- discovered collection IDs (10-item registry).
+
+Safety rules:
+- datastore name: `LostAndFound_PlayerData_v1`;
+- load is protected by `pcall`;
+- if load fails, player continues session-only and server does **not** overwrite old persistent data;
+- only successfully-loaded profiles may save;
+- dirty profiles autosave every 60 seconds;
+- forced save on `PlayerRemoving` and `BindToClose`;
+- collection snapshot reports whether persistence is ready for that session.
+
+### Inspection control readability patch
+`TAG READER` and `OPEN / INSPECT` are now tilted upright toward the approaching player while remaining side-by-side and floor-accessible. Source: `src/server/InteractionLayout.server.lua`.
 
 ## Latest publish receipt
-Run: `33045703308`
-Source commit: `ce1afa3feb40b0a69acfe4a3af56f3eee3b036f0`
+Run: `33049729712`
+Source commit: `2194829ef52f19a883d4ff5603b612c8b96b1494`
 Rojo: `7.7.0`
 Static QC: **PASS**
 Rojo build: **PASS**
 Roblox publish: **PASS**
-Roblox version: `19`
-RBXL bytes: `37766`
-RBXL SHA256: `69f664469f301cf8ea3e776884a637baefc8f0dc81330fbfd468e42a044a59ca`
+Roblox version: `21`
+RBXL bytes: `39649`
+RBXL SHA256: `6286b58942177e301a98708647064f0357525d93d635f080fd33035cbeeeb800`
 Deploy receipt: `deploy-status/lost-and-found-m0.json`
 
 ## LIVE authority
-**LIVE_PUBLISHED — v19 BUILD/DEPLOY VERIFIED.**
-M2-B collection variants + physical showcase still require mobile runtime acceptance.
+**LIVE_PUBLISHED — v21 BUILD/DEPLOY VERIFIED.**
+Persistence correctness still requires a real leave/rejoin test.
 
 ## Next gate
-**M2-B-RUNTIME:** verify on mobile:
-1. INDEX reports `0/10` on a fresh session;
-2. first resolved case discovers the correct variant and increments to `1/10`;
-3. Collection carousel displays 10 cards without layout regression;
-4. locked cards remain hidden/silhouetted;
-5. physical showcase appears on the left side of the room;
-6. discovered item appears on its physical showcase slot;
-7. showcase does not block walking, scanner, claimant, decision consoles, or camera;
-8. existing SCAN → TAG → OPEN → DECIDE loop remains stable.
+**M2-C-RUNTIME / REJOIN:**
+1. verify TAG / OPEN panels are readable while standing on the floor;
+2. note current Credits and INDEX count;
+3. resolve at least one case so data becomes dirty;
+4. leave the experience normally;
+5. rejoin;
+6. verify Credits are restored;
+7. verify INDEX discoveries are restored;
+8. verify physical showcase restores discovered entries;
+9. verify case loop and movement remain stable.
 
-If M2-B-RUNTIME passes, proceed to **M2-C — PERSISTENCE / DATASTORE** so Credits + Collection survive rejoin. Trading remains locked until later economy review.
+Do not unlock trading yet. After persistence passes, continue controlled collection expansion toward the roadmap target before social/economy hardening.
