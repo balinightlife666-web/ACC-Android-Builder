@@ -16,7 +16,7 @@ gui.Parent = playerGui
 
 local function corner(target, radius)
     local c = Instance.new("UICorner")
-    c.CornerRadius = UDim.new(0, radius or 9)
+    c.CornerRadius = UDim.new(0, radius or 8)
     c.Parent = target
 end
 
@@ -56,18 +56,18 @@ local RARITY_COLORS = {
 local indexButton = Instance.new("TextButton")
 indexButton.Name = "IndexButton"
 indexButton.AnchorPoint = Vector2.new(1, 0)
-indexButton.Size = UDim2.fromOffset(150, 34)
-indexButton.Position = UDim2.new(1, -18, 0, 62)
+indexButton.Size = UDim2.fromOffset(128, 30)
+indexButton.Position = UDim2.new(1, -18, 0, 56)
 indexButton.BackgroundColor3 = Color3.fromRGB(17, 21, 28)
 indexButton.BackgroundTransparency = 0.05
 indexButton.BorderSizePixel = 0
 indexButton.TextColor3 = Color3.fromRGB(181, 214, 232)
 indexButton.Font = Enum.Font.GothamBold
-indexButton.TextSize = 13
+indexButton.TextSize = 11
 indexButton.Text = "INDEX  0/20"
 indexButton.Modal = false
 indexButton.Parent = gui
-corner(indexButton, 9)
+corner(indexButton, 8)
 stroke(indexButton, 0.4)
 
 local popup = Instance.new("Frame")
@@ -96,14 +96,14 @@ local subtitle = label(popup, UDim2.new(1, -24, 0, 18), UDim2.fromOffset(12, 34)
 subtitle.Text = "Swipe cards • PERFECT cases can reveal bonus finds"
 
 local close = Instance.new("TextButton")
-close.Size = UDim2.fromOffset(31, 29)
-close.Position = UDim2.new(1, -40, 0, 7)
+close.Size = UDim2.fromOffset(30, 30)
+close.Position = UDim2.new(1, -39, 0, 7)
 close.BackgroundColor3 = Color3.fromRGB(38, 45, 57)
 close.BorderSizePixel = 0
 close.Text = "×"
 close.TextColor3 = Color3.fromRGB(240, 242, 246)
 close.Font = Enum.Font.GothamBold
-close.TextSize = 17
+close.TextSize = 16
 close.Modal = false
 close.Parent = popup
 corner(close, 8)
