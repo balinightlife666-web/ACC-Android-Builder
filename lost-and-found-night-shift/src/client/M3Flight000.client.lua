@@ -145,6 +145,7 @@ incidentOverlay.BackgroundTransparency = 1
 incidentOverlay.BorderSizePixel = 0
 incidentOverlay.Active = false
 incidentOverlay.Visible = false
+incidentOverlay.ZIndex = 50
 incidentOverlay.Parent = gui
 
 local incidentCard = Instance.new("Frame")
@@ -154,6 +155,7 @@ incidentCard.Position = UDim2.fromScale(0.5, 0.47)
 incidentCard.BackgroundColor3 = Color3.fromRGB(18, 24, 31)
 incidentCard.BackgroundTransparency = 0.08
 incidentCard.BorderSizePixel = 0
+incidentCard.ZIndex = 51
 incidentCard.Parent = incidentOverlay
 corner(incidentCard, 11)
 stroke(incidentCard, 0.05, Color3.fromRGB(88, 221, 224), 1.4)
@@ -161,14 +163,17 @@ stroke(incidentCard, 0.05, Color3.fromRGB(88, 221, 224), 1.4)
 local incidentTitle = label(incidentCard, UDim2.new(1, -24, 0, 34), UDim2.fromOffset(12, 13), 17, Enum.Font.GothamBlack, Color3.fromRGB(255, 192, 86))
 incidentTitle.TextXAlignment = Enum.TextXAlignment.Center
 incidentTitle.Text = "TERMINAL INCIDENT // FLIGHT 000"
+incidentTitle.ZIndex = 52
 
 local incidentSub = label(incidentCard, UDim2.new(1, -24, 0, 36), UDim2.fromOffset(12, 50), 11, Enum.Font.GothamBold, Color3.fromRGB(88, 221, 224))
 incidentSub.TextXAlignment = Enum.TextXAlignment.Center
 incidentSub.Text = "ARCHIVE LINK ESTABLISHED\nCASE REMAINS UNRESOLVED"
+incidentSub.ZIndex = 52
 
 local currentArchive = nil
 local incidentToken = 0
 local hintToken = 0
+local incidentShown = false
 
 local function showHint(text)
     hintToken += 1
@@ -233,8 +238,25 @@ local function renderArchive(payload)
     }, "\n")
 end
 
+local function fallbackArchivePayload()
+    return {
+        incidentId = "INCIDENT_000_A",
+        title = "INCIDENT 000-A — FLIGHT 000",
+        caseId = "LF-M0-007",
+        passenger = "Jonas Vale",
+        passengerRecord = "FOUND",
+        flightRecord = "NOT FOUND",
+        tag = "F0-00013",
+        operationalAction = "QUARANTINE",
+        status = "CONNECTED / UNRESOLVED",
+        note = "Transport origin remains impossible under current records.",
+        finalExplanation = "CLASSIFIED / UNKNOWN",
+    }
+end
+
 local function showIncident(payload)
     renderArchive(payload)
+    incidentShown = true
     incidentToken += 1
     local token = incidentToken
 
@@ -244,12 +266,12 @@ local function showIncident(payload)
     incidentTitle.TextTransparency = 1
     incidentSub.TextTransparency = 1
 
-    TweenService:Create(incidentOverlay, TweenInfo.new(0.18), {BackgroundTransparency = 0.35}):Play()
-    TweenService:Create(incidentCard, TweenInfo.new(0.18), {BackgroundTransparency = 0.04}):Play()
-    TweenService:Create(incidentTitle, TweenInfo.new(0.18), {TextTransparency = 0}):Play()
-    TweenService:Create(incidentSub, TweenInfo.new(0.18), {TextTransparency = 0}):Play()
+    TweenService:Create(incidentOverlay, TweenInfo.new(0.12), {BackgroundTransparency = 0.28}):Play()
+    TweenService:Create(incidentCard, TweenInfo.new(0.12), {BackgroundTransparency = 0.02}):Play()
+    TweenService:Create(incidentTitle, TweenInfo.new(0.12), {TextTransparency = 0}):Play()
+    TweenService:Create(incidentSub, TweenInfo.new(0.12), {TextTransparency = 0}):Play()
 
-    task.delay(3.2, function()
+    task.delay(3.8, function()
         if token ~= incidentToken then return end
         local fade = TweenService:Create(incidentOverlay, TweenInfo.new(0.35), {BackgroundTransparency = 1})
         TweenService:Create(incidentCard, TweenInfo.new(0.35), {BackgroundTransparency = 1}):Play()
@@ -281,13 +303,19 @@ end)
 caseUpdate.OnClientEvent:Connect(function(kind, payload)
     payload = payload or {}
     local caseData = payload.case
-    if currentArchive then return end
     local isFlight000 = caseData and caseData.id == "LF-M0-007"
+
     if isFlight000 and kind == "RESULT" and payload.serverIncident then
         archiveButton.Text = "ARCHIVE  CONNECTING"
         archiveButton.TextColor3 = Color3.fromRGB(88, 221, 224)
         archiveStroke.Color = Color3.fromRGB(88, 221, 224)
-    else
+        if not incidentShown then
+            showIncident(fallbackArchivePayload())
+        end
+        return
+    end
+
+    if not currentArchive then
         setButtonLocked(isFlight000)
     end
 end)
@@ -295,7 +323,11 @@ end)
 incidentUpdate.OnClientEvent:Connect(function(kind, payload)
     payload = payload or {}
     if kind == "FLIGHT_000_INCIDENT" then
-        showIncident(payload)
+        if incidentShown then
+            renderArchive(payload)
+        else
+            showIncident(payload)
+        end
     elseif kind == "ARCHIVE_SYNC" then
         renderArchive(payload)
     end
