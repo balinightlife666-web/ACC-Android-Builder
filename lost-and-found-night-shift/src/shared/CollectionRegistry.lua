@@ -11,6 +11,11 @@ CollectionRegistry.Order = {
     "unstable_sealed_parcel",
     "green_identity_backpack",
     "milo_small_case",
+    "silver_camera_lens",
+    "ownerless_tag_00017284",
+    "flight_000_boarding_tag",
+    "duplicate_passport",
+    "milo_toy_train_2001",
 }
 
 CollectionRegistry.Items = {
@@ -72,6 +77,36 @@ CollectionRegistry.Items = {
         id = "milo_small_case",
         baseItemId = "vintage_suitcase",
         name = "Milo's Small Case",
+        rarity = "SECRET",
+    },
+    silver_camera_lens = {
+        id = "silver_camera_lens",
+        baseItemId = "camera_lens",
+        name = "Silver Camera Lens",
+        rarity = "RARE",
+    },
+    ownerless_tag_00017284 = {
+        id = "ownerless_tag_00017284",
+        baseItemId = "evidence_tag",
+        name = "Ownerless Tag 000-17284",
+        rarity = "ANOMALY",
+    },
+    flight_000_boarding_tag = {
+        id = "flight_000_boarding_tag",
+        baseItemId = "evidence_tag",
+        name = "Flight 000 Boarding Tag",
+        rarity = "SECRET",
+    },
+    duplicate_passport = {
+        id = "duplicate_passport",
+        baseItemId = "passport",
+        name = "Duplicate Passport",
+        rarity = "EPIC",
+    },
+    milo_toy_train_2001 = {
+        id = "milo_toy_train_2001",
+        baseItemId = "toy_train",
+        name = "Milo's Toy Train",
         rarity = "SECRET",
     },
 }
