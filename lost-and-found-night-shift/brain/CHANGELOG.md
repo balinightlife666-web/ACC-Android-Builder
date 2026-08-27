@@ -48,3 +48,13 @@
 - Tilted TAG READER and OPEN / INSPECT controls upright toward the player for better readability.
 - Roblox v21 is the accepted M2-C runtime baseline.
 - Trading remains locked.
+
+## 2026-08-27 — M2-D controlled expansion live candidate
+- Expanded persistent INDEX from 10 to 15 collectible entries.
+- Added five PERFECT-only bonus finds tied to canon-consistent case evidence: Silver Camera Lens, Ownerless Tag 000-17284, Flight 000 Boarding Tag, Duplicate Passport, and Milo's Toy Train.
+- Added four new 3D collectible geometries: camera lens, evidence tag, passport, and toy train.
+- Added distinct BONUS FIND discovery feedback.
+- Expanded physical showcase from 10 to 15 slots across three rows.
+- Existing saved Credits and discovered IDs remain compatible with the same DataStore payload.
+- Published as Roblox v22; M2-D mobile runtime acceptance pending.
+- Trading remains locked.
