@@ -1,6 +1,6 @@
 LOST FOUND UI BUTTON POLISH
 Triggered: 2026-08-27
-Retry: 26
+Retry: 27
 Universe: 10745354451
 Place: 93699016600671
-Reason: Standardize HUD utility controls across Credits, Index, Archive, Case File, and popup close buttons with compact mobile sizing, consistent 30px height, 8px radius, and 11px primary button typography; preserve all gameplay behavior.
+Reason: Republish standardized HUD utility controls after restoring the exact M0 QC compatibility marker; Credits, Index, Archive, Case File, and popup close buttons use compact consistent mobile sizing while gameplay behavior remains unchanged.
