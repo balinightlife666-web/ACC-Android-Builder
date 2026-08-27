@@ -64,13 +64,12 @@ indexButton.BorderSizePixel = 0
 indexButton.TextColor3 = Color3.fromRGB(181, 214, 232)
 indexButton.Font = Enum.Font.GothamBold
 indexButton.TextSize = 13
-indexButton.Text = "INDEX  0/5"
+indexButton.Text = "INDEX  0/15"
 indexButton.Modal = false
 indexButton.Parent = gui
 corner(indexButton, 9)
 stroke(indexButton, 0.4)
 
--- Mobile-first collection panel. Short height keeps it clear of jump controls.
 local popup = Instance.new("Frame")
 popup.Name = "CollectionPopup"
 popup.AnchorPoint = Vector2.new(0.5, 0)
@@ -94,7 +93,7 @@ local title = label(popup, UDim2.new(1, -56, 0, 32), UDim2.fromOffset(12, 6), 14
 title.Text = "LOST PROPERTY COLLECTION"
 
 local subtitle = label(popup, UDim2.new(1, -24, 0, 18), UDim2.fromOffset(12, 34), 10, Enum.Font.GothamMedium, Color3.fromRGB(151, 164, 181))
-subtitle.Text = "Swipe cards • resolve cases to reveal items"
+subtitle.Text = "Swipe cards • PERFECT cases can reveal bonus finds"
 
 local close = Instance.new("TextButton")
 close.Size = UDim2.fromOffset(31, 29)
@@ -109,7 +108,6 @@ close.Modal = false
 close.Parent = popup
 corner(close, 8)
 
--- One-row horizontal collection carousel: larger 3D cards without clipping vertically.
 local strip = Instance.new("ScrollingFrame")
 strip.Name = "CollectionStrip"
 strip.Size = UDim2.new(1, -20, 0, 150)
@@ -139,7 +137,7 @@ layout.Parent = strip
 local toast = Instance.new("TextLabel")
 toast.Name = "DiscoveryToast"
 toast.AnchorPoint = Vector2.new(0.5, 0)
-toast.Size = UDim2.fromOffset(330, 44)
+toast.Size = UDim2.fromOffset(350, 44)
 toast.Position = UDim2.new(0.5, 0, 0, 64)
 toast.BackgroundColor3 = Color3.fromRGB(22, 29, 38)
 toast.BackgroundTransparency = 0.03
@@ -255,11 +253,13 @@ local function applySnapshot(payload)
     rebuildCards()
 end
 
-local function showToast(item)
+local function showToast(item, isBonus)
     if not item then return end
     toastToken += 1
     local token = toastToken
-    toast.Text = string.format("NEW DISCOVERY  •  %s  •  %s", tostring(item.name), tostring(item.rarity))
+    local prefix = isBonus and "BONUS FIND" or "NEW DISCOVERY"
+    toast.Text = string.format("%s  •  %s  •  %s", prefix, tostring(item.name), tostring(item.rarity))
+    toast.TextColor3 = isBonus and Color3.fromRGB(110, 224, 226) or Color3.fromRGB(255, 211, 125)
     toast.Visible = true
     task.delay(2.5, function()
         if token == toastToken then toast.Visible = false end
@@ -284,6 +284,8 @@ collectionUpdate.OnClientEvent:Connect(function(kind, payload)
     payload = payload or {}
     applySnapshot(payload)
     if kind == "DISCOVERY" and payload.isNew then
-        showToast(payload.item)
+        showToast(payload.item, false)
+    elseif kind == "BONUS_DISCOVERY" and payload.isNew then
+        showToast(payload.item, true)
     end
 end)
