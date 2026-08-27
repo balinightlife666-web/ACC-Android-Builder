@@ -113,7 +113,7 @@ Trading remains locked.
 Authority: `brain/M3_FLIGHT_000_LOCK.md`.
 
 ### M3-A — FIRST INCIDENT
-**IMPLEMENTED / LIVE v25 — RUNTIME QC PENDING.**
+**COMPLETE / USER-ACCEPTED ON v27.**
 
 Trigger:
 - `LF-M0-007 — Flight 000`;
@@ -123,11 +123,10 @@ Trigger:
 
 Behavior:
 - case reward and bonus discovery still resolve normally;
-- Flight 000 PERFECT raises a **server-wide terminal incident**;
-- transition to the next case is extended to 6.2 seconds for readability;
-- all connected clients receive a restrained incident presentation;
-- `ARCHIVE 000-A` becomes available for the current server session;
-- players joining the same server after the incident receive the archive sync;
+- Flight 000 PERFECT raises a server-wide terminal incident;
+- transition to the next case is extended for readability;
+- `ARCHIVE LOCKED` is visible before the incident and becomes `PENDING` during Flight 000;
+- successful Flight 000 resolution unlocks `ARCHIVE 000-A`;
 - archive contains only canon operational facts;
 - exact final explanation remains **CANON UNKNOWN**.
 
@@ -140,8 +139,13 @@ Archive entry:
 - Note: transport origin remains impossible under current records
 - Final explanation: CLASSIFIED / UNKNOWN
 
-M3-A limits:
-- archive unlock is server-session scoped for this slice;
+Acceptance note:
+- v26 confirmed Archive control visibility on mobile;
+- v27 fixed the missing incident-banner path by triggering the banner directly from the Flight 000 `RESULT` event while retaining the server incident event for archive synchronization;
+- Arda explicitly accepted M3-A without repeating the full Flight 000 runtime loop again after the v27 hotfix;
+- therefore M3-A is closed as **USER-ACCEPTED**, not independently re-verified end-to-end after v27.
+
+M3-A limits remain locked:
 - no new location/map expansion;
 - no trading;
 - no new currency;
@@ -149,32 +153,21 @@ M3-A limits:
 - Lost Child 2001 and Ownerless Suitcase canon remain unchanged.
 
 ## Latest publish receipt
-Run: `33064733408`
-Source commit: `fdd62354db0fd893d5d7ab72b2b73df312605d68`
+Run: `33069729711`
+Source commit: `8fff876498aaeb4accdd9d97ae9b2e36da2026b1`
 Rojo: `7.7.0`
 Static QC: **PASS**
 Rojo build: **PASS**
 Roblox publish: **PASS**
-Roblox version: `25`
-RBXL bytes: `47259`
-RBXL SHA256: `353d13da3b941dcf262a12854a8572c34932855ca440930fc19a523992d6a60f`
+Roblox version: `27`
+RBXL bytes: `48484`
+RBXL SHA256: `ff184fec93eb04c45493dbac31315ab9120f80eb3ed0a9f6c3557afce2e19da0`
 Deploy receipt: `deploy-status/lost-and-found-m0.json`
 
 ## LIVE authority
-**LIVE_PUBLISHED — v25 BUILD/DEPLOY VERIFIED.**
-M3-A incident/archive still requires mobile runtime acceptance.
+**LIVE_PUBLISHED — v27 BUILD/DEPLOY VERIFIED.**
+M3-A is user-accepted and closed.
 
 ## Next gate
-**M3-A-RUNTIME**
-1. saved Credits + INDEX /20 still restore normally;
-2. reach `LF-M0-007 — Flight 000`;
-3. SCAN / TAG / OPEN remain unchanged;
-4. choose `QUARANTINE` and confirm `PERFECT`;
-5. Flight 000 Boarding Tag bonus remains compatible;
-6. terminal incident presentation appears without movement/camera lock;
-7. `ARCHIVE 000-A` button becomes available;
-8. archive popup is readable on mobile and dismissible;
-9. next case starts automatically after the incident window;
-10. no Collection/DataStore regression.
-
-After M3-A passes, continue M3 as a connected mystery chain rather than revealing the final explanation. Trading remains locked until M4 review.
+**M3-B — CONNECTED MYSTERY CHAIN**
+Continue the Flight 000 storyline by connecting it to existing Season 1 pillars and operational evidence without revealing the final explanation. Preserve core loop, persistence, collection, and mobile readability. Trading remains locked until M4 review.
