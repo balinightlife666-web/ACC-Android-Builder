@@ -22,6 +22,10 @@ local collectionUpdate = remotes:FindFirstChild("CollectionUpdate") or Instance.
 collectionUpdate.Name = "CollectionUpdate"
 collectionUpdate.Parent = remotes
 
+local incidentUpdate = remotes:FindFirstChild("IncidentUpdate") or Instance.new("RemoteEvent")
+incidentUpdate.Name = "IncidentUpdate"
+incidentUpdate.Parent = remotes
+
 local refs = WorldBuilder.Build()
 local activeIndex = 0
 local activeCase = nil
@@ -32,6 +36,7 @@ local inspections = { scanned = false, tagChecked = false, opened = false }
 local discoveries = {}
 local persistenceReady = {}
 local dirty = {}
+local flight000IncidentPayload = nil
 
 local function inspectionsComplete()
     return inspections.scanned and inspections.tagChecked and inspections.opened
@@ -263,6 +268,31 @@ local function broadcast(kind, extra)
     caseUpdate:FireAllClients(kind, payload)
 end
 
+local function buildFlight000Incident(player)
+    return {
+        incidentId = "INCIDENT_000_A",
+        title = "INCIDENT 000-A — FLIGHT 000",
+        caseId = "LF-M0-007",
+        triggeredBy = player and player.DisplayName or "UNKNOWN",
+        passenger = "Jonas Vale",
+        passengerRecord = "FOUND",
+        flightRecord = "NOT FOUND",
+        tag = "F0-00013",
+        operationalAction = "QUARANTINE",
+        status = "CONNECTED / UNRESOLVED",
+        note = "Transport origin remains impossible under current records.",
+        finalExplanation = "CLASSIFIED / UNKNOWN",
+    }
+end
+
+local function raiseFlight000Incident(player)
+    local payload = buildFlight000Incident(player)
+    flight000IncidentPayload = payload
+    task.delay(0.8, function()
+        incidentUpdate:FireAllClients("FLIGHT_000_INCIDENT", payload)
+    end)
+end
+
 Players.PlayerAdded:Connect(function(player)
     setupPlayer(player)
     task.delay(0.5, function()
@@ -276,6 +306,9 @@ Players.PlayerAdded:Connect(function(player)
             })
         end
         sendCollectionSync(player)
+        if flight000IncidentPayload then
+            incidentUpdate:FireClient(player, "ARCHIVE_SYNC", flight000IncidentPayload)
+        end
     end)
 end)
 
@@ -289,6 +322,11 @@ end)
 for _, player in ipairs(Players:GetPlayers()) do
     setupPlayer(player)
     task.defer(sendCollectionSync, player)
+    if flight000IncidentPayload then
+        task.defer(function()
+            incidentUpdate:FireClient(player, "ARCHIVE_SYNC", flight000IncidentPayload)
+        end)
+    end
 end
 
 local function cleanActive()
@@ -425,6 +463,8 @@ for decision, decisionPrompt in pairs(refs.DecisionPrompts) do
             end)
         end
 
+        local isFlight000Incident = activeCase.id == "LF-M0-007" and grade == "PERFECT"
+
         broadcast("RESULT", {
             decision = decision,
             grade = grade,
@@ -435,10 +475,16 @@ for decision, decisionPrompt in pairs(refs.DecisionPrompts) do
             totalCredits = totalCredits,
             totalXP = totalXP,
             bonusCollectible = bonusId ~= nil,
+            serverIncident = isFlight000Incident,
             by = player.DisplayName,
         })
 
-        task.delay(Config.CaseAdvanceDelay, function()
+        if isFlight000Incident then
+            raiseFlight000Incident(player)
+        end
+
+        local advanceDelay = isFlight000Incident and 6.2 or Config.CaseAdvanceDelay
+        task.delay(advanceDelay, function()
             startNextCase()
         end)
     end)
