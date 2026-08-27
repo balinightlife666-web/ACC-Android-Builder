@@ -1,7 +1,18 @@
 # LOST & FOUND: NIGHT SHIFT — M4-D PERSONAL STATION / SOCIAL FLEX LOCK v1.1
 
-Status: IMPLEMENTED IN SOURCE / PUBLISH + RUNTIME QC PENDING
+Status: LIVE_PUBLISHED v34 — BUILD/DEPLOY VERIFIED / SOLO RUNTIME QC PENDING
 Updated: 2026-08-28
+
+## Deployment evidence
+- exact source commit: `950eeb1e7b4c6119292340f4e630b8fa3e589461`
+- workflow run: `33100322285`
+- Roblox version: `34`
+- Rojo: `7.7.0`
+- place bytes: `83918`
+- place SHA256: `b70b00eaeab8cdfc6cb72b1ea881625ddc75995d2903c6ed3cae903436692612`
+- receipt: `deploy-status/lost-and-found-m0.json`
+
+This proves build/publish identity only. Runtime multiplayer behavior is not accepted until the gates below are tested.
 
 ## Goal
 Convert the single shared job loop into a multiplayer-safe personal shift system while preserving one shared social room for collection flex and same-server trading.
@@ -14,13 +25,13 @@ Convert the single shared job loop into a multiplayer-safe personal shift system
 - Capacity architecture must remain scalable without changing save identity, collection serials, or trade ownership.
 
 ## Station assignment
-- On join, the server assigns the first available physical station slot.
+- On join, the server assigns one available physical station slot.
 - Player receives `SHIFT ASSIGNED — STATION X` and a compact persistent `SHIFT STATION X` indicator.
 - Character is staged at that assigned station and the station is locally highlighted for a short orientation window.
 - Station model stores server-owned `OwnerUserId` / owner identity attributes.
 - SCAN / TAG / OPEN / DECIDE are validated server-side against the assigned station owner.
 - Non-owned job prompts are hidden locally where possible, but server ownership validation remains the security authority.
-- On leave, active case objects are destroyed, the station is released, and the slot becomes VACANT.
+- On leave, the physical slot is cleaned and returns to VACANT.
 
 ## Persistent Personal Station Profile
 Persistent identity is the player's station profile, NOT the physical A-H slot.
@@ -125,7 +136,7 @@ Seasonal limited items may use global mint caps.
 
 ## Social flex implementation
 Station is personal workspace + collection flex space.
-M4-D source adds a replicated public showcase inside each station:
+M4-D adds a replicated public showcase inside each station:
 - automatically displays up to 3 currently owned high-rarity serialized items;
 - serial labels are visible to nearby players;
 - showcase is server-replicated rather than the retired local-only wall display;
@@ -137,8 +148,7 @@ Later UX may allow the owner to choose featured items manually.
 Initial design target is 8 simultaneous personalized stations.
 Do not increase capacity until mobile/server telemetry proves station geometry, claimant/item spawning, showcases, trading, persistence, and network traffic remain stable.
 
-## Runtime QC gates
-Solo QC can verify now:
+## Solo runtime QC gate — ACTIVE NOW
 1. existing Credits / XP / Index / serials survive rejoin;
 2. player receives Station A when alone;
 3. assignment toast + station indicator appear;
@@ -147,9 +157,11 @@ Solo QC can verify now:
 6. reward remains correct;
 7. next case advances independently;
 8. public showcase renders owned serialized items;
-9. no legacy giant local collection showcase remains.
+9. no legacy giant local collection showcase remains;
+10. no obvious mobile HUD/movement regression.
 
-Deferred two-player QC when another tester is available:
+## Deferred two-player QC
+When another tester is available:
 1. different station assignment;
 2. independent case streams;
 3. player B cannot operate player A controls;
