@@ -1,0 +1,81 @@
+name: Publish TRACK 01 via RR Key
+
+on:
+  workflow_dispatch:
+    inputs:
+      source_ref:
+        description: ACC-Roblox-maps ref to publish
+        required: false
+        default: main
+
+concurrency:
+  group: track01-rr-live-publish
+  cancel-in-progress: false
+
+jobs:
+  publish-track01:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout TRACK 01 source
+        uses: actions/checkout@v4
+        with:
+          repository: ardarawk-cloud/ACC-Roblox-maps
+          ref: ${{ inputs.source_ref }}
+          path: track-src
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Validate TRACK 01 target
+        working-directory: track-src
+        shell: bash
+        run: |
+          node - <<'NODE'
+          const c=require('./maps/track-01/track01.config.json');
+          if(String(c.universeId)!=='10745349805') throw new Error('Wrong Universe ID');
+          if(String(c.placeId)!=='79748872921213') throw new Error('Wrong Place ID');
+          if(!c.enabled) throw new Error('TRACK 01 disabled');
+          console.log('TRACK 01 SOURCE', c.version, c.universeId, c.placeId);
+          NODE
+
+      - name: Build TRACK 01
+        working-directory: track-src
+        run: node scripts/build-track01.js
+
+      - name: Validate v3.5 content
+        working-directory: track-src
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s maps/track-01/place.rbxlx
+          grep -q 'TRACK01_SignalNight' maps/track-01/place.rbxlx
+          grep -q 'TRACK01_SteamFog' maps/track-01/place.rbxlx
+          grep -q 'TRACK01_EndLineHero' maps/track-01/place.rbxlx
+          grep -q 'END OF LINE' maps/track-01/place.rbxlx
+          grep -q 'MainSignal_T01' maps/track-01/place.rbxlx
+          echo 'TRACK 01 RR build validation PASS'
+
+      - name: Publish TRACK 01 with RR key
+        working-directory: track-src
+        env:
+          ROBLOX_API_KEY: ${{ secrets.ROCKET_RACOON_PUBLISH }}
+        run: |
+          test -n "$ROBLOX_API_KEY"
+          node scripts/publish-track01-direct.js
+
+      - name: Show Roblox receipt
+        if: always()
+        working-directory: track-src
+        shell: bash
+        run: |
+          echo '--- TRACK 01 ROBLOX RECEIPT ---'
+          if [ -s deploy-status/track01-direct.json ]; then
+            cat deploy-status/track01-direct.json
+          else
+            echo 'NO_RECEIPT'
+            exit 1
+          fi
