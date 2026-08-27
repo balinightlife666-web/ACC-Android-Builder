@@ -91,7 +91,7 @@
 - v29 standardized Credits / Index / Archive / Case File utility controls.
 - v30 fixed Collection-open visibility so Archive is hidden while the Collection popup is active.
 
-## 2026-08-27 — M4-A unique serialized item foundation
+## 2026-08-27 — M4-A unique serialized item foundation accepted
 - Added `brain/M4_UNIQUE_ITEM_TRADING_LOCK.md` as active M4 authority.
 - Split progression conceptually into permanent Collection Index and owned Inventory Instances.
 - Added stable Season 1 serial prefixes for all 20 collectible types.
@@ -100,7 +100,8 @@
 - Every serialized instance also receives an immutable GUID-based internal `instanceId`.
 - Extended existing `LostAndFound_PlayerData_v1` payload compatibly with optional serialized `inventory` data; persisted payload version is now 2 while the DataStore name is unchanged.
 - Existing Credits / XP / discovered collection IDs remain backward compatible.
-- Old discovered items without serialized inventory are backfilled gradually after a successful profile load; replay is not required.
-- Collection cards now have a compact serial line below rarity; old entries show `SERIALIZING...` until backfill completes.
-- Newly minted discoveries can show a `SERIAL MINTED` toast.
-- Trading remains LOCKED until M4-A persistence/runtime integrity is accepted.
+- Old discovered items without serialized inventory are backfilled after a successful profile load; replay is not required.
+- Collection cards show a compact serial line below rarity.
+- Runtime evidence on v31 confirmed serials survived rejoin unchanged: `SNP-S1-000001`, `ARP-S1-000001`, and `UMR-S1-000001` matched between first login and rejoin screenshots.
+- M4-A status: COMPLETE / RUNTIME-ACCEPTED.
+- Next gate: M4-B Secure Player Trading with server-side ownership validation, item locking, two-sided confirmation, atomic transfer, trade history/provenance, disconnect recovery, and anti-double-spend protection.
