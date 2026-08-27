@@ -78,18 +78,29 @@
 - Arda explicitly accepted M3-A after the v27 hotfix without requiring another full Flight 000 replay.
 - M3-A status: USER-ACCEPTED.
 
-## 2026-08-27 — M3-B connected mystery chain live candidate
+## 2026-08-27 — M3-B connected mystery chain
 - Added `brain/M3B_CONNECTED_CHAIN_LOCK.md`.
 - Connected the existing Season 1 pillars into three operational Archive entries: Flight 000, Ownerless Suitcase, and The Lost Child.
 - Archive progression is reconstructed from existing persistent PERFECT bonus discoveries rather than adding a second DataStore.
 - Existing saves therefore do not need to replay old cases to restore valid archive progress.
-- `ARCHIVE x/3` now shows persistent chain progress.
+- `ARCHIVE x/3` shows persistent chain progress.
 - Archive popup shows all three slots as locked/unlocked mobile cards.
-- 000-A Flight 000 uses `flight_000_boarding_tag`.
-- 000-B Ownerless Suitcase uses `ownerless_tag_00017284`.
-- 000-C Lost Child uses `milo_toy_train_2001`.
 - Lost Child remains SECURITY/protective escalation and the 2001 date remains locked.
 - Flight 000 retains the stronger terminal-incident presentation.
 - Final supernatural explanation remains unknown.
-- Static QC, Rojo 7.7.0 build, and Roblox publish passed as v28.
-- M3-B mobile runtime acceptance remains pending.
+- v29 standardized Credits / Index / Archive / Case File utility controls.
+- v30 fixed Collection-open visibility so Archive is hidden while the Collection popup is active.
+
+## 2026-08-27 — M4-A unique serialized item foundation
+- Added `brain/M4_UNIQUE_ITEM_TRADING_LOCK.md` as active M4 authority.
+- Split progression conceptually into permanent Collection Index and owned Inventory Instances.
+- Added stable Season 1 serial prefixes for all 20 collectible types.
+- Added `SerialMintService.lua` with server-authoritative atomic global DataStore counters per collectible type.
+- Display serial format is `<PREFIX>-S1-<GLOBAL MINT NUMBER>`, e.g. `CMB-S1-000001`.
+- Every serialized instance also receives an immutable GUID-based internal `instanceId`.
+- Extended existing `LostAndFound_PlayerData_v1` payload compatibly with optional serialized `inventory` data; persisted payload version is now 2 while the DataStore name is unchanged.
+- Existing Credits / XP / discovered collection IDs remain backward compatible.
+- Old discovered items without serialized inventory are backfilled gradually after a successful profile load; replay is not required.
+- Collection cards now have a compact serial line below rarity; old entries show `SERIALIZING...` until backfill completes.
+- Newly minted discoveries can show a `SERIAL MINTED` toast.
+- Trading remains LOCKED until M4-A persistence/runtime integrity is accepted.
