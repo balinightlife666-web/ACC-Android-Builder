@@ -7,6 +7,7 @@ local store = DataStoreService:GetDataStore(STORE_NAME)
 
 local MAX_INVENTORY_ITEMS = 500
 local MAX_PROVENANCE_EVENTS = 12
+local MAX_OWNED_SKINS = 64
 local economyCache = {}
 
 local function keyFor(userId)
@@ -25,6 +26,14 @@ local function defaultEconomyStats()
     }
 end
 
+local function defaultStationProfile()
+    return {
+        equippedSkin = "STANDARD_OPS",
+        ownedSkins = {"STANDARD_OPS"},
+        title = "NIGHT SHIFT OPERATOR",
+    }
+end
+
 local function defaults()
     return {
         credits = 0,
@@ -33,6 +42,7 @@ local function defaults()
         inventory = {},
         serialMigrationComplete = false,
         economyStats = defaultEconomyStats(),
+        stationProfile = defaultStationProfile(),
     }
 end
 
@@ -119,6 +129,32 @@ local function cloneEconomyStats(raw)
     return result
 end
 
+local function sanitizeStationProfile(raw)
+    local result = defaultStationProfile()
+    if type(raw) ~= "table" then return result end
+
+    result.equippedSkin = cleanString(raw.equippedSkin, 48) or result.equippedSkin
+    result.title = cleanString(raw.title, 48) or result.title
+
+    local seen = { STANDARD_OPS = true }
+    result.ownedSkins = {"STANDARD_OPS"}
+    if type(raw.ownedSkins) == "table" then
+        for _, value in ipairs(raw.ownedSkins) do
+            if #result.ownedSkins >= MAX_OWNED_SKINS then break end
+            local id = cleanString(value, 48)
+            if id and not seen[id] then
+                seen[id] = true
+                table.insert(result.ownedSkins, id)
+            end
+        end
+    end
+
+    if not seen[result.equippedSkin] then
+        result.equippedSkin = "STANDARD_OPS"
+    end
+    return result
+end
+
 local function sanitize(raw)
     local data = defaults()
     if type(raw) ~= "table" then
@@ -133,6 +169,7 @@ local function sanitize(raw)
     end
     data.serialMigrationComplete = raw.serialMigrationComplete == true
     data.economyStats = sanitizeEconomyStats(raw.economyStats)
+    data.stationProfile = sanitizeStationProfile(raw.stationProfile)
 
     if type(raw.discovered) == "table" then
         local seen = {}
@@ -208,13 +245,14 @@ function PlayerDataStore.Save(userId, payload)
     local ok, err = pcall(function()
         store:UpdateAsync(keyFor(userId), function()
             return {
-                version = 5,
+                version = 6,
                 credits = clean.credits,
                 xp = clean.xp,
                 discovered = clean.discovered,
                 inventory = clean.inventory,
                 serialMigrationComplete = clean.serialMigrationComplete,
                 economyStats = clean.economyStats,
+                stationProfile = clean.stationProfile,
                 updatedAt = os.time(),
             }
         end)
