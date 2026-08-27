@@ -115,18 +115,32 @@
 - M4-B remains LIVE v32 and is provisionally user-accepted for continued development based on Phase 1 UI evidence.
 - Do not mislabel two-account ownership transfer, rejoin persistence after trade, `NOT OWNED`, or duplicate-serial protection as runtime-proven yet.
 - Keep the full two-account trade test as a deferred regression gate for when a friend/second tester is available.
-- Development may continue to M4-C anti-alt/economy telemetry, collectible 3D visual improvement, and Halloween 2026 preparation without blocking on the unavailable tester.
 
 ## 2026-08-28 — M4-C economy hardening LIVE v33
 - Added `brain/M4C_ECONOMY_HARDENING_LOCK.md`.
 - Locked Credits as non-transferable soft currency for cosmetic/display/convenience sinks rather than direct SECRET/ANOMALY purchase.
 - Added persistent economy stats to `LostAndFound_PlayerData_v1`; payload version advances to 5 while store name stays unchanged.
 - Added `EconomyTelemetryService.lua` with buffered aggregate UTC-day counters in `LostAndFound_EconomyTelemetry_v1`.
-- Added `M4CEconomy.server.lua` to track decision completions, PERFECT outcomes, Credits issued, serial mints, and playtime without changing existing case rewards.
-- TradeService now enforces account age >= 7 days plus either >= 5 completed cases OR >= 50 XP before trading, in addition to persistence/serialized-inventory readiness and owning a tradeable item.
+- TradeService enforces account age >= 7 days plus either >= 5 completed cases OR >= 50 XP before trading, in addition to persistence/serialized-inventory readiness and owning a tradeable item.
 - TradeService records aggregate trade request/completion/cancel telemetry and increments persistent per-player `tradesCompleted` on committed trades.
 - Existing player progression is conservatively seeded from legacy XP/Credits so established saves are not treated like fresh alts.
-- No SECRET/ANOMALY cap, drop-rate nerf, auto-farming feature, device fingerprinting, or off-platform data was added.
 - Workflow run `33096058726` succeeded; exact source `39ba78108fca79b6cb2b5ca04559a3ce8c5fa23a` published as Roblox v33.
-- Static QC, Rojo 7.7.0 build, Roblox publish, and deploy receipt all passed.
 - M4-C status: LIVE_PUBLISHED / RUNTIME QC PENDING.
+
+## 2026-08-28 — M4-D personal station / multiplayer job isolation source candidate
+- Upgraded `brain/M4D_PERSONAL_STATION_LOCK.md` to v1.1.
+- Replaced the single shared job runtime entrypoint with `PersonalShiftRuntime.lua`.
+- Added `PersonalStationWorld.lua` with 8 physical station slots A-H in one shared social room.
+- Each occupied station has its own case item, claimant, SCAN/TAG/OPEN/DECIDE prompts, decision state, reward and case advancement.
+- Server validates station ownership for every job interaction; another player cannot claim another station's job/reward.
+- Added fixed 001→002→003 onboarding followed by personal weighted case selection and personal mystery progression gates.
+- Added active-case avoidance so the server uses different cases across stations when practical.
+- Added personal collectible ownership rolls: COMMON 100%, UNCOMMON 85%, RARE 65%, EPIC 40%, ANOMALY 16%, SECRET 8%; these are initial balance values, not immutable canon.
+- Collection Index remains historical encounter/discovery progress while actual owned copies require a valid server-side mint roll or trade.
+- Added persistent station profile foundation to `LostAndFound_PlayerData_v1`; payload version advances to 6 while DataStore name remains unchanged.
+- Added `StationSkinRegistry.lua` with FREE / CREDITS / ROBUX / EVENT acquisition classes; purchase flows are not live yet.
+- Added replicated three-item public serialized showcase inside each occupied station and retired the old local-only wall showcase.
+- Added `StationHUD.client.lua`, short station guide highlight, and local filtering of other stations' prompts.
+- Retired legacy single-desk interaction-layout and duplicated M4-C prompt telemetry hooks.
+- Extended publish Static QC to require M4-D station/runtime files and ownership markers.
+- M4-D status: IMPLEMENTED IN SOURCE / PUBLISH + SOLO RUNTIME QC PENDING.
