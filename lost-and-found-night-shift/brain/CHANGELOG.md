@@ -45,16 +45,25 @@
 - Added protected load/save behavior with session-only fallback when DataStore load fails.
 - Added 60-second dirty autosave plus `PlayerRemoving` / `BindToClose` saves.
 - Confirmed persistence runtime behavior on mobile.
-- Tilted TAG READER and OPEN / INSPECT controls upright toward the player for better readability.
 - Roblox v21 is the accepted M2-C runtime baseline.
 - Trading remains locked.
 
-## 2026-08-27 — M2-D controlled expansion live candidate
+## 2026-08-27 — M2-D controlled expansion accepted
 - Expanded persistent INDEX from 10 to 15 collectible entries.
 - Added five PERFECT-only bonus finds tied to canon-consistent case evidence: Silver Camera Lens, Ownerless Tag 000-17284, Flight 000 Boarding Tag, Duplicate Passport, and Milo's Toy Train.
 - Added four new 3D collectible geometries: camera lens, evidence tag, passport, and toy train.
 - Added distinct BONUS FIND discovery feedback.
 - Expanded physical showcase from 10 to 15 slots across three rows.
-- Existing saved Credits and discovered IDs remain compatible with the same DataStore payload.
-- Published as Roblox v22; M2-D mobile runtime acceptance pending.
+- Mobile runtime screenshots confirmed bonus item rendering, rarity display, locked silhouettes, and carousel stability.
+- Corrected TAG / OPEN visual panels in v23 so labels stand vertically with horizontal readable text rather than tilted SurfaceGui text.
+
+## 2026-08-27 — M2-E 20-item collection live candidate
+- Expanded persistent INDEX from 15 to 20 collectible entries.
+- All 10 cases now have exactly one PERFECT-only bonus collectible.
+- Added Maya's Power Adapter, Daniel's Formal Shoe, Sofia's Stitched Patch, Ari's Red Paperback, and Unstable Mass Readout.
+- Added five new 3D collectible geometries: power adapter, formal shoe, name patch, paperback, and mass readout.
+- Long collection names now wrap to two lines instead of truncating with ellipsis.
+- Expanded physical showcase from 15 to 20 slots across four rows.
+- Existing DataStore payload remains compatible; old saves remain valid and new discoveries persist in the same discovered-ID list.
+- Published as Roblox v24; M2-E mobile runtime acceptance pending.
 - Trading remains locked.
