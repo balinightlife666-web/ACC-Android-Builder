@@ -5,7 +5,6 @@ import android.content.ActivityNotFoundException;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
-import android.provider.Settings;
 import android.webkit.ValueCallback;
 import android.webkit.WebChromeClient;
 import android.webkit.WebResourceRequest;
@@ -52,7 +51,9 @@ public class MainActivity extends Activity {
         settings.setMediaPlaybackRequiresUserGesture(false);
         settings.setBuiltInZoomControls(false);
         settings.setDisplayZoomControls(false);
-        settings.setUserAgentString(settings.getUserAgentString() + " ACCOSXNative/1.0");
+        settings.setCacheMode(WebSettings.LOAD_NO_CACHE);
+        settings.setUserAgentString(settings.getUserAgentString() + " ACCOSXNative/1.1");
+        webView.clearCache(true);
 
         webView.setWebChromeClient(new WebChromeClient() {
             @Override
@@ -112,6 +113,23 @@ public class MainActivity extends Activity {
                 if (ALLOWED_PACKAGES.contains(candidate) && launchPackage(candidate)) return true;
             }
             Toast.makeText(this, "APK belum terpasang di HP.", Toast.LENGTH_SHORT).show();
+            return true;
+        }
+
+        // Backward compatibility for the old OWNER APP LAUNCHER cache.
+        // Old tiles used intent:#Intent;...;package=<id>;...;end and WebView previously rendered ERR_UNKNOWN_URL_SCHEME.
+        if ("intent".equals(scheme)) {
+            try {
+                Intent parsed = Intent.parseUri(uri.toString(), Intent.URI_INTENT_SCHEME);
+                String pkg = parsed.getPackage();
+                if (pkg != null && ALLOWED_PACKAGES.contains(pkg)) {
+                    if (launchPackage(pkg)) return true;
+                    Toast.makeText(this, "APK belum terpasang di HP.", Toast.LENGTH_SHORT).show();
+                    return true;
+                }
+            } catch (Exception ignored) {
+            }
+            Toast.makeText(this, "Target APK tidak dikenali.", Toast.LENGTH_SHORT).show();
             return true;
         }
 
