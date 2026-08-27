@@ -154,6 +154,8 @@ stroke(toast, 0.4)
 local discovered = {}
 local entries = {}
 local serialByCollectionId = {}
+local ownedCounts = {}
+local migrationComplete = false
 local toastToken = 0
 
 local function rarityColor(rarity)
@@ -163,11 +165,9 @@ end
 local function setMainHudVisible(visible)
     local mainHud = playerGui:FindFirstChild("LostAndFoundHUD")
     if not mainHud then return end
-
     local compact = mainHud:FindFirstChild("CompactCaseHUD")
     local casePopup = mainHud:FindFirstChild("CaseFilePopup")
     local moneyBar = mainHud:FindFirstChild("MoneyBar")
-
     if compact then compact.Visible = visible end
     if moneyBar then moneyBar.Visible = visible end
     if not visible and casePopup then casePopup.Visible = false end
@@ -176,17 +176,25 @@ end
 local function setArchiveHudVisible(visible)
     local m3Hud = playerGui:FindFirstChild("LostAndFoundM3HUD")
     if not m3Hud then return end
-
     local archivePopup = m3Hud:FindFirstChild("ArchivePopup")
     local archiveButton = m3Hud:FindFirstChild("ArchiveButton")
-
     if archivePopup and archivePopup.Visible then
         if not visible then archivePopup.Visible = false end
         if archiveButton then archiveButton.Visible = false end
         return
     end
-
     if archiveButton then archiveButton.Visible = visible end
+end
+
+local function setTradeHudVisible(visible)
+    local tradeHud = playerGui:FindFirstChild("LostAndFoundTradeHUD")
+    if not tradeHud then return end
+    local tradePopup = tradeHud:FindFirstChild("TradePopup")
+    local tradeButton = tradeHud:FindFirstChild("TradeButton")
+    if tradePopup and tradePopup.Visible and not visible then
+        tradePopup.Visible = false
+    end
+    if tradeButton then tradeButton.Visible = visible end
 end
 
 local function addPreview(card, entry, isDiscovered)
@@ -206,13 +214,11 @@ local function addPreview(card, entry, isDiscovered)
     local world = Instance.new("WorldModel")
     world.Name = "PreviewWorld"
     world.Parent = viewport
-
     local model = PreviewFactory.Create(entry.id, world, not isDiscovered)
     local camera = Instance.new("Camera")
     camera.FieldOfView = 34
     camera.Parent = viewport
     viewport.CurrentCamera = camera
-
     local boxCF, boxSize = model:GetBoundingBox()
     local maxDim = math.max(boxSize.X, boxSize.Y, boxSize.Z)
     local center = boxCF.Position
@@ -239,6 +245,7 @@ local function rebuildCards()
         local rarity = tostring(entry.rarity or "COMMON")
         local accent = isDiscovered and rarityColor(rarity) or Color3.fromRGB(72, 80, 92)
         local serialInfo = serialByCollectionId[entry.id]
+        local owned = ownedCounts[entry.id] or 0
 
         local card = Instance.new("Frame")
         card.Name = entry.id
@@ -268,6 +275,9 @@ local function rebuildCards()
         if not isDiscovered then
             serialLabel.Text = "NO INSTANCE"
             serialLabel.TextColor3 = Color3.fromRGB(92, 100, 113)
+        elseif owned <= 0 and migrationComplete then
+            serialLabel.Text = "NOT OWNED"
+            serialLabel.TextColor3 = Color3.fromRGB(145, 157, 174)
         elseif serialInfo and serialInfo.serial then
             serialLabel.Text = tostring(serialInfo.serial)
         else
@@ -281,6 +291,8 @@ local function applySnapshot(payload)
     entries = payload.entries or entries
     discovered = payload.discovered or discovered
     serialByCollectionId = payload.serialByCollectionId or serialByCollectionId
+    ownedCounts = payload.ownedCounts or ownedCounts
+    migrationComplete = payload.serialMigrationComplete == true
     indexButton.Text = string.format("INDEX  %d/%d", payload.count or 0, payload.total or #entries)
     rebuildCards()
 end
@@ -315,6 +327,7 @@ local function setCollectionOpen(open)
     indexButton.Visible = not open
     setMainHudVisible(not open)
     setArchiveHudVisible(not open)
+    setTradeHudVisible(not open)
 end
 
 indexButton.Activated:Connect(function()
