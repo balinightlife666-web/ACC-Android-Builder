@@ -10,6 +10,8 @@ local WorldBuilder = require(script.Parent:WaitForChild("WorldBuilder"))
 local ItemFactory = require(script.Parent:WaitForChild("ItemFactory"))
 local PlayerDataStore = require(script.Parent:WaitForChild("PlayerDataStore"))
 local SerialMintService = require(script.Parent:WaitForChild("SerialMintService"))
+local TradeJournalService = require(script.Parent:WaitForChild("TradeJournalService"))
+local TradeService = require(script.Parent:WaitForChild("TradeService"))
 
 local remotes = ReplicatedStorage:FindFirstChild("LostAndFoundRemotes") or Instance.new("Folder")
 remotes.Name = "LostAndFoundRemotes"
@@ -38,8 +40,10 @@ local discoveries = {}
 local inventories = {}
 local minting = {}
 local persistenceReady = {}
+local serialMigrationComplete = {}
 local dirty = {}
 local flight000IncidentPayload = nil
+local tradeController = nil
 
 local function inspectionsComplete()
     return inspections.scanned and inspections.tagChecked and inspections.opened
@@ -163,6 +167,8 @@ local function collectionSnapshot(player)
                     serialNumber = instance.serialNumber,
                     edition = instance.edition,
                     tradeable = instance.tradeable,
+                    instanceId = instance.instanceId,
+                    tradeCount = instance.tradeCount or 0,
                 }
             end
         end
@@ -176,6 +182,7 @@ local function collectionSnapshot(player)
         serialByCollectionId = serialByCollectionId,
         ownedCounts = ownedCounts,
         inventoryCount = #inventoryFor(userId),
+        serialMigrationComplete = serialMigrationComplete[userId] == true,
         persistent = persistenceReady[userId] == true,
     }
 end
@@ -201,12 +208,16 @@ local function savePayload(player)
         xp = xp.Value,
         discovered = discoveredList,
         inventory = inventoryList,
+        serialMigrationComplete = serialMigrationComplete[player.UserId] == true,
     }
 end
 
-local function savePlayer(player, force)
+local function savePlayer(player, force, bypassTradeLock)
     local userId = player.UserId
     if persistenceReady[userId] ~= true then
+        return false
+    end
+    if tradeController and tradeController:IsCommitLocked(userId) and not bypassTradeLock then
         return false
     end
     if not force and not dirty[userId] then
@@ -280,6 +291,10 @@ end
 local function backfillSerializedInventory(player)
     local userId = player.UserId
     if persistenceReady[userId] ~= true then return end
+    if serialMigrationComplete[userId] == true then
+        sendCollectionSync(player)
+        return
+    end
 
     local found = discoveries[userId] or {}
     local changed = false
@@ -295,9 +310,10 @@ local function backfillSerializedInventory(player)
     end
 
     if player.Parent then
-        if changed then
-            savePlayer(player, false)
-        end
+        serialMigrationComplete[userId] = true
+        player:SetAttribute("LostFoundSerializedInventoryReady", true)
+        dirty[userId] = true
+        savePlayer(player, true)
         sendCollectionSync(player)
     end
 end
@@ -348,10 +364,15 @@ local function setupPlayer(player)
     local loaded, ok = PlayerDataStore.Load(player.UserId)
     local found = {}
     local inventory = {}
+    local migrationComplete = false
+    local recoveryChanged = false
+    local recoveryTradeId = nil
+    local recoveryStatus = nil
 
     if ok then
         credits.Value = loaded.credits or 0
         xp.Value = loaded.xp or 0
+        migrationComplete = loaded.serialMigrationComplete == true
         for _, collectionId in ipairs(loaded.discovered or {}) do
             if CollectionRegistry.Get(collectionId) then
                 found[collectionId] = true
@@ -359,23 +380,40 @@ local function setupPlayer(player)
         end
         for _, instance in ipairs(loaded.inventory or {}) do
             if CollectionRegistry.Get(instance.collectionId) then
+                if not instance.currentOwnerUserId or instance.currentOwnerUserId == 0 then
+                    instance.currentOwnerUserId = player.UserId
+                end
                 table.insert(inventory, instance)
             end
         end
+
+        inventory, recoveryChanged, recoveryTradeId, recoveryStatus = TradeJournalService.ReconcileUser(player.UserId, inventory)
     end
 
     discoveries[player.UserId] = found
     inventories[player.UserId] = inventory
     minting[player.UserId] = {}
     persistenceReady[player.UserId] = ok
-    dirty[player.UserId] = false
+    serialMigrationComplete[player.UserId] = migrationComplete
+    dirty[player.UserId] = recoveryChanged == true
     player:SetAttribute("LostFoundPersistenceReady", ok)
-    player:SetAttribute("LostFoundSerializedInventoryReady", ok and #inventory > 0)
+    player:SetAttribute("LostFoundSerializedInventoryReady", ok and migrationComplete)
 
     player.CharacterAdded:Connect(function(character)
         task.defer(normalizeCharacter, character)
     end)
     if player.Character then task.defer(normalizeCharacter, player.Character) end
+
+    if ok and recoveryChanged and recoveryTradeId then
+        task.defer(function()
+            if savePlayer(player, true) then
+                if recoveryStatus == "PREPARED" then
+                    TradeJournalService.MarkStatus(recoveryTradeId, "ROLLED_BACK")
+                end
+                TradeJournalService.ClearRecovery(player.UserId, recoveryTradeId)
+            end
+        end)
+    end
 end
 
 local function publicCase(caseData)
@@ -441,6 +479,25 @@ local function raiseFlight000Incident(player)
     end)
 end
 
+tradeController = TradeService.Start({
+    remotes = remotes,
+    collectionRegistry = CollectionRegistry,
+    journal = TradeJournalService,
+    getInventory = function(player)
+        return inventoryFor(player.UserId)
+    end,
+    isPersistenceReady = function(player)
+        return persistenceReady[player.UserId] == true and serialMigrationComplete[player.UserId] == true
+    end,
+    markDirty = function(player)
+        dirty[player.UserId] = true
+    end,
+    savePlayer = function(player, force)
+        return savePlayer(player, force, true)
+    end,
+    sendCollectionSync = sendCollectionSync,
+})
+
 Players.PlayerAdded:Connect(function(player)
     setupPlayer(player)
     task.delay(0.5, function()
@@ -462,11 +519,18 @@ Players.PlayerAdded:Connect(function(player)
 end)
 
 Players.PlayerRemoving:Connect(function(player)
+    if tradeController then
+        local started = os.clock()
+        while tradeController:IsCommitLocked(player.UserId) and os.clock() - started < 8 do
+            task.wait(0.1)
+        end
+    end
     savePlayer(player, true)
     discoveries[player.UserId] = nil
     inventories[player.UserId] = nil
     minting[player.UserId] = nil
     persistenceReady[player.UserId] = nil
+    serialMigrationComplete[player.UserId] = nil
     dirty[player.UserId] = nil
 end)
 
@@ -655,6 +719,10 @@ end)
 
 game:BindToClose(function()
     for _, player in ipairs(Players:GetPlayers()) do
+        local started = os.clock()
+        while tradeController and tradeController:IsCommitLocked(player.UserId) and os.clock() - started < 8 do
+            task.wait(0.1)
+        end
         savePlayer(player, true)
     end
 end)
