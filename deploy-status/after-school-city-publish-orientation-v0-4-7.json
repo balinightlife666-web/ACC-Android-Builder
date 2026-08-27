@@ -1,0 +1,16 @@
+{
+  "status": "LIVE_PUBLISHED",
+  "project": "AFTER SCHOOL CITY",
+  "mode": "ORIENTATION_CORRECTION_V0_4_7",
+  "sourceRepo": "ardarawk-cloud/ACC-Roblox-maps",
+  "sourceCommit": "d533a63c1cf33cf2702d97376d816f2c13d7f35d",
+  "universeId": "10745359869",
+  "placeId": "121603385909425",
+  "versionNumber": 16,
+  "rojoVersion": "7.7.0",
+  "placeBytes": 48488,
+  "placeSha256": "c1bab849b524b1f9288306530657f85f8362fd2f39cafa4a4d5efcdbd6669802",
+  "runId": "33091519109",
+  "publishedAt": "2026-08-27T16:07:07Z",
+  "note": "Orientation Correction v0.4.7; exact locked source; Cloud Spatial V4 + Orientation V1 gates passed; dedication intro preserved."
+}
