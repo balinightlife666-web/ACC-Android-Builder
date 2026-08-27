@@ -1,6 +1,6 @@
-LOST FOUND M4-C ECONOMY HARDENING
+LOST FOUND M4-D PERSONAL SHIFTS
 Triggered: 2026-08-28
-Retry: 31
+Retry: 32
 Universe: 10745354451
 Place: 93699016600671
-Reason: Publish anti-alt/economy hardening with persistent economy stats, buffered aggregate telemetry, trade progression/account-age gate, Credits soft-currency authority, serial/trade telemetry, and no reward/drop-rate nerf.
+Reason: Publish 8 personal shift stations A-H, server-owned job isolation, per-player case streams, personal collectible drop rolls, persistent station profile foundation, public serialized station showcase, and station assignment mobile HUD.
