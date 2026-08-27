@@ -65,21 +65,21 @@ local function makeLabel(parent, name, size, position, font, color, textSize)
     return label
 end
 
--- Live money display, separate from the case panel.
+-- Unified top-right utility size: 128 x 30.
 local moneyBar = Instance.new("Frame")
 moneyBar.Name = "MoneyBar"
 moneyBar.AnchorPoint = Vector2.new(1, 0)
-moneyBar.Size = UDim2.fromOffset(150, 38)
+moneyBar.Size = UDim2.fromOffset(128, 30)
 moneyBar.Position = UDim2.new(1, -18, 0, 18)
 moneyBar.BackgroundColor3 = Color3.fromRGB(17, 21, 28)
 moneyBar.BackgroundTransparency = 0.05
 moneyBar.BorderSizePixel = 0
 moneyBar.Active = false
 moneyBar.Parent = gui
-addCorner(moneyBar, 10)
+addCorner(moneyBar, 8)
 addStroke(moneyBar, Color3.fromRGB(90, 104, 122), 1.1, 0.35)
 
-local moneyLabel = makeLabel(moneyBar, "Credits", UDim2.new(1, -20, 1, 0), UDim2.fromOffset(10, 0), Enum.Font.GothamBold, Color3.fromRGB(255, 202, 105), 14)
+local moneyLabel = makeLabel(moneyBar, "Credits", UDim2.new(1, -18, 1, 0), UDim2.fromOffset(9, 0), Enum.Font.GothamBold, Color3.fromRGB(255, 202, 105), 11)
 moneyLabel.TextYAlignment = Enum.TextYAlignment.Center
 moneyLabel.Text = "CREDITS  0"
 
@@ -126,13 +126,13 @@ progress.Text = "SCAN ○  TAG ○  OPEN ○"
 
 local caseFileButton = Instance.new("TextButton")
 caseFileButton.Name = "CaseFileButton"
-caseFileButton.Size = UDim2.fromOffset(88, 32)
-caseFileButton.Position = UDim2.new(1, -97, 1, -37)
+caseFileButton.Size = UDim2.fromOffset(88, 30)
+caseFileButton.Position = UDim2.new(1, -97, 1, -35)
 caseFileButton.BackgroundColor3 = Color3.fromRGB(218, 145, 48)
 caseFileButton.BackgroundTransparency = 0.04
 caseFileButton.TextColor3 = Color3.fromRGB(20, 22, 27)
 caseFileButton.Font = Enum.Font.GothamBold
-caseFileButton.TextSize = 12
+caseFileButton.TextSize = 11
 caseFileButton.Text = "CASE FILE"
 caseFileButton.AutoButtonColor = true
 caseFileButton.Modal = false
@@ -164,12 +164,12 @@ popupTitle.Text = "CASE FILE"
 
 local closeButton = Instance.new("TextButton")
 closeButton.Name = "Close"
-closeButton.Size = UDim2.fromOffset(38, 34)
-closeButton.Position = UDim2.new(1, -49, 0, 11)
+closeButton.Size = UDim2.fromOffset(30, 30)
+closeButton.Position = UDim2.new(1, -41, 0, 11)
 closeButton.BackgroundColor3 = Color3.fromRGB(37, 44, 56)
 closeButton.TextColor3 = Color3.fromRGB(240, 242, 246)
 closeButton.Font = Enum.Font.GothamBold
-closeButton.TextSize = 18
+closeButton.TextSize = 16
 closeButton.Text = "×"
 closeButton.Modal = false
 closeButton.Parent = popup
