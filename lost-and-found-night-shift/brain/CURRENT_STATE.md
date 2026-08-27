@@ -43,9 +43,9 @@ Season 1 pillars:
 ## M4-D — PERSONAL STATION / MULTIPLAYER JOB ISOLATION
 Authority: `brain/M4D_PERSONAL_STATION_LOCK.md` v1.1.
 
-**LIVE_PUBLISHED v34 — BUILD/DEPLOY VERIFIED / SOLO CORE FUNCTIONAL PASS / MULTIPLAYER QC DEFERRED.**
+**CURRENT LIVE v35 / SOLO CORE FUNCTIONAL PASS / MULTIPLAYER QC DEFERRED.**
 
-v34 deployment evidence:
+### v34 core deployment evidence
 - source commit: `950eeb1e7b4c6119292340f4e630b8fa3e589461`
 - workflow run: `33100322285`
 - status: `LIVE_PUBLISHED`
@@ -151,11 +151,20 @@ Robux cosmetics must never improve collectible odds, rewards, farming output or 
 ## M4-D.1 — STATION READABILITY PASS
 Authority/runtime evidence: `brain/M4D_SOLO_RUNTIME_QC_2026-08-28.md`.
 
-**IMPLEMENTED IN SOURCE — PUBLISH / RUNTIME QC PENDING.**
+**LIVE_PUBLISHED v35 — BUILD/DEPLOY VERIFIED / MOBILE VISUAL QC PENDING.**
+
+Exact deployment evidence:
+- source commit: `951cddc38d218f2b72a5ae79001af37f77b7a0b4`
+- workflow run: `33102765326`
+- status: `LIVE_PUBLISHED`
+- Roblox version: `35`
+- Rojo: `7.7.0`
+- RBXL bytes: `85227`
+- RBXL SHA256: `e4875cde0c6085614c919d80212cda63df83c5affa61cc932ae37d9a9051376b`
 
 Purpose: fix v34 mobile darkness/readability without changing gameplay.
 
-Implemented source changes:
+LIVE changes:
 - brighter but still night-shift ambient/diffuse lighting;
 - reduced atmosphere density/haze and crushed-black contrast;
 - stronger ceiling illumination + one central fill;
@@ -183,17 +192,17 @@ Hard locks preserved:
 - M4-B two-account ownership/rejoin QC remains deferred until a second tester is available.
 
 ## LIVE authority
-Current verified Roblox LIVE remains **v34** until a new deploy receipt matches the exact M4-D.1 trigger source.
-Do not call M4-D.1 LIVE from source commits alone.
+**LIVE_PUBLISHED — Roblox v35 BUILD/DEPLOY VERIFIED.**
+Deployment authority receipt sourceCommit exactly matches `951cddc38d218f2b72a5ae79001af37f77b7a0b4`.
+M4-D.1 still requires mobile visual/runtime acceptance.
 
-## ACTIVE NEXT GATE — M4-D.1 PUBLISH + MOBILE VISUAL QC
-1. publish exact M4-D.1 source and verify deploy receipt sourceCommit;
-2. join solo and confirm room is brighter but still night-shift;
-3. Station A bay boundaries + floor marker obvious;
-4. owner sign readable from normal approach;
-5. RETURN / STORE / QUARANTINE / SECURITY readable from third-person mobile view;
-6. public serial label visible nearby but does not float aggressively over HUD;
-7. complete one personal case and confirm no gameplay/reward regression.
+## ACTIVE NEXT GATE — M4-D.1 MOBILE VISUAL QC
+1. join solo and confirm room is brighter but still night-shift;
+2. Station A bay boundaries + floor marker obvious;
+3. owner sign readable from normal approach;
+4. RETURN / STORE / QUARANTINE / SECURITY readable from third-person mobile view;
+5. public serial label visible nearby but does not float aggressively over HUD;
+6. complete one personal case and confirm no gameplay/reward regression.
 
 ## DEFERRED MULTIPLAYER QC
 When a second tester is available:
