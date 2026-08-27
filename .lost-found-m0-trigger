@@ -1,6 +1,6 @@
-LOST FOUND M4-B SECURE SERIALIZED TRADING V1
-Triggered: 2026-08-27
-Retry: 30
+LOST FOUND M4-C ECONOMY HARDENING
+Triggered: 2026-08-28
+Retry: 31
 Universe: 10745354451
 Place: 93699016600671
-Reason: Publish same-server one-item-for-one-item serialized player trading with exact instance ownership validation, item locks, request/accept flow, two-stage confirmation, durable trade journal, rollback/recovery markers, provenance persistence, NOT OWNED collection state, and mobile trade UI. No external payment fields.
+Reason: Publish anti-alt/economy hardening with persistent economy stats, buffered aggregate telemetry, trade progression/account-age gate, Credits soft-currency authority, serial/trade telemetry, and no reward/drop-rate nerf.
