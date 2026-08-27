@@ -60,7 +60,7 @@ Mobile cleanup through v30:
 Authority: `brain/M4_UNIQUE_ITEM_TRADING_LOCK.md`.
 
 ### M4-A — UNIQUE ITEM INSTANCE + SERIAL FOUNDATION
-**IMPLEMENTED IN SOURCE — PUBLISH / RUNTIME QC PENDING.**
+**LIVE_PUBLISHED v31 — RUNTIME PERSISTENCE QC PENDING.**
 
 Goal:
 Turn collection ownership into actual unique item instances without breaking the existing Collection Index.
@@ -93,7 +93,7 @@ Implementation:
 - old saves remain compatible because missing inventory defaults to empty;
 - after a successful old-save load, discovered collection entries without an owned instance are gradually backfilled with serials;
 - no replay is required for old discoveries;
-- Collection cards can show the owned serial beneath rarity;
+- Collection cards show the owned serial beneath rarity;
 - newly minted discoveries can show a `SERIAL MINTED` toast;
 - no trade request / transfer code is enabled yet.
 
@@ -104,28 +104,28 @@ Safety / anti-dupe direction:
 - atomic ownership transfer / escrow / provenance are deferred to M4-B.
 
 ## Latest VERIFIED LIVE publish receipt
-Run: `33078835836`
-Source commit: `581e0bd32ea7c7342ca238b94ca395879237369d`
+Run: `33089525745`
+Source commit: `0811f21c99b100c650ad5261f7bff3d0743ff4f2`
 Rojo: `7.7.0`
 Static QC: **PASS**
 Rojo build: **PASS**
 Roblox publish: **PASS**
-Roblox version: `30`
-RBXL bytes: `49545`
-RBXL SHA256: `702c96f46d5dc4393ea44d2a7f1a77429450bebf32e6a880636d1907e0b6767b`
+Roblox version: `31`
+RBXL bytes: `52821`
+RBXL SHA256: `ad0c5baa511a55bbb2b2cdeb46a87621748cc4484b4be18420dcf81d45306a24`
 Deploy receipt: `deploy-status/lost-and-found-m0.json`
 
 ## LIVE authority
-**LIVE_PUBLISHED — v30 BUILD/DEPLOY VERIFIED.**
-M4-A source is newer than the current LIVE receipt and must not be called LIVE until a new receipt matches the M4-A publish trigger.
+**LIVE_PUBLISHED — v31 BUILD/DEPLOY VERIFIED.**
+M4-A is live in build/deploy terms but not yet runtime-accepted for old-save backfill and serial persistence.
 
 ## Next gate
 **M4-A-RUNTIME**
-1. publish exact M4-A source and verify receipt;
-2. rejoin with the existing save;
-3. Credits and INDEX `/20` must remain intact;
-4. old discovered items should progressively receive stable serials without replay;
-5. open Collection and confirm serials render cleanly below rarity on mobile;
+1. rejoin with the existing save;
+2. Credits and INDEX `/20` must remain intact;
+3. old discovered items should progressively receive stable serials without replay;
+4. open Collection and confirm serials render cleanly below rarity on mobile;
+5. wait briefly if an old item still shows `SERIALIZING...` while backfill runs;
 6. leave/rejoin and confirm the same serials return;
 7. core case loop, Archive, movement, and Collection must remain stable;
 8. trading stays disabled until M4-B.
