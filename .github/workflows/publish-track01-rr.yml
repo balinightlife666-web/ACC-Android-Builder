@@ -1,3 +1,4 @@
+# Owner-approved TRACK 01 v3.5.0 LIVE publish via RR key
 name: Publish TRACK 01 via RR Key
 
 on:
@@ -6,102 +7,122 @@ on:
     paths:
       - '.github/workflows/publish-track01-rr.yml'
   workflow_dispatch:
-    inputs:
-      source_ref:
-        description: ACC-Roblox-maps ref to publish
-        required: false
-        default: main
+
+permissions:
+  contents: write
 
 concurrency:
   group: track01-rr-live-publish
   cancel-in-progress: false
 
 jobs:
-  publish-track01:
+  publish:
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
+    timeout-minutes: 15
+    env:
+      SOURCE_REPO: ardarawk-cloud/ACC-Roblox-maps
+      SOURCE_SHA: abd4614f1624474b8c4101b063a7365021248f80
+      UNIVERSE_ID: '10745349805'
+      PLACE_ID: '79748872921213'
+      ROBLOX_API_KEY: ${{ secrets.ROCKET_RACOON_PUBLISH }}
+
     steps:
-      - name: Checkout publisher repo
+      - name: Checkout publisher repository
         uses: actions/checkout@v4
         with:
-          path: publisher
+          fetch-depth: 0
 
-      - name: Checkout TRACK 01 source
+      - name: Checkout locked TRACK 01 source
         uses: actions/checkout@v4
         with:
           repository: ardarawk-cloud/ACC-Roblox-maps
-          ref: ${{ inputs.source_ref || 'main' }}
+          ref: abd4614f1624474b8c4101b063a7365021248f80
+          token: ${{ secrets.ACC_ROBLOX_MAPS_WRITE_TOKEN }}
           path: track-src
+          fetch-depth: 1
 
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: '20'
 
-      - name: Validate TRACK 01 target
-        working-directory: track-src
-        shell: bash
-        run: |
-          node - <<'NODE'
-          const c=require('./maps/track-01/track01.config.json');
-          if(String(c.universeId)!=='10745349805') throw new Error('Wrong Universe ID');
-          if(String(c.placeId)!=='79748872921213') throw new Error('Wrong Place ID');
-          if(!c.enabled) throw new Error('TRACK 01 disabled');
-          console.log('TRACK 01 SOURCE', c.version, c.universeId, c.placeId);
-          NODE
-
-      - name: Build TRACK 01
-        working-directory: track-src
-        run: node scripts/build-track01.js
-
-      - name: Validate v3.5 content
-        working-directory: track-src
+      - name: Preflight TRACK 01 v3.5.0 target lock
         shell: bash
         run: |
           set -euo pipefail
+          [[ -n "${ROBLOX_API_KEY:-}" ]] || { echo 'ROCKET_RACOON_PUBLISH missing'; exit 10; }
+          actual=$(git -C track-src rev-parse HEAD)
+          [[ "$actual" == "$SOURCE_SHA" ]] || { echo "Source SHA mismatch: $actual"; exit 11; }
+          node - <<'NODE'
+          const c=require('./track-src/maps/track-01/track01.config.json');
+          if(String(c.universeId)!=='10745349805') throw new Error('Wrong Universe ID');
+          if(String(c.placeId)!=='79748872921213') throw new Error('Wrong Place ID');
+          if(String(c.version)!=='3.5.0') throw new Error('Wrong TRACK 01 source version: '+c.version);
+          if(!c.enabled) throw new Error('TRACK 01 disabled');
+          console.log('LOCK PASS TRACK 01',c.version,c.universeId,c.placeId);
+          NODE
+
+      - name: Build exact TRACK 01 place
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd track-src
+          node scripts/build-track01.js
           test -s maps/track-01/place.rbxlx
           grep -q 'TRACK01_SignalNight' maps/track-01/place.rbxlx
           grep -q 'TRACK01_SteamFog' maps/track-01/place.rbxlx
           grep -q 'TRACK01_EndLineHero' maps/track-01/place.rbxlx
-          grep -q 'END OF LINE' maps/track-01/place.rbxlx
           grep -q 'MainSignal_T01' maps/track-01/place.rbxlx
-          echo 'TRACK 01 RR build validation PASS'
+          grep -q 'END OF LINE' maps/track-01/place.rbxlx
+          bytes=$(stat -c%s maps/track-01/place.rbxlx)
+          sha=$(sha256sum maps/track-01/place.rbxlx | awk '{print $1}')
+          echo "PLACE_FILE=$GITHUB_WORKSPACE/track-src/maps/track-01/place.rbxlx" >> "$GITHUB_ENV"
+          echo "PLACE_BYTES=$bytes" >> "$GITHUB_ENV"
+          echo "PLACE_SHA256=$sha" >> "$GITHUB_ENV"
+          echo "BUILD PASS bytes=$bytes sha256=$sha"
 
-      - name: Publish TRACK 01 with RR key
-        working-directory: track-src
-        env:
-          ROBLOX_API_KEY: ${{ secrets.ROCKET_RACOON_PUBLISH }}
-        run: |
-          test -n "$ROBLOX_API_KEY"
-          node scripts/publish-track01-direct.js
-
-      - name: Persist Roblox receipt
-        if: always()
+      - name: Publish TRACK 01 v3.5.0 LIVE to Roblox
         shell: bash
         run: |
-          mkdir -p publisher/deploy-status
-          if [ -s track-src/deploy-status/track01-direct.json ]; then
-            cp track-src/deploy-status/track01-direct.json publisher/deploy-status/track01-rr.json
-          else
-            printf '{"ok":false,"httpStatus":"NO_RECEIPT","universeId":"10745349805","placeId":"79748872921213","source":"ACC-Roblox-maps/main"}\n' > publisher/deploy-status/track01-rr.json
-          fi
-          cd publisher
-          git config user.name "ACC RR Publish Bot"
-          git config user.email "actions@users.noreply.github.com"
+          set -euo pipefail
+          url="https://apis.roblox.com/universes/v1/${UNIVERSE_ID}/places/${PLACE_ID}/versions?versionType=Published"
+          http=$(curl -sS --location -o "$RUNNER_TEMP/track01-publish-response.json" -w '%{http_code}' \
+            -X POST "$url" \
+            -H "x-api-key: $ROBLOX_API_KEY" \
+            -H 'Content-Type: application/octet-stream' \
+            --data-binary "@$PLACE_FILE")
+          body=$(cat "$RUNNER_TEMP/track01-publish-response.json")
+          echo "Roblox publish HTTP $http"
+          [[ "$http" =~ ^2[0-9][0-9]$ ]] || { echo "$body"; exit 30; }
+          version=$(jq -r '.versionNumber // empty' "$RUNNER_TEMP/track01-publish-response.json")
+          [[ -n "$version" ]] || { echo "Missing versionNumber: $body"; exit 31; }
+          echo "PUBLISHED_VERSION=$version" >> "$GITHUB_ENV"
+          echo "ROBLOX PUBLISH PASS version=$version"
+
+      - name: Persist TRACK 01 LIVE receipt
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p deploy-status
+          jq -n \
+            --arg status 'LIVE_PUBLISHED' \
+            --arg project 'TRACK 01' \
+            --arg mode 'RR_KEY_V3_5_0' \
+            --arg sourceRepo "$SOURCE_REPO" \
+            --arg sourceCommit "$SOURCE_SHA" \
+            --arg universeId "$UNIVERSE_ID" \
+            --arg placeId "$PLACE_ID" \
+            --arg versionNumber "$PUBLISHED_VERSION" \
+            --arg placeBytes "$PLACE_BYTES" \
+            --arg placeSha256 "$PLACE_SHA256" \
+            --arg runId "$GITHUB_RUN_ID" \
+            --arg publishedAt "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+            '{status:$status,project:$project,mode:$mode,sourceRepo:$sourceRepo,sourceCommit:$sourceCommit,universeId:$universeId,placeId:$placeId,versionNumber:($versionNumber|tonumber),placeBytes:($placeBytes|tonumber),placeSha256:$placeSha256,runId:$runId,publishedAt:$publishedAt,previewUrl:"https://www.roblox.com/games/79748872921213"}' \
+            > deploy-status/track01-rr.json
+          cat deploy-status/track01-rr.json
+          git config user.name 'TRACK 01 RR Publish Bot'
+          git config user.email 'actions@users.noreply.github.com'
           git add deploy-status/track01-rr.json
-          if ! git diff --cached --quiet; then
-            git commit -m "Record TRACK 01 RR publish receipt [skip ci]"
-            git push origin HEAD:main
-          fi
-
-      - name: Enforce Roblox receipt
-        if: always()
-        shell: bash
-        run: |
-          node - <<'NODE'
-          const fs=require('fs');
-          const r=JSON.parse(fs.readFileSync('publisher/deploy-status/track01-rr.json','utf8'));
-          console.log('TRACK 01 RR RECEIPT', r);
-          if(!r.ok || Number(r.httpStatus)!==200 || String(r.universeId)!=='10745349805' || String(r.placeId)!=='79748872921213') process.exit(1);
-          NODE
+          git commit -m "Record TRACK 01 RR publish v${PUBLISHED_VERSION} [skip ci]"
+          git pull --rebase origin main
+          git push origin HEAD:main
