@@ -1,6 +1,6 @@
-LOST FOUND COLLECTION / ARCHIVE VISIBILITY HOTFIX
+LOST FOUND M4-A UNIQUE SERIALIZED INVENTORY
 Triggered: 2026-08-27
-Retry: 28
+Retry: 29
 Universe: 10745354451
 Place: 93699016600671
-Reason: When the Collection INDEX popup opens, hide the M3 ARCHIVE utility button alongside Credits and case HUD; restore it when Collection closes. No gameplay or archive progression changes.
+Reason: Add server-authoritative unique collectible instances with global atomic serial mint counters, backward-compatible inventory persistence and old-save serial backfill, plus compact serial display on Collection cards. Trading remains locked pending runtime persistence QC.
