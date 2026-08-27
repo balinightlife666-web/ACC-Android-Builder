@@ -7,140 +7,78 @@
 - Locked M0 milestone: FIRST SUITCASE.
 - Locked four decisions: RETURN / STORE / QUARANTINE / SECURITY.
 - Locked Season 1 mystery pillars: Flight 000 / Lost Child / Ownerless Suitcase.
-- Added anti-drift Project Brain hierarchy.
-- Added initial 10-case test registry.
-- Added procedural playable M0 source with no external asset dependency.
+- Added anti-drift Project Brain hierarchy and initial 10-case registry.
 
 ## 2026-08-27 — M0 / M0.1 accepted
-- Proved complete mobile case loop.
-- Enforced SCAN → TAG → OPEN → DECIDE.
-- Added compact CASE FILE HUD, Credits display, movement safety, lighting/readability fixes, and feel timing/audio pass.
+- Proved complete mobile case loop SCAN → TAG → OPEN → DECIDE.
+- Added compact CASE FILE HUD, Credits display, movement safety, lighting/readability fixes and feel pass.
 
 ## 2026-08-27 — M1 complete
 - Locked M1 premium visual language.
-- Upgraded room shell, counter, conveyor, scanner, inspection station, decision consoles, storage, quarantine access, and lighting.
-- Implemented and runtime-approved five base item types: hardcase suitcase, vintage suitcase, backpack, cardboard parcel, teddy bear.
-- Added floor-accessible TAG-left / OPEN-right interaction rail.
+- Upgraded room, counter, conveyor, scanner, inspection station, decisions, storage and quarantine access.
+- Runtime-approved five base item geometries and floor-accessible TAG / OPEN flow.
 
-## 2026-08-27 — M2-A collection foundation accepted
-- Added CollectionRegistry with rarity/discovery foundation.
-- Added server-authoritative session discovery tracking.
-- Added top-right INDEX mobile control and first-discovery toast.
-- Replaced text-only index with 3D ViewportFrame collection cards.
-- Added locked silhouettes and horizontal mobile collection carousel.
-- Accepted front-facing 3D collection preview orientation on mobile.
-
-## 2026-08-27 — M2-B controlled variants + showcase accepted
-- Expanded collection from 5 base geometry entries to 10 case-specific collectible variants.
-- Preserved reuse of the five approved M1 base geometries.
-- Added stable `collectionId` mapping to all 10 existing cases.
-- Discovery now tracks collectible variant IDs rather than only base geometry IDs.
-- Added `registry/COLLECTION_REGISTRY.json` as governance mirror.
-- Added per-player physical collection showcase with 10 non-colliding shelf slots.
-- Discovered variants appear as 3D models on the showcase; locked slots remain hidden with `?`.
-
-## 2026-08-27 — M2-C persistence accepted
-- Added persistent player data through `LostAndFound_PlayerData_v1`.
-- Credits, XP, and discovered collection IDs survive leave/rejoin.
-- Added protected load/save behavior with session-only fallback when DataStore load fails.
-- Added 60-second dirty autosave plus `PlayerRemoving` / `BindToClose` saves.
-- Confirmed persistence runtime behavior on mobile.
-- Roblox v21 is the accepted M2-C runtime baseline.
-
-## 2026-08-27 — M2-D controlled expansion accepted
-- Expanded persistent INDEX from 10 to 15 collectible entries.
-- Added five PERFECT-only bonus finds tied to canon-consistent case evidence: Silver Camera Lens, Ownerless Tag 000-17284, Flight 000 Boarding Tag, Duplicate Passport, and Milo's Toy Train.
-- Added four new 3D collectible geometries: camera lens, evidence tag, passport, and toy train.
-- Added distinct BONUS FIND discovery feedback.
-- Expanded physical showcase from 10 to 15 slots across three rows.
-- Mobile runtime screenshots confirmed bonus item rendering, rarity display, locked silhouettes, and carousel stability.
-- Corrected TAG / OPEN visual panels in v23 so labels stand vertically with horizontal readable text rather than tilted SurfaceGui text.
-
-## 2026-08-27 — M2-E 20-item collection accepted
-- Expanded persistent INDEX from 15 to 20 collectible entries.
-- All 10 cases now have exactly one PERFECT-only bonus collectible.
-- Added Maya's Power Adapter, Daniel's Formal Shoe, Sofia's Stitched Patch, Ari's Red Paperback, and Unstable Mass Readout.
-- Added five new 3D collectible geometries: power adapter, formal shoe, name patch, paperback, and mass readout.
-- Long collection names wrap to two lines instead of truncating with ellipsis.
-- Expanded physical showcase from 15 to 20 slots across four rows.
-- Existing DataStore payload remains compatible; old saves remain valid and new discoveries persist in the same discovered-ID list.
-- Mobile visual QC and leave/rejoin persistence were accepted on Roblox v24.
+## 2026-08-27 — M2 collection foundation accepted
+- Added persistent Collection Index, 3D Viewport collection cards and physical showcase.
+- Expanded from 10 to 15 to 20 collectible entries.
+- Added PERFECT-only bonus evidence collectibles for all 10 cases.
+- Persisted Credits / XP / discovered IDs through `LostAndFound_PlayerData_v1`.
+- M2-E 20-item collection accepted on Roblox v24.
 
 ## 2026-08-27 — M3-A Flight 000 accepted
-- Added `brain/M3_FLIGHT_000_LOCK.md` as M3 authority.
-- Flight 000 preserves Jonas Vale, passenger FOUND, flight NOT FOUND, tag F0-00013, and correct action QUARANTINE.
-- Exact final explanation remains CANON UNKNOWN.
-- PERFECT Flight 000 raises a server-wide terminal incident and briefly extends case transition timing.
-- Added mobile Archive control and operational incident entry.
-- v26 exposed Archive visibility clearly; v27 fixed the missing local incident-banner trigger.
-- Arda explicitly accepted M3-A after the v27 hotfix without requiring another full Flight 000 replay.
-- M3-A status: USER-ACCEPTED.
+- Added `brain/M3_FLIGHT_000_LOCK.md`.
+- Preserved Jonas Vale, passenger FOUND, flight NOT FOUND, tag F0-00013 and QUARANTINE.
+- Final explanation remains CANON UNKNOWN.
+- v27 incident-banner hotfix user-accepted.
 
 ## 2026-08-27 — M3-B connected mystery chain
 - Added `brain/M3B_CONNECTED_CHAIN_LOCK.md`.
-- Connected the existing Season 1 pillars into three operational Archive entries: Flight 000, Ownerless Suitcase, and The Lost Child.
-- Archive progression is reconstructed from existing persistent PERFECT bonus discoveries rather than adding a second DataStore.
-- `ARCHIVE x/3` shows persistent chain progress.
-- Lost Child remains SECURITY/protective escalation and the 2001 date remains locked.
+- Connected Flight 000 / Ownerless Suitcase / The Lost Child through Archive entries 000-A/B/C.
+- Lost Child remains 2001 + SECURITY/protective escalation.
 - Final supernatural explanation remains unknown.
-- v29 standardized Credits / Index / Archive / Case File utility controls.
-- v30 fixed Collection-open visibility so Archive is hidden while the Collection popup is active.
+- v30 fixed Collection/Archive UI overlap.
 
 ## 2026-08-27 — M4-A unique serialized item foundation accepted
-- Added `brain/M4_UNIQUE_ITEM_TRADING_LOCK.md` as active M4 authority.
-- Split progression into permanent Collection Index and owned Inventory Instances.
-- Added stable Season 1 serial prefixes for all 20 collectible types.
-- Added `SerialMintService.lua` with server-authoritative atomic global DataStore counters per collectible type.
-- Display serial format is `<PREFIX>-S1-<GLOBAL MINT NUMBER>`, e.g. `CMB-S1-000001`.
-- Every serialized instance also receives an immutable GUID-based internal `instanceId`.
-- Extended `LostAndFound_PlayerData_v1` compatibly with serialized inventory.
-- Runtime evidence on v31 confirmed serials survived rejoin unchanged: `SNP-S1-000001`, `ARP-S1-000001`, and `UMR-S1-000001` matched between first login and rejoin screenshots.
-- M4-A status: COMPLETE / RUNTIME-ACCEPTED.
+- Added `brain/M4_UNIQUE_ITEM_TRADING_LOCK.md`.
+- Split permanent Collection Index from actual owned Inventory Instances.
+- Added server-authoritative global serial mint counters and immutable GUID `instanceId`.
+- Runtime v31 rejoin evidence confirmed serial persistence for `SNP-S1-000001`, `ARP-S1-000001`, `UMR-S1-000001`.
 
 ## 2026-08-27 — M4-B secure serialized trading v1
-- Upgraded `brain/M4_UNIQUE_ITEM_TRADING_LOCK.md` to v1.1 and activated M4-B scope.
-- Added persisted `serialMigrationComplete` so legacy backfill cannot create a free replacement after an item is traded away.
-- Collection cards now distinguish `NOT OWNED` from `SERIALIZING...`.
-- Added persistent ownership/provenance fields: current owner, trade count, last trade timestamp/ID, bounded provenance.
-- Added `TradeJournalService.lua` using `LostAndFound_TradeJournal_v1` plus per-user `LostAndFound_TradeRecovery_v1` markers.
-- Added `TradeService.lua` with same-server one-item-for-one-item trading, request/accept/decline, exact `instanceId` validation, server item locks, first confirmation, 3-second final review lock, final confirmation, commit/rollback, and disconnect cancellation before commit.
-- Added mobile `Trading.client.lua` with compact TRADE utility control, player lobby, incoming request UI, exact serial picker, offer review, confirmation states, commit state, and completion receipt.
-- Added `HudTradeVisibility.client.lua` so TRADE does not overlap Collection / Archive / Case File / Trade popups.
-- Trading does not add currency, external payment fields, links, QR codes, or off-platform transaction flow.
-- Workflow run `33092557996` succeeded and exact source `4efee7af76775f1142d2b319c74bd55b6da83f07` published as Roblox v32.
-- v32 Phase 1 mobile UI smoke test passed: trade panel, one-player empty-state, refresh, close, and mobile layout were accepted.
+- Added same-server one-item-for-one-item trade request/accept flow.
+- Added exact instance ownership validation, item locks, first confirm, 3-second review lock and final confirm.
+- Added durable trade journal/recovery markers, rollback path and provenance persistence.
+- Prevented legacy migration from reminting a traded-away final copy.
+- v32 published from exact source `4efee7af76775f1142d2b319c74bd55b6da83f07`.
+- Phase 1 mobile trade UI smoke passed.
 
-## 2026-08-28 — M4-B Phase 2 deferred by test availability
-- Arda currently has only one phone/account available, so a true two-account ownership swap cannot be runtime-QC'd yet.
-- M4-B remains LIVE v32 and is provisionally user-accepted for continued development based on Phase 1 UI evidence.
-- Do not mislabel two-account ownership transfer, rejoin persistence after trade, `NOT OWNED`, or duplicate-serial protection as runtime-proven yet.
-- Keep the full two-account trade test as a deferred regression gate for when a friend/second tester is available.
+## 2026-08-28 — M4-B Phase 2 deferred
+- True two-account ownership swap/rejoin cannot yet be runtime-QC'd with one available device/tester.
+- Keep cross-player ownership, `NOT OWNED`, anti-duplicate and both-account rejoin checks as deferred regression gates.
 
 ## 2026-08-28 — M4-C economy hardening LIVE v33
 - Added `brain/M4C_ECONOMY_HARDENING_LOCK.md`.
-- Locked Credits as non-transferable soft currency for cosmetic/display/convenience sinks rather than direct SECRET/ANOMALY purchase.
-- Added persistent economy stats to `LostAndFound_PlayerData_v1`; payload version advances to 5 while store name stays unchanged.
-- Added `EconomyTelemetryService.lua` with buffered aggregate UTC-day counters in `LostAndFound_EconomyTelemetry_v1`.
-- TradeService enforces account age >= 7 days plus either >= 5 completed cases OR >= 50 XP before trading, in addition to persistence/serialized-inventory readiness and owning a tradeable item.
-- TradeService records aggregate trade request/completion/cancel telemetry and increments persistent per-player `tradesCompleted` on committed trades.
-- Existing player progression is conservatively seeded from legacy XP/Credits so established saves are not treated like fresh alts.
-- Workflow run `33096058726` succeeded; exact source `39ba78108fca79b6cb2b5ca04559a3ce8c5fa23a` published as Roblox v33.
-- M4-C status: LIVE_PUBLISHED / RUNTIME QC PENDING.
+- Locked Credits as non-transferable soft currency for cosmetic/display/convenience sinks.
+- Added persistent economy telemetry/stat foundation; player payload version advanced to 5 while DataStore name remained unchanged.
+- Added trade account-age/progression gate and server-side trade telemetry.
+- Exact source `39ba78108fca79b6cb2b5ca04559a3ce8c5fa23a` published as Roblox v33 via run `33096058726`.
 
-## 2026-08-28 — M4-D personal station / multiplayer job isolation source candidate
+## 2026-08-28 — M4-D personal station / multiplayer job isolation LIVE v34
 - Upgraded `brain/M4D_PERSONAL_STATION_LOCK.md` to v1.1.
 - Replaced the single shared job runtime entrypoint with `PersonalShiftRuntime.lua`.
 - Added `PersonalStationWorld.lua` with 8 physical station slots A-H in one shared social room.
-- Each occupied station has its own case item, claimant, SCAN/TAG/OPEN/DECIDE prompts, decision state, reward and case advancement.
+- Each occupied station owns its case item, claimant, SCAN/TAG/OPEN/DECIDE progress, reward and case advancement.
 - Server validates station ownership for every job interaction; another player cannot claim another station's job/reward.
 - Added fixed 001→002→003 onboarding followed by personal weighted case selection and personal mystery progression gates.
-- Added active-case avoidance so the server uses different cases across stations when practical.
-- Added personal collectible ownership rolls: COMMON 100%, UNCOMMON 85%, RARE 65%, EPIC 40%, ANOMALY 16%, SECRET 8%; these are initial balance values, not immutable canon.
-- Collection Index remains historical encounter/discovery progress while actual owned copies require a valid server-side mint roll or trade.
-- Added persistent station profile foundation to `LostAndFound_PlayerData_v1`; payload version advances to 6 while DataStore name remains unchanged.
-- Added `StationSkinRegistry.lua` with FREE / CREDITS / ROBUX / EVENT acquisition classes; purchase flows are not live yet.
-- Added replicated three-item public serialized showcase inside each occupied station and retired the old local-only wall showcase.
-- Added `StationHUD.client.lua`, short station guide highlight, and local filtering of other stations' prompts.
-- Retired legacy single-desk interaction-layout and duplicated M4-C prompt telemetry hooks.
-- Extended publish Static QC to require M4-D station/runtime files and ownership markers.
-- M4-D status: IMPLEMENTED IN SOURCE / PUBLISH + SOLO RUNTIME QC PENDING.
+- Added active-case avoidance so different cases are used across stations when practical.
+- Added personal collectible ownership rolls: COMMON 100%, UNCOMMON 85%, RARE 65%, EPIC 40%, ANOMALY 16%, SECRET 8%; these remain balance values, not immutable canon.
+- Collection Index remains historical discovery while actual owned copies require a valid server-side drop/mint or trade.
+- Added persistent station profile foundation to `LostAndFound_PlayerData_v1`; payload version advanced to 6 while DataStore name stayed unchanged.
+- Added Station Skin Registry with FREE / CREDITS / ROBUX / EVENT acquisition classes; Station Shop purchase/equip flow is not live yet.
+- Added replicated three-item public serialized showcase per occupied station and retired the old local-only wall showcase.
+- Added mobile station assignment HUD, short station highlight and local filtering of other station prompts.
+- Consolidated M4-C economy tracking into personal runtime to avoid duplicate/cross-station prompt telemetry.
+- Extended publish Static QC for M4-D files and ownership markers.
+- Exact trigger/source `950eeb1e7b4c6119292340f4e630b8fa3e589461` published successfully as Roblox v34.
+- Deploy receipt: run `33100322285`, Rojo `7.7.0`, bytes `83918`, SHA256 `b70b00eaeab8cdfc6cb72b1ea881625ddc75995d2903c6ed3cae903436692612`.
+- M4-D status: LIVE_PUBLISHED / BUILD-DEPLOY VERIFIED / SOLO RUNTIME QC PENDING.
