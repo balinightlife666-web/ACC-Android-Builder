@@ -1,0 +1,16 @@
+{
+  "status": "LIVE_PUBLISHED",
+  "project": "AFTER SCHOOL CITY",
+  "mode": "SOURCE_SPATIAL_AUDIT_FIX_V0_4_6",
+  "sourceRepo": "ardarawk-cloud/ACC-Roblox-maps",
+  "sourceCommit": "bf45a60f57c8f0cd9735d606c25b172002d47309",
+  "universeId": "10745359869",
+  "placeId": "121603385909425",
+  "versionNumber": 15,
+  "rojoVersion": "7.7.0",
+  "placeBytes": 42948,
+  "placeSha256": "15d58488b97217b05d19a3f6ff6f7034a96229d1853c02024f2fbda9dc46d9a1",
+  "runId": "33072072010",
+  "publishedAt": "2026-08-27T12:29:18Z",
+  "note": "Source Spatial Audit Fix v0.4.6; exact locked source; dedication intro preserved."
+}
