@@ -172,6 +172,22 @@ local function setMainHudVisible(visible)
     if not visible and casePopup then casePopup.Visible = false end
 end
 
+local function setArchiveHudVisible(visible)
+    local m3Hud = playerGui:FindFirstChild("LostAndFoundM3HUD")
+    if not m3Hud then return end
+
+    local archivePopup = m3Hud:FindFirstChild("ArchivePopup")
+    local archiveButton = m3Hud:FindFirstChild("ArchiveButton")
+
+    if archivePopup and archivePopup.Visible then
+        if not visible then archivePopup.Visible = false end
+        if archiveButton then archiveButton.Visible = false end
+        return
+    end
+
+    if archiveButton then archiveButton.Visible = visible end
+end
+
 local function addPreview(card, entry, isDiscovered)
     local viewport = Instance.new("ViewportFrame")
     viewport.Name = "Preview"
@@ -271,6 +287,7 @@ local function setCollectionOpen(open)
     popup.Visible = open
     indexButton.Visible = not open
     setMainHudVisible(not open)
+    setArchiveHudVisible(not open)
 end
 
 indexButton.Activated:Connect(function()
