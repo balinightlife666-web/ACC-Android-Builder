@@ -1,0 +1,16 @@
+{
+  "status": "LIVE_PUBLISHED",
+  "project": "AFTER SCHOOL CITY",
+  "mode": "DOOR_ROAD_CLEARANCE_V0_4_5",
+  "sourceRepo": "ardarawk-cloud/ACC-Roblox-maps",
+  "sourceCommit": "e628b01acc2a75ddef4ac75a2c9285a77e87f1c4",
+  "universeId": "10745359869",
+  "placeId": "121603385909425",
+  "versionNumber": 14,
+  "rojoVersion": "7.7.0",
+  "placeBytes": 40521,
+  "placeSha256": "747086ec5eb468c6ef7261bdfc2b66fbb97d12e6437ef9226543ac25e48f8c75",
+  "runId": "33050165092",
+  "publishedAt": "2026-08-27T07:32:56Z",
+  "note": "Door + Road Clearance v0.4.5 plus dedication intro."
+}
