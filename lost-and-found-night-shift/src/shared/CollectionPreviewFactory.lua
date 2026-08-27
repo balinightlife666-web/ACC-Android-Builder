@@ -8,12 +8,23 @@ local COLORS = {
     Tape = Color3.fromRGB(208, 187, 137),
 }
 
-local DEFAULT_COLORS = {
-    hardcase_suitcase = Color3.fromRGB(41, 72, 112),
-    vintage_suitcase = Color3.fromRGB(100, 68, 45),
-    backpack = Color3.fromRGB(122, 44, 48),
-    cardboard_box = Color3.fromRGB(147, 108, 70),
-    teddy_bear = Color3.fromRGB(182, 151, 113),
+local VARIANTS = {
+    blue_transit_hardcase = { base = "hardcase_suitcase", color = Color3.fromRGB(41, 72, 112) },
+    crimson_travel_backpack = { base = "backpack", color = Color3.fromRGB(122, 44, 48) },
+    cream_memory_bear = { base = "teddy_bear", color = Color3.fromRGB(182, 151, 113) },
+    brown_heritage_case = { base = "vintage_suitcase", color = Color3.fromRGB(100, 68, 45) },
+    black_security_hardcase = { base = "hardcase_suitcase", color = Color3.fromRGB(35, 38, 43) },
+    ownerless_vintage_case = { base = "vintage_suitcase", color = Color3.fromRGB(70, 45, 36) },
+    flight_000_hardcase = { base = "hardcase_suitcase", color = Color3.fromRGB(24, 28, 36) },
+    unstable_sealed_parcel = { base = "cardboard_box", color = Color3.fromRGB(147, 108, 70) },
+    green_identity_backpack = { base = "backpack", color = Color3.fromRGB(55, 82, 66) },
+    milo_small_case = { base = "vintage_suitcase", color = Color3.fromRGB(86, 58, 43), scale = 0.82 },
+
+    hardcase_suitcase = { base = "hardcase_suitcase", color = Color3.fromRGB(41, 72, 112) },
+    vintage_suitcase = { base = "vintage_suitcase", color = Color3.fromRGB(100, 68, 45) },
+    backpack = { base = "backpack", color = Color3.fromRGB(122, 44, 48) },
+    cardboard_box = { base = "cardboard_box", color = Color3.fromRGB(147, 108, 70) },
+    teddy_bear = { base = "teddy_bear", color = Color3.fromRGB(182, 151, 113) },
 }
 
 local function makePart(model, name, size, cframe, color, material, shape)
@@ -101,14 +112,18 @@ local BUILDERS = {
     teddy_bear = buildTeddy,
 }
 
-function CollectionPreviewFactory.Create(itemId, parent, locked)
+function CollectionPreviewFactory.Create(collectionId, parent, locked)
     local model = Instance.new("Model")
-    model.Name = "Preview_" .. tostring(itemId)
+    model.Name = "Preview_" .. tostring(collectionId)
     model.Parent = parent
 
-    local color = DEFAULT_COLORS[itemId] or Color3.fromRGB(90, 96, 108)
-    local builder = BUILDERS[itemId] or buildHardcase
-    builder(model, color)
+    local variant = VARIANTS[collectionId] or { base = "hardcase_suitcase", color = Color3.fromRGB(90, 96, 108) }
+    local builder = BUILDERS[variant.base] or buildHardcase
+    builder(model, variant.color)
+
+    if variant.scale then
+        model:ScaleTo(variant.scale)
+    end
 
     if locked then
         for _, descendant in ipairs(model:GetDescendants()) do
