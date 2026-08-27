@@ -105,6 +105,26 @@ Safety / anti-dupe direction:
 - global mint counters are server-authoritative;
 - per-profile inventory sanitization rejects duplicate `instanceId` and duplicate serial values within the same payload.
 
+## M5 / LIVE-SERVICE SEASONAL PRIORITY
+Authority: `brain/SEASONAL_EVENTS_LOCK.md`.
+
+2026 priorities are now locked into roadmap planning:
+- Halloween 2026 around the real-world 31 October event;
+- Christmas 2026 around the real-world 25 December event.
+
+Each major seasonal event must include:
+- limited seasonal collectible pool;
+- event-edition serial identity;
+- visible in-engine room/environment transformation;
+- event-specific case/anomaly hook;
+- collection presentation that clearly distinguishes the edition.
+
+Default event serial direction:
+- Halloween 2026: `<PREFIX>-HW26-<NUMBER>`;
+- Christmas 2026: `<PREFIX>-XMAS26-<NUMBER>`.
+
+Seasonal gameplay visuals are Roblox 3D/procedural/in-engine by default. No AI-generated image assets are required unless Arda explicitly requests image generation later. Exact item names, mint caps, event windows, and drop rates remain TBD until economy/runtime review.
+
 ## Latest VERIFIED LIVE publish receipt
 Run: `33089525745`
 Source commit: `0811f21c99b100c650ad5261f7bff3d0743ff4f2`
@@ -134,3 +154,5 @@ Build player-to-player collectible trading on top of serialized ownership with:
 8. cancel / disconnect recovery;
 9. mobile-readable UI;
 10. no off-platform payment or price fields in the game.
+
+After M4-B integrity passes, improve collectible 3D visual quality and prepare Halloween 2026 content early enough for runtime QC before the event.
