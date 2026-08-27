@@ -22,7 +22,8 @@ Updated: 2026-08-28
 - M4-D Personal Stations — LIVE v34 core; SOLO CORE FUNCTIONAL PASS; multiplayer isolation QC deferred.
 - M4-D.1 Station Readability — LIVE v35.
 - M4-D.1 decision color hotfix — LIVE v36.
-- M4-E Case Depth + NPC Variation — LIVE v37 build/deploy verified; runtime QC pending.
+- M4-E Case Depth + NPC Variation — LIVE v37 build/deploy verified.
+- M4-E.1 Case + NPC Depth Pass — LIVE v38 exact-source build/deploy verified; runtime play-QC pending.
 
 ## Canon / gameplay locks
 Core loop:
@@ -92,51 +93,57 @@ Drop targets remain:
 - ANOMALY 16%
 - SECRET 8%
 
-## M4-E — CASE DEPTH + NPC VARIATION
-Authority: `brain/M4E_CASE_DEPTH_NPC_LOCK.md` v1.0.
+## M4-E.1 — CASE + NPC DEPTH PASS
+Authority: `brain/M4E1_CASE_NPC_DEPTH_LOCK.md` v1.0.
 
-**LIVE_PUBLISHED v37 — BUILD/DEPLOY VERIFIED / SOLO RUNTIME QC PENDING.**
+**LIVE_PUBLISHED v38 — EXACT-SOURCE BUILD/DEPLOY VERIFIED / SOLO RUNTIME QC PENDING.**
 
-Purpose: stop experienced players from solving routine work through memorised case IDs/titles.
+Purpose: deepen routine work so experienced players must reconcile SCAN + TAG + OPEN/INSPECT evidence instead of memorising IDs, titles, or single-clue shortcuts.
 
 Live implementation:
-- routine jobs are generated as neutral `LF-R-... / Property Review` tickets;
-- broad claimant-name pool;
-- variable tags, flights, weights and contents;
-- 15 routine evidence archetypes across RETURN / STORE / SECURITY / QUARANTINE;
-- internal scenario IDs are not shown to players;
-- five established routine item/collection profiles are reused, avoiding unnecessary collectible-ID inflation;
-- mystery cases remain progression-gated and canonical but are materially rarer routine candidates;
-- `M4ENpcPolish.server.lua` adds lightweight procedural claimant body/outfit/hair/face/glasses variation using Roblox geometry only;
+- routine jobs remain neutral `LF-R-... / Property Review` tickets;
+- 26 weighted routine evidence archetypes across RETURN / STORE / SECURITY / QUARANTINE;
+- EASY / MEDIUM / HARD weighted pools;
+- 100 claimant/owner names and expanded airline/tag/flight variation;
+- recent scenario and claimant-name suppression reduces immediate repetition;
+- counter-patterns include authorized-collector RETURN and official replacement-tag RETURN, so name/tag mismatch is not a universal shortcut;
+- later cases include old-receipt, family-without-authorization, routing-hold, forged-receipt, duplicate/multi-claim, and safety-isolation patterns;
+- internal `scenarioId` stays server-side and is not used as a player-facing case title;
+- five established routine item/collection profiles are reused; reward/drop/collection mapping is unchanged;
+- mystery cases remain progression-gated/canonical and are candidate-frequency controlled without rewriting `CaseRegistry.Cases[6..10]`;
+- `M4ENpcPolish.server.lua` now expands procedural claimant body/outfit/hair/face/pants/shoes/accessory variation using Roblox geometry only;
 - no AI-generated image assets or external NPC dependencies.
 
-M4-E does not change:
+M4-E.1 does not change:
 - Credits/XP reward values;
-- drop rates;
+- collectible drop rates;
 - serial/provenance rules;
 - trading;
-- station ownership;
+- station ownership/capacity;
 - mystery canon.
 
 ## Latest VERIFIED LIVE authority
 Receipt: `deploy-status/lost-and-found-m0.json`
 
-Roblox v37:
+Roblox v38:
 - status: `LIVE_PUBLISHED`
-- source commit: `268800a54558b27de6e8b6ecfe4d166c7260fe80`
-- workflow run: `33108987965`
+- source commit: `7ff052509bde859d7e45e3a15bd111491aeab38c`
+- workflow run: `33116949378`
+- workflow conclusion: `success`
 - Rojo: `7.7.0`
-- RBXL bytes: `94776`
-- RBXL SHA256: `489259f15237b82e34127b218d4e7927ae212d8888e0b74706d8443fa30458f1`
+- RBXL bytes: `103939`
+- RBXL SHA256: `075730b5fa6460edb710caf1072e239c30377636f7d94680ba6134a0b386cf52`
 
-## Active next gate — M4-E SOLO RUNTIME QC
+## Active next gate — M4-E.1 SOLO RUNTIME QC
 1. join established save; Credits / XP / INDEX / ARCHIVE / serials remain intact;
-2. routine HUD shows `Property Review`, not answer-bearing titles like Tag Mismatch / Wrong Color / False Claim;
-3. play several routine jobs and confirm names / tags / flights / evidence vary;
-4. correct decision should require reading evidence rather than remembering case number;
-5. claimant NPCs visibly vary beyond torso/head mannequin;
-6. Station A flow, reward and next-case loop still work;
-7. mystery cases, when they occur, retain canonical evidence/action.
+2. routine HUD shows `Property Review`, not answer-bearing scenario names;
+3. play several routine jobs and confirm claimant names / tags / flights / evidence vary;
+4. confirm later routine decisions require cross-checking SCAN + TAG + OPEN rather than one-word shortcuts;
+5. explicitly test authorized collector and replacement-tag cases when encountered: mismatch can still resolve to RETURN when official evidence supports it;
+6. explicitly test old-receipt/family/no-authorization cases when encountered: release remains blocked without fraud automatically being assumed;
+7. claimant NPCs visibly vary in silhouette/outfit/hair/accessories while remaining lightweight/non-colliding;
+8. Station A flow, reward and next-case loop remain functional;
+9. mystery cases, when they occur, retain canonical evidence/action.
 
 ## Deferred multiplayer QC
 When a second tester is available:
@@ -147,7 +154,7 @@ When a second tester is available:
 - same-server serialized trade works;
 - swapped serial ownership survives both-account rejoin with no duplicate serial.
 
-## Next after M4-E runtime pass
+## Next after M4-E.1 runtime pass
 1. Station Shop v1 using Credits for earnable station skins;
 2. manual featured-showcase selection;
 3. collectible 3D quality pass;
