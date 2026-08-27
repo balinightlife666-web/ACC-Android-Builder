@@ -60,15 +60,14 @@ Mobile cleanup through v30:
 Authority: `brain/M4_UNIQUE_ITEM_TRADING_LOCK.md`.
 
 ### M4-A — UNIQUE ITEM INSTANCE + SERIAL FOUNDATION
-**LIVE_PUBLISHED v31 — RUNTIME PERSISTENCE QC PENDING.**
+**COMPLETE / RUNTIME-ACCEPTED ON v31.**
 
 Goal:
 Turn collection ownership into actual unique item instances without breaking the existing Collection Index.
 
 Model:
 - Collection Index = whether a collectible type has ever been discovered;
-- Inventory Instance = the actual owned item that can later move through trading;
-- trading remains LOCKED until ownership integrity passes runtime QC.
+- Inventory Instance = the actual owned item that can later move through trading.
 
 Unique identity fields:
 - immutable internal `instanceId`;
@@ -87,21 +86,24 @@ Example:
 `CMB-S1-000001`
 
 Implementation:
-- new `SerialMintService.lua` uses atomic DataStore `UpdateAsync` counters per collectible type;
-- `CollectionRegistry` now defines stable serial prefixes for all 20 collectibles;
-- `LostAndFound_PlayerData_v1` remains the store name and now accepts an optional serialized `inventory` payload (data version 2);
+- `SerialMintService.lua` uses atomic DataStore `UpdateAsync` counters per collectible type;
+- `CollectionRegistry` defines stable serial prefixes for all 20 collectibles;
+- `LostAndFound_PlayerData_v1` remains the store name and accepts serialized `inventory` data (data version 2);
 - old saves remain compatible because missing inventory defaults to empty;
-- after a successful old-save load, discovered collection entries without an owned instance are gradually backfilled with serials;
+- after successful old-save load, discovered collection entries without an owned instance are backfilled with serials;
 - no replay is required for old discoveries;
 - Collection cards show the owned serial beneath rarity;
-- newly minted discoveries can show a `SERIAL MINTED` toast;
-- no trade request / transfer code is enabled yet.
+- newly minted discoveries can show a `SERIAL MINTED` toast.
+
+Runtime acceptance evidence:
+- mobile screenshot on first v31 login showed stable serialized instances, including `SNP-S1-000001`, `ARP-S1-000001`, and `UMR-S1-000001`;
+- second screenshot after rejoin showed the same three serials unchanged;
+- therefore old-save backfill + persistence survived rejoin and M4-A is accepted.
 
 Safety / anti-dupe direction:
 - client never chooses a serial;
 - global mint counters are server-authoritative;
-- per-profile inventory sanitization rejects duplicate `instanceId` and duplicate serial values within the same payload;
-- atomic ownership transfer / escrow / provenance are deferred to M4-B.
+- per-profile inventory sanitization rejects duplicate `instanceId` and duplicate serial values within the same payload.
 
 ## Latest VERIFIED LIVE publish receipt
 Run: `33089525745`
@@ -117,17 +119,18 @@ Deploy receipt: `deploy-status/lost-and-found-m0.json`
 
 ## LIVE authority
 **LIVE_PUBLISHED — v31 BUILD/DEPLOY VERIFIED.**
-M4-A is live in build/deploy terms but not yet runtime-accepted for old-save backfill and serial persistence.
+M4-A serial ownership and rejoin persistence are runtime-accepted.
 
 ## Next gate
-**M4-A-RUNTIME**
-1. rejoin with the existing save;
-2. Credits and INDEX `/20` must remain intact;
-3. old discovered items should progressively receive stable serials without replay;
-4. open Collection and confirm serials render cleanly below rarity on mobile;
-5. wait briefly if an old item still shows `SERIALIZING...` while backfill runs;
-6. leave/rejoin and confirm the same serials return;
-7. core case loop, Archive, movement, and Collection must remain stable;
-8. trading stays disabled until M4-B.
-
-After M4-A passes, build M4-B Secure Player Trading with server-side ownership validation, item locking/escrow, two-sided confirmation, atomic transfer, trade history, and anti-double-spend checks.
+**M4-B — SECURE PLAYER TRADING**
+Build player-to-player collectible trading on top of serialized ownership with:
+1. player trade request / accept / decline;
+2. server-side ownership validation by immutable `instanceId`;
+3. item lock while a trade is active;
+4. two-sided offer review;
+5. first confirmation + final confirmation;
+6. atomic ownership transfer / anti-double-spend;
+7. trade history / provenance update;
+8. cancel / disconnect recovery;
+9. mobile-readable UI;
+10. no off-platform payment or price fields in the game.
