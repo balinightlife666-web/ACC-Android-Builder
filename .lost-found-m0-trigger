@@ -1,6 +1,6 @@
-LOST FOUND M4-E.1B NPC FACE ORIENTATION HOTFIX
+LOST FOUND M4-E.1C NPC CHARACTER QUALITY PASS
 Triggered: 2026-08-28
-Retry: 39
+Retry: 40
 Universe: 10745354451
 Place: 93699016600671
-Reason: v39 runtime screenshot proved NPC hook active but claimant presented the back of the head to the player. Rotate claimant visual orientation exactly once toward station +Z/player approach, replace blank block head with built-in spherical Part head, and rebuild visible face/hair. Preserve all M4-E.1 case logic, Credits/XP/drop rates, collection mapping, trading, station ownership, serial/provenance, and Season 1 mystery canon.
+Reason: v40 runtime screenshot proves hook/facing functional but claimant quality remains far below normal player avatar quality. Fix floating head and below-floor body proportions from legacy marker geometry, restore a built-in Roblox Head mesh, use clean SurfaceGui facial features, add eight deterministic character presets with stronger hair silhouettes and layered outfits, and keep lightweight mobile-safe Roblox-only construction. Preserve all M4-E.1 case logic, Credits/XP/drop rates, collection mapping, trading, station ownership, serial/provenance, and Season 1 mystery canon.
