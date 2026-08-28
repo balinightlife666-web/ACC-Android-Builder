@@ -1,15 +1,15 @@
 {
   "status": "LIVE_PUBLISHED",
   "project": "TRACK 01",
-  "mode": "RR_KEY_V3_8_0",
+  "mode": "RR_KEY_V3_9_0",
   "sourceRepo": "ardarawk-cloud/ACC-Roblox-maps",
-  "sourceCommit": "0b9f842647d941bf0d16841549409d9dbfe7fde6",
+  "sourceCommit": "36412315f1cc5b4ff9cce0dba226b758623caafb",
   "universeId": "10745349805",
   "placeId": "79748872921213",
-  "versionNumber": 21,
-  "placeBytes": 236409,
-  "placeSha256": "e703d1b536f09449ccc8b2e4ec786e4b522fefb8a784257cffe8deefbb6aff49",
-  "runId": "33140723815",
-  "publishedAt": "2026-08-28T04:04:26Z",
+  "versionNumber": 22,
+  "placeBytes": 245956,
+  "placeSha256": "37ff90fda2e034671e2542ecb30ecbf4c77cbb6709eacb6f3509c0a9d1d9cfe9",
+  "runId": "33140964266",
+  "publishedAt": "2026-08-28T04:09:16Z",
   "previewUrl": "https://www.roblox.com/games/79748872921213"
 }
