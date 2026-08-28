@@ -1,12 +1,14 @@
--- LOST & FOUND: NIGHT SHIFT — M4-E.1B claimant face/orientation hotfix.
--- v39 proved the runtime hook works, but screenshot QC showed the claimant was
--- presenting the back of the head to the player. This pass rotates the claimant
--- exactly once toward the station approach side and rebuilds a readable face/hair
--- silhouette using Roblox geometry only. No case/economy/trading changes.
+-- LOST & FOUND: NIGHT SHIFT — M4-E.1C NPC CHARACTER QUALITY PASS.
+-- Runtime v40 proved hook + facing are correct, but screenshot QC showed a large
+-- visual gap between the claimant and a normal Roblox player avatar. This pass
+-- keeps the resilient M4-E.1A/B hook, fixes the floating-head/ground proportion
+-- problem, and replaces the generic mannequin treatment with eight lightweight
+-- in-engine character presets. Roblox primitives + built-in Head mesh only.
+-- No case/economy/trading/serial/mystery changes.
 
 local Workspace = game:GetService("Workspace")
 
-local VISUAL_VERSION = "M4E1B_NPC_V3"
+local VISUAL_VERSION = "M4E1C_NPC_V4"
 local FACING_VERSION = "M4E1B_FACE_PLUS_Z"
 local RECONCILE_SECONDS = 1.0
 local RETRY_COUNT = 16
@@ -21,9 +23,9 @@ local SKIN_TONES = {
 }
 
 local OUTFITS = {
-    Color3.fromRGB(37, 48, 64), Color3.fromRGB(62, 43, 53),
-    Color3.fromRGB(40, 63, 55), Color3.fromRGB(67, 60, 46),
-    Color3.fromRGB(48, 49, 57), Color3.fromRGB(36, 58, 72),
+    Color3.fromRGB(36, 47, 62), Color3.fromRGB(61, 43, 52),
+    Color3.fromRGB(39, 62, 54), Color3.fromRGB(68, 60, 46),
+    Color3.fromRGB(48, 49, 57), Color3.fromRGB(35, 58, 72),
     Color3.fromRGB(70, 44, 39), Color3.fromRGB(44, 52, 46),
     Color3.fromRGB(58, 50, 72), Color3.fromRGB(61, 53, 48),
 }
@@ -36,33 +38,48 @@ local ACCENTS = {
 }
 
 local HAIR = {
-    Color3.fromRGB(22, 21, 20), Color3.fromRGB(39, 29, 24),
+    Color3.fromRGB(21, 20, 19), Color3.fromRGB(39, 29, 24),
     Color3.fromRGB(58, 41, 30), Color3.fromRGB(80, 56, 39),
     Color3.fromRGB(34, 34, 38), Color3.fromRGB(100, 77, 54),
     Color3.fromRGB(53, 47, 43),
 }
 
 local PANTS = {
-    Color3.fromRGB(30, 34, 41), Color3.fromRGB(40, 44, 51),
+    Color3.fromRGB(29, 33, 40), Color3.fromRGB(40, 44, 51),
     Color3.fromRGB(34, 44, 52), Color3.fromRGB(48, 44, 40),
     Color3.fromRGB(42, 41, 49), Color3.fromRGB(30, 40, 36),
 }
 
 local SHOES = {
-    Color3.fromRGB(20, 22, 26), Color3.fromRGB(43, 35, 31),
+    Color3.fromRGB(19, 21, 25), Color3.fromRGB(43, 35, 31),
     Color3.fromRGB(57, 57, 61), Color3.fromRGB(76, 69, 59),
 }
 
+-- Eight intentional presets prevent every claimant from feeling like the same
+-- procedural mannequin with different colors. Values stay conservative for mobile.
+local PROFILES = {
+    { id="URBAN_JACKET", hair=1, outfit=1, width=0.98, height=1.00, head=0.98, stance=0.02 },
+    { id="TRAVEL_HOODIE", hair=2, outfit=2, width=1.03, height=0.99, head=1.02, stance=0.05 },
+    { id="SMART_COAT", hair=5, outfit=4, width=0.95, height=1.04, head=0.97, stance=0.00 },
+    { id="CASUAL_LAYER", hair=3, outfit=0, width=1.00, height=0.97, head=1.01, stance=0.03 },
+    { id="MID_LENGTH", hair=4, outfit=3, width=0.96, height=1.01, head=1.00, stance=0.01 },
+    { id="BUN_COAT", hair=6, outfit=4, width=0.94, height=1.02, head=0.99, stance=0.02 },
+    { id="CAP_VEST", hair=7, outfit=5, width=1.05, height=0.98, head=1.01, stance=0.05 },
+    { id="LONG_LAYER", hair=8, outfit=3, width=0.97, height=1.00, head=1.03, stance=0.02 },
+}
+
 local GENERATED = {
-    Neck=true, ShoulderL=true, ShoulderR=true, UpperArmL=true, UpperArmR=true,
-    ForearmL=true, ForearmR=true, HandL=true, HandR=true, LegL=true, LegR=true,
-    ShoeL=true, ShoeR=true, HairTop=true, HairSide=true, HairSideR=true,
-    HairBack=true, HairFringe=true, HairBun=true, JacketPanelL=true,
-    JacketPanelR=true, ChestBand=true, CollarL=true, CollarR=true,
-    OutfitAccent=true, EyeL=true, EyeR=true, BrowL=true, BrowR=true,
-    Nose=true, Mouth=true, GlassesL=true, GlassesR=true, GlassesBridge=true,
-    Scarf=true, BagStrap=true, Lanyard=true, Badge=true, CapTop=true,
-    CapBrim=true, WristBand=true,
+    Neck=true, EarL=true, EarR=true, ShoulderL=true, ShoulderR=true,
+    UpperArmL=true, UpperArmR=true, ForearmL=true, ForearmR=true,
+    HandL=true, HandR=true, LegL=true, LegR=true, ShoeL=true, ShoeR=true,
+    Waist=true, TorsoLayer=true, InnerLayer=true, JacketPanelL=true,
+    JacketPanelR=true, LapelL=true, LapelR=true, Zipper=true, ChestBand=true,
+    CollarL=true, CollarR=true, HoodL=true, HoodR=true, VestL=true, VestR=true,
+    CoatHem=true, HairCap=true, HairTop=true, HairSide=true, HairSideR=true,
+    HairBack=true, HairFringeA=true, HairFringeB=true, HairFringeC=true,
+    HairLockL=true, HairLockR=true, HairBun=true, CapTop=true, CapBrim=true,
+    Scarf=true, BagStrap=true, Lanyard=true, Badge=true, WristBand=true,
+    GlassesL=true, GlassesR=true, GlassesBridge=true,
 }
 
 local pending = setmetatable({}, { __mode = "k" })
@@ -94,13 +111,35 @@ local function makePart(parent, name, size, cframe, color, material, shape)
     return p
 end
 
+local function makeWedge(parent, name, size, cframe, color, material)
+    local p = Instance.new("WedgePart")
+    p.Name = name
+    p.Size = size
+    p.CFrame = cframe
+    p.Anchored = true
+    p.CanCollide = false
+    p.CanTouch = false
+    p.CanQuery = false
+    p.CastShadow = true
+    p.Color = color
+    p.Material = material or Enum.Material.SmoothPlastic
+    p.TopSurface = Enum.SurfaceType.Smooth
+    p.BottomSurface = Enum.SurfaceType.Smooth
+    p.Parent = parent
+    return p
+end
+
 local function cleanup(model, head)
     for _, child in ipairs(model:GetChildren()) do
         if GENERATED[child.Name] then child:Destroy() end
     end
     if head then
-        local oldMesh = head:FindFirstChild("M4E1AHeadMesh")
-        if oldMesh then oldMesh:Destroy() end
+        local oldFace = head:FindFirstChild("NpcFace")
+        if oldFace then oldFace:Destroy() end
+        for _, meshName in ipairs({"M4E1AHeadMesh", "M4E1CHeadMesh"}) do
+            local old = head:FindFirstChild(meshName)
+            if old then old:Destroy() end
+        end
     end
 end
 
@@ -119,75 +158,167 @@ end
 
 local function orientTowardPlayerSide(model, torso, head)
     if model:GetAttribute("NpcFacingVersion") == FACING_VERSION then return end
-    -- Station work area/spawn is on +Z relative to ClaimantMarker. Roblox local
-    -- front is -Z, so rotate 180 degrees once. All generated face parts then point +Z.
     local turn = CFrame.Angles(0, math.rad(180), 0)
     torso.CFrame = torso.CFrame * turn
     head.CFrame = head.CFrame * turn
     model:SetAttribute("NpcFacingVersion", FACING_VERSION)
 end
 
-local function addHair(model, head, headCF, color, mode)
-    local x, y, z = head.Size.X, head.Size.Y, head.Size.Z
-    if mode == 0 then
-        makePart(model, "HairTop", Vector3.new(x * 0.90, y * 0.34, z * 0.86), headCF * CFrame.new(0, y * 0.46, 0.02), color, Enum.Material.SmoothPlastic, Enum.PartType.Ball)
-    elseif mode == 1 then
-        makePart(model, "HairTop", Vector3.new(x * 0.92, 0.30, z * 0.84), headCF * CFrame.new(0, y * 0.48, 0), color)
-        makePart(model, "HairSide", Vector3.new(0.20, y * 0.68, z * 0.72), headCF * CFrame.new(-x * 0.44, 0.02, 0.05), color)
-    elseif mode == 2 then
-        makePart(model, "HairTop", Vector3.new(x * 0.93, 0.31, z * 0.85), headCF * CFrame.new(0, y * 0.48, 0), color)
-        makePart(model, "HairBack", Vector3.new(x * 0.70, y * 0.72, 0.22), headCF * CFrame.new(0, -0.04, z * 0.47), color)
-    elseif mode == 3 then
-        makePart(model, "HairTop", Vector3.new(x * 0.86, 0.27, z * 0.80), headCF * CFrame.new(0.08, y * 0.49, 0), color)
-        makePart(model, "HairFringe", Vector3.new(x * 0.46, 0.20, 0.14), headCF * CFrame.new(0.10, y * 0.27, -(z * 0.48)), color)
-    elseif mode == 4 then
-        makePart(model, "HairTop", Vector3.new(x * 0.91, 0.29, z * 0.83), headCF * CFrame.new(0, y * 0.48, 0), color)
-        makePart(model, "HairSide", Vector3.new(0.18, y * 0.72, z * 0.66), headCF * CFrame.new(-x * 0.44, -0.01, 0.04), color)
-        makePart(model, "HairSideR", Vector3.new(0.18, y * 0.72, z * 0.66), headCF * CFrame.new(x * 0.44, -0.01, 0.04), color)
-    elseif mode == 5 then
-        makePart(model, "HairTop", Vector3.new(x * 0.89, 0.28, z * 0.82), headCF * CFrame.new(0, y * 0.49, 0), color)
-        makePart(model, "HairBack", Vector3.new(x * 0.58, y * 0.50, 0.20), headCF * CFrame.new(0, -0.10, z * 0.48), color)
-        makePart(model, "HairBun", Vector3.new(0.44, 0.44, 0.44), headCF * CFrame.new(0, y * 0.34, z * 0.52), color, Enum.Material.SmoothPlastic, Enum.PartType.Ball)
-    else
-        makePart(model, "HairTop", Vector3.new(x * 0.90, 0.27, z * 0.82), headCF * CFrame.new(-0.05, y * 0.49, 0), color)
-        makePart(model, "HairFringe", Vector3.new(x * 0.34, 0.20, 0.13), headCF * CFrame.new(-0.15, y * 0.26, -(z * 0.48)), color)
-    end
+local function addHeadMesh(head)
+    head.Shape = Enum.PartType.Block
+    local mesh = Instance.new("SpecialMesh")
+    mesh.Name = "M4E1CHeadMesh"
+    mesh.MeshType = Enum.MeshType.Head
+    mesh.Scale = Vector3.new(1.00, 1.03, 0.98)
+    mesh.Parent = head
 end
 
-local function addFace(model, head, headCF, hairColor, h)
-    local frontZ = -(head.Size.Z / 2 + 0.035)
-    local eyeY = head.Size.Y * 0.08
-    local eyeColor = Color3.fromRGB(18, 20, 24)
-    makePart(model, "EyeL", Vector3.new(0.13, 0.13, 0.07), headCF * CFrame.new(-head.Size.X * 0.19, eyeY, frontZ), eyeColor, Enum.Material.SmoothPlastic, Enum.PartType.Ball)
-    makePart(model, "EyeR", Vector3.new(0.13, 0.13, 0.07), headCF * CFrame.new(head.Size.X * 0.19, eyeY, frontZ), eyeColor, Enum.Material.SmoothPlastic, Enum.PartType.Ball)
+local function addFace(head, hairColor, skin, h)
+    local gui = Instance.new("SurfaceGui")
+    gui.Name = "NpcFace"
+    gui.Face = Enum.NormalId.Front
+    gui.AlwaysOnTop = false
+    gui.LightInfluence = 0
+    gui.PixelsPerStud = 96
+    gui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
+    gui.Parent = head
+
+    local root = Instance.new("Frame")
+    root.BackgroundTransparency = 1
+    root.Size = UDim2.fromScale(1, 1)
+    root.Parent = gui
+
+    local function frame(name, x, y, w, hgt, color, round)
+        local f = Instance.new("Frame")
+        f.Name = name
+        f.AnchorPoint = Vector2.new(0.5, 0.5)
+        f.Position = UDim2.fromScale(x, y)
+        f.Size = UDim2.fromScale(w, hgt)
+        f.BorderSizePixel = 0
+        f.BackgroundColor3 = color
+        f.Parent = root
+        if round then
+            local c = Instance.new("UICorner")
+            c.CornerRadius = UDim.new(1, 0)
+            c.Parent = f
+        end
+        return f
+    end
+
+    local eye = Color3.fromRGB(25, 26, 29)
+    local brow = hairColor:Lerp(Color3.fromRGB(20, 20, 22), 0.18)
+    local mouth = Color3.fromRGB(105, 64, 62)
+    local nose = skin:Lerp(Color3.fromRGB(128, 92, 76), 0.18)
     local tilt = (h % 3) - 1
-    makePart(model, "BrowL", Vector3.new(0.26, 0.05, 0.04), headCF * CFrame.new(-head.Size.X * 0.19, eyeY + 0.20, frontZ - 0.01) * CFrame.Angles(0, 0, math.rad(tilt * 4)), hairColor)
-    makePart(model, "BrowR", Vector3.new(0.26, 0.05, 0.04), headCF * CFrame.new(head.Size.X * 0.19, eyeY + 0.20, frontZ - 0.01) * CFrame.Angles(0, 0, math.rad(-tilt * 4)), hairColor)
-    makePart(model, "Nose", Vector3.new(0.11, 0.17, 0.10), headCF * CFrame.new(0, eyeY - 0.10, frontZ - 0.04), head.Color:Lerp(Color3.fromRGB(118, 84, 70), 0.12), Enum.Material.SmoothPlastic)
-    makePart(model, "Mouth", Vector3.new(0.25 + ((math.floor(h / 17) % 3) * 0.04), 0.05, 0.04), headCF * CFrame.new(0, eyeY - 0.31, frontZ - 0.02), Color3.fromRGB(105, 62, 60))
-    if h % 5 == 0 then
-        local frame = Color3.fromRGB(40, 43, 50)
-        makePart(model, "GlassesL", Vector3.new(0.46, 0.29, 0.04), headCF * CFrame.new(-head.Size.X * 0.19, eyeY, frontZ - 0.04), frame, Enum.Material.Metal)
-        makePart(model, "GlassesR", Vector3.new(0.46, 0.29, 0.04), headCF * CFrame.new(head.Size.X * 0.19, eyeY, frontZ - 0.04), frame, Enum.Material.Metal)
-        makePart(model, "GlassesBridge", Vector3.new(0.24, 0.05, 0.04), headCF * CFrame.new(0, eyeY, frontZ - 0.04), frame, Enum.Material.Metal)
+
+    frame("EyeL", 0.36, 0.43, 0.055, 0.060, eye, true)
+    frame("EyeR", 0.64, 0.43, 0.055, 0.060, eye, true)
+    local browL = frame("BrowL", 0.36, 0.33, 0.16, 0.027, brow, true)
+    local browR = frame("BrowR", 0.64, 0.33, 0.16, 0.027, brow, true)
+    browL.Rotation = tilt * 4
+    browR.Rotation = -tilt * 4
+    frame("Nose", 0.50, 0.53, 0.035, 0.065, nose, true)
+    frame("Mouth", 0.50, 0.66, 0.14 + ((math.floor(h / 17) % 3) * 0.02), 0.028, mouth, true)
+end
+
+local function addGlasses(model, headCF, head, h)
+    if h % 5 ~= 0 then return end
+    local z = -(head.Size.Z / 2 + 0.045)
+    local y = head.Size.Y * 0.06
+    local frame = Color3.fromRGB(42, 45, 52)
+    makePart(model, "GlassesL", Vector3.new(0.44, 0.29, 0.04), headCF * CFrame.new(-head.Size.X * 0.19, y, z), frame, Enum.Material.Metal)
+    makePart(model, "GlassesR", Vector3.new(0.44, 0.29, 0.04), headCF * CFrame.new(head.Size.X * 0.19, y, z), frame, Enum.Material.Metal)
+    makePart(model, "GlassesBridge", Vector3.new(0.22, 0.045, 0.04), headCF * CFrame.new(0, y, z), frame, Enum.Material.Metal)
+end
+
+local function addHair(model, head, headCF, color, style)
+    local x, y, z = head.Size.X, head.Size.Y, head.Size.Z
+    local topY = y * 0.48
+
+    if style == 1 then -- side swept
+        makePart(model, "HairCap", Vector3.new(x * 0.94, y * 0.36, z * 0.91), headCF * CFrame.new(0, topY, 0.03), color, Enum.Material.SmoothPlastic, Enum.PartType.Ball)
+        makeWedge(model, "HairFringeA", Vector3.new(x * 0.58, 0.28, 0.20), headCF * CFrame.new(0.10, y * 0.25, -(z * 0.48)) * CFrame.Angles(0, 0, math.rad(-12)), color)
+        makePart(model, "HairSide", Vector3.new(0.16, y * 0.54, z * 0.64), headCF * CFrame.new(-x * 0.47, 0.00, 0.06), color)
+    elseif style == 2 then -- messy traveler
+        makePart(model, "HairCap", Vector3.new(x * 0.92, y * 0.33, z * 0.88), headCF * CFrame.new(0, topY, 0.02), color, Enum.Material.SmoothPlastic, Enum.PartType.Ball)
+        makeWedge(model, "HairFringeA", Vector3.new(0.42, 0.34, 0.18), headCF * CFrame.new(-0.28, y * 0.26, -(z * 0.49)) * CFrame.Angles(0, 0, math.rad(14)), color)
+        makeWedge(model, "HairFringeB", Vector3.new(0.46, 0.31, 0.18), headCF * CFrame.new(0.05, y * 0.28, -(z * 0.49)) * CFrame.Angles(0, 0, math.rad(-8)), color)
+        makeWedge(model, "HairFringeC", Vector3.new(0.38, 0.28, 0.17), headCF * CFrame.new(0.33, y * 0.24, -(z * 0.49)) * CFrame.Angles(0, 0, math.rad(-18)), color)
+    elseif style == 3 then -- clean crop
+        makePart(model, "HairCap", Vector3.new(x * 0.93, y * 0.30, z * 0.89), headCF * CFrame.new(0, topY, 0.04), color, Enum.Material.SmoothPlastic, Enum.PartType.Ball)
+        makePart(model, "HairSide", Vector3.new(0.14, y * 0.42, z * 0.62), headCF * CFrame.new(-x * 0.47, 0.07, 0.06), color)
+        makePart(model, "HairSideR", Vector3.new(0.14, y * 0.42, z * 0.62), headCF * CFrame.new(x * 0.47, 0.07, 0.06), color)
+    elseif style == 4 then -- medium layers
+        makePart(model, "HairCap", Vector3.new(x * 0.94, y * 0.34, z * 0.90), headCF * CFrame.new(0, topY, 0.02), color, Enum.Material.SmoothPlastic, Enum.PartType.Ball)
+        makePart(model, "HairBack", Vector3.new(x * 0.72, y * 0.72, 0.22), headCF * CFrame.new(0, -0.05, z * 0.48), color)
+        makeWedge(model, "HairLockL", Vector3.new(0.25, y * 0.65, 0.19), headCF * CFrame.new(-x * 0.43, -0.07, -(z * 0.32)) * CFrame.Angles(0, 0, math.rad(-7)), color)
+        makeWedge(model, "HairLockR", Vector3.new(0.25, y * 0.65, 0.19), headCF * CFrame.new(x * 0.43, -0.07, -(z * 0.32)) * CFrame.Angles(0, 0, math.rad(7)), color)
+    elseif style == 5 then -- swept back
+        makePart(model, "HairCap", Vector3.new(x * 0.91, y * 0.30, z * 0.86), headCF * CFrame.new(0, topY, 0.08), color, Enum.Material.SmoothPlastic, Enum.PartType.Ball)
+        makePart(model, "HairBack", Vector3.new(x * 0.66, y * 0.48, 0.20), headCF * CFrame.new(0, -0.02, z * 0.49), color)
+    elseif style == 6 then -- bun
+        makePart(model, "HairCap", Vector3.new(x * 0.93, y * 0.33, z * 0.89), headCF * CFrame.new(0, topY, 0.02), color, Enum.Material.SmoothPlastic, Enum.PartType.Ball)
+        makePart(model, "HairBack", Vector3.new(x * 0.68, y * 0.58, 0.20), headCF * CFrame.new(0, -0.08, z * 0.49), color)
+        makePart(model, "HairBun", Vector3.new(0.48, 0.48, 0.48), headCF * CFrame.new(0, y * 0.34, z * 0.52), color, Enum.Material.SmoothPlastic, Enum.PartType.Ball)
+    elseif style == 7 then -- cap + short hair
+        makePart(model, "HairSide", Vector3.new(x * 0.82, 0.18, z * 0.76), headCF * CFrame.new(0, y * 0.31, 0.07), color)
+        local capColor = color:Lerp(Color3.fromRGB(45, 49, 56), 0.45)
+        makePart(model, "CapTop", Vector3.new(x * 0.90, 0.24, z * 0.88), headCF * CFrame.new(0, y * 0.55, 0), capColor, Enum.Material.Fabric)
+        makePart(model, "CapBrim", Vector3.new(x * 0.62, 0.08, 0.40), headCF * CFrame.new(0, y * 0.45, -(z * 0.54)), capColor, Enum.Material.Fabric)
+    else -- longer layered silhouette
+        makePart(model, "HairCap", Vector3.new(x * 0.94, y * 0.35, z * 0.91), headCF * CFrame.new(0, topY, 0.02), color, Enum.Material.SmoothPlastic, Enum.PartType.Ball)
+        makePart(model, "HairBack", Vector3.new(x * 0.78, y * 0.92, 0.22), headCF * CFrame.new(0, -0.14, z * 0.49), color)
+        makeWedge(model, "HairLockL", Vector3.new(0.27, y * 0.78, 0.20), headCF * CFrame.new(-x * 0.43, -0.12, -(z * 0.31)) * CFrame.Angles(0, 0, math.rad(-5)), color)
+        makeWedge(model, "HairLockR", Vector3.new(0.27, y * 0.78, 0.20), headCF * CFrame.new(x * 0.43, -0.12, -(z * 0.31)) * CFrame.Angles(0, 0, math.rad(5)), color)
     end
 end
 
-local function addAccessory(model, torso, torsoCF, head, headCF, accent, h, isChild)
-    local mode = math.floor(h / 29) % 6
+local function addOutfit(model, torso, torsoCF, outfit, accent, style)
+    local w, h, d = torso.Size.X, torso.Size.Y, torso.Size.Z
+    local front = -(d / 2 + 0.035)
+    local layer = outfit:Lerp(Color3.fromRGB(235, 236, 238), 0.08)
+
+    makePart(model, "TorsoLayer", Vector3.new(w * 0.92, h * 0.90, 0.055), torsoCF * CFrame.new(0, -0.02, front), layer, Enum.Material.Fabric)
+
+    if style == 0 then -- clean shirt
+        makeWedge(model, "CollarL", Vector3.new(w * 0.24, 0.33, 0.07), torsoCF * CFrame.new(-w * 0.13, h * 0.32, front - 0.02) * CFrame.Angles(0, math.rad(180), math.rad(-18)), accent, Enum.Material.Fabric)
+        makeWedge(model, "CollarR", Vector3.new(w * 0.24, 0.33, 0.07), torsoCF * CFrame.new(w * 0.13, h * 0.32, front - 0.02) * CFrame.Angles(0, 0, math.rad(18)), accent, Enum.Material.Fabric)
+    elseif style == 1 then -- jacket
+        makePart(model, "JacketPanelL", Vector3.new(w * 0.37, h * 0.82, 0.07), torsoCF * CFrame.new(-w * 0.20, -0.04, front - 0.03), outfit:Lerp(accent, 0.18), Enum.Material.Fabric)
+        makePart(model, "JacketPanelR", Vector3.new(w * 0.37, h * 0.82, 0.07), torsoCF * CFrame.new(w * 0.20, -0.04, front - 0.03), outfit:Lerp(accent, 0.18), Enum.Material.Fabric)
+        makePart(model, "Zipper", Vector3.new(0.055, h * 0.72, 0.04), torsoCF * CFrame.new(0, -0.04, front - 0.075), accent, Enum.Material.Metal)
+    elseif style == 2 then -- hoodie
+        makePart(model, "ChestBand", Vector3.new(w * 0.70, 0.18, 0.06), torsoCF * CFrame.new(0, -h * 0.08, front - 0.03), accent, Enum.Material.Fabric)
+        makePart(model, "HoodL", Vector3.new(w * 0.34, 0.24, d * 0.42), torsoCF * CFrame.new(-w * 0.20, h * 0.40, 0.14), outfit:Lerp(Color3.new(1,1,1), 0.05), Enum.Material.Fabric, Enum.PartType.Ball)
+        makePart(model, "HoodR", Vector3.new(w * 0.34, 0.24, d * 0.42), torsoCF * CFrame.new(w * 0.20, h * 0.40, 0.14), outfit:Lerp(Color3.new(1,1,1), 0.05), Enum.Material.Fabric, Enum.PartType.Ball)
+    elseif style == 3 then -- layered overshirt
+        makePart(model, "InnerLayer", Vector3.new(w * 0.54, h * 0.74, 0.06), torsoCF * CFrame.new(0, -0.04, front - 0.04), accent:Lerp(Color3.fromRGB(220,220,220), 0.24), Enum.Material.Fabric)
+        makePart(model, "JacketPanelL", Vector3.new(w * 0.28, h * 0.80, 0.075), torsoCF * CFrame.new(-w * 0.31, -0.04, front - 0.05), outfit, Enum.Material.Fabric)
+        makePart(model, "JacketPanelR", Vector3.new(w * 0.28, h * 0.80, 0.075), torsoCF * CFrame.new(w * 0.31, -0.04, front - 0.05), outfit, Enum.Material.Fabric)
+    elseif style == 4 then -- coat
+        makePart(model, "JacketPanelL", Vector3.new(w * 0.40, h * 0.88, 0.075), torsoCF * CFrame.new(-w * 0.21, -0.06, front - 0.05), outfit:Lerp(accent, 0.12), Enum.Material.Fabric)
+        makePart(model, "JacketPanelR", Vector3.new(w * 0.40, h * 0.88, 0.075), torsoCF * CFrame.new(w * 0.21, -0.06, front - 0.05), outfit:Lerp(accent, 0.12), Enum.Material.Fabric)
+        makePart(model, "CoatHem", Vector3.new(w * 0.84, 0.16, 0.07), torsoCF * CFrame.new(0, -h * 0.43, front - 0.05), accent, Enum.Material.Fabric)
+        makeWedge(model, "LapelL", Vector3.new(w * 0.27, h * 0.48, 0.08), torsoCF * CFrame.new(-w * 0.17, h * 0.14, front - 0.075) * CFrame.Angles(0, math.rad(180), math.rad(-7)), accent, Enum.Material.Fabric)
+        makeWedge(model, "LapelR", Vector3.new(w * 0.27, h * 0.48, 0.08), torsoCF * CFrame.new(w * 0.17, h * 0.14, front - 0.075) * CFrame.Angles(0, 0, math.rad(7)), accent, Enum.Material.Fabric)
+    else -- vest
+        makePart(model, "InnerLayer", Vector3.new(w * 0.78, h * 0.84, 0.06), torsoCF * CFrame.new(0, -0.02, front - 0.03), Color3.fromRGB(182, 184, 190), Enum.Material.Fabric)
+        makePart(model, "VestL", Vector3.new(w * 0.34, h * 0.78, 0.075), torsoCF * CFrame.new(-w * 0.21, -0.03, front - 0.06), outfit, Enum.Material.Fabric)
+        makePart(model, "VestR", Vector3.new(w * 0.34, h * 0.78, 0.075), torsoCF * CFrame.new(w * 0.21, -0.03, front - 0.06), outfit, Enum.Material.Fabric)
+    end
+end
+
+local function addAccessory(model, torso, torsoCF, accent, h, isChild)
+    local mode = math.floor(h / 29) % 5
     if mode == 1 then
-        makePart(model, "Scarf", Vector3.new(torso.Size.X * 0.76, 0.22, torso.Size.Z + 0.05), torsoCF * CFrame.new(0, torso.Size.Y * 0.40, -0.01), accent, Enum.Material.Fabric)
+        makePart(model, "Scarf", Vector3.new(torso.Size.X * 0.74, 0.20, torso.Size.Z + 0.04), torsoCF * CFrame.new(0, torso.Size.Y * 0.40, -0.01), accent, Enum.Material.Fabric)
     elseif mode == 2 then
-        makePart(model, "BagStrap", Vector3.new(0.14, torso.Size.Y * 0.84, 0.08), torsoCF * CFrame.new(0, 0, -(torso.Size.Z / 2 + 0.05)) * CFrame.Angles(0, 0, math.rad(-24)), accent, Enum.Material.Fabric)
+        makePart(model, "BagStrap", Vector3.new(0.12, torso.Size.Y * 0.80, 0.06), torsoCF * CFrame.new(0, 0, -(torso.Size.Z / 2 + 0.09)) * CFrame.Angles(0, 0, math.rad(-25)), accent, Enum.Material.Fabric)
     elseif mode == 3 and not isChild then
-        makePart(model, "Lanyard", Vector3.new(0.07, torso.Size.Y * 0.46, 0.05), torsoCF * CFrame.new(0, 0.16, -(torso.Size.Z / 2 + 0.05)), accent, Enum.Material.Fabric)
-        makePart(model, "Badge", Vector3.new(0.40, 0.27, 0.05), torsoCF * CFrame.new(0, -torso.Size.Y * 0.10, -(torso.Size.Z / 2 + 0.06)), Color3.fromRGB(214, 219, 224))
+        makePart(model, "Lanyard", Vector3.new(0.06, torso.Size.Y * 0.42, 0.045), torsoCF * CFrame.new(0, 0.15, -(torso.Size.Z / 2 + 0.10)), accent, Enum.Material.Fabric)
+        makePart(model, "Badge", Vector3.new(0.36, 0.24, 0.045), torsoCF * CFrame.new(0, -torso.Size.Y * 0.10, -(torso.Size.Z / 2 + 0.11)), Color3.fromRGB(214, 219, 224))
     elseif mode == 4 then
-        local capColor = accent:Lerp(Color3.fromRGB(35, 38, 44), 0.42)
-        makePart(model, "CapTop", Vector3.new(head.Size.X * 0.83, 0.20, head.Size.Z * 0.83), headCF * CFrame.new(0, head.Size.Y * 0.54, 0), capColor, Enum.Material.Fabric)
-        makePart(model, "CapBrim", Vector3.new(head.Size.X * 0.58, 0.08, 0.35), headCF * CFrame.new(0, head.Size.Y * 0.45, -(head.Size.Z * 0.52)), capColor, Enum.Material.Fabric)
-    elseif mode == 5 then
-        makePart(model, "WristBand", Vector3.new(0.48, 0.12, 0.56), torsoCF * CFrame.new(torso.Size.X * 0.67, -torso.Size.Y * 0.28, -0.02), accent, Enum.Material.Fabric)
+        makePart(model, "WristBand", Vector3.new(0.42, 0.10, 0.50), torsoCF * CFrame.new(torso.Size.X * 0.66, -torso.Size.Y * 0.28, -0.02), accent, Enum.Material.Fabric)
     end
 end
 
@@ -199,92 +330,96 @@ local function polish(model)
     local head = model:FindFirstChild("Head")
     if not torso or not head or not torso:IsA("Part") or not head:IsA("Part") then return false end
 
+    local originalTorsoHeight = torso.Size.Y
+    local isChild = originalTorsoHeight < 3
+    local groundY = torso.Position.Y - originalTorsoHeight / 2 - 0.30
+
     cleanup(model, head)
     orientTowardPlayerSide(model, torso, head)
 
     local name = claimantName(model)
     model:SetAttribute("ClaimantName", name)
     local h = hashText(name)
+    local profile = PROFILES[(h % #PROFILES) + 1]
     local skin = SKIN_TONES[(h % #SKIN_TONES) + 1]
     local outfit = OUTFITS[(math.floor(h / 7) % #OUTFITS) + 1]
     local accent = ACCENTS[(math.floor(h / 13) % #ACCENTS) + 1]
     local hair = HAIR[(math.floor(h / 19) % #HAIR) + 1]
     local pants = PANTS[(math.floor(h / 23) % #PANTS) + 1]
     local shoes = SHOES[(math.floor(h / 31) % #SHOES) + 1]
-    local isChild = torso.Size.Y < 3
 
-    if isChild then
-        torso.Size = Vector3.new(1.80, 2.32, 1.05)
-        head.Size = Vector3.new(1.52, 1.60, 1.48)
-    else
-        torso.Size = Vector3.new(2.12, 3.08, 1.16)
-        head.Size = Vector3.new(1.66, 1.76, 1.62)
-    end
+    local torsoH = (isChild and 2.05 or 2.58) * profile.height
+    local torsoW = (isChild and 1.55 or 1.90) * profile.width
+    local torsoD = isChild and 0.90 or 1.02
+    local headH = (isChild and 1.30 or 1.48) * profile.head
+    local headW = (isChild and 1.26 or 1.43) * profile.head
+    local headD = (isChild and 1.22 or 1.36) * profile.head
+    local legH = (isChild and 1.18 or 1.62) * profile.height
+    local legW = (isChild and 0.49 or 0.58) * profile.width
+    local shoeH = isChild and 0.22 or 0.27
+
+    local rotation = torso.CFrame - torso.Position
+    local torsoY = groundY + shoeH + legH + torsoH / 2 - 0.02
+    torso.Size = Vector3.new(torsoW, torsoH, torsoD)
+    torso.CFrame = CFrame.new(torso.Position.X, torsoY, torso.Position.Z) * rotation
     torso.Color = outfit
     torso.Material = Enum.Material.Fabric
+
+    head.Size = Vector3.new(headW, headH, headD)
+    head.CFrame = torso.CFrame * CFrame.new(0, torsoH / 2 + headH / 2 + 0.10, 0)
     head.Color = skin
     head.Material = Enum.Material.SmoothPlastic
-    head.Shape = Enum.PartType.Ball
+    addHeadMesh(head)
 
     local torsoCF = torso.CFrame
     local headCF = head.CFrame
-    local bodyWidth = torso.Size.X
-    local torsoHeight = torso.Size.Y
-    local proportion = (math.floor(h / 37) % 3) - 1
-    local widthAdjust = proportion * 0.04
 
-    makePart(model, "Neck", Vector3.new(isChild and 0.42 or 0.50, isChild and 0.30 or 0.34, isChild and 0.42 or 0.50), torsoCF * CFrame.new(0, torsoHeight / 2 + 0.10, 0), skin, Enum.Material.SmoothPlastic, Enum.PartType.Ball)
+    local neckH = isChild and 0.24 or 0.28
+    makePart(model, "Neck", Vector3.new(isChild and 0.36 or 0.42, neckH, isChild and 0.36 or 0.42), torsoCF * CFrame.new(0, torsoH / 2 + neckH / 2 - 0.01, 0), skin, Enum.Material.SmoothPlastic, Enum.PartType.Cylinder)
+    makePart(model, "EarL", Vector3.new(0.16, 0.26, 0.12), headCF * CFrame.new(-headW * 0.49, -0.01, 0), skin, Enum.Material.SmoothPlastic, Enum.PartType.Ball)
+    makePart(model, "EarR", Vector3.new(0.16, 0.26, 0.12), headCF * CFrame.new(headW * 0.49, -0.01, 0), skin, Enum.Material.SmoothPlastic, Enum.PartType.Ball)
 
-    local shoulderW = (isChild and 0.62 or 0.73) + widthAdjust
-    local shoulderY = torsoHeight * 0.31
-    makePart(model, "ShoulderL", Vector3.new(shoulderW, 0.50, 0.82), torsoCF * CFrame.new(-(bodyWidth / 2 + shoulderW * 0.28), shoulderY, 0), outfit, Enum.Material.Fabric, Enum.PartType.Ball)
-    makePart(model, "ShoulderR", Vector3.new(shoulderW, 0.50, 0.82), torsoCF * CFrame.new(bodyWidth / 2 + shoulderW * 0.28, shoulderY, 0), outfit, Enum.Material.Fabric, Enum.PartType.Ball)
+    local legCenterY = groundY + shoeH + legH / 2
+    local hipOffset = torsoW * 0.22 + profile.stance
+    local baseRotation = rotation
+    local legLCF = CFrame.new(torso.Position.X, legCenterY, torso.Position.Z) * baseRotation * CFrame.new(-hipOffset, 0, 0)
+    local legRCF = CFrame.new(torso.Position.X, legCenterY, torso.Position.Z) * baseRotation * CFrame.new(hipOffset, 0, 0)
+    local legL = makePart(model, "LegL", Vector3.new(legW, legH, 0.66), legLCF, pants, Enum.Material.Fabric)
+    local legR = makePart(model, "LegR", Vector3.new(legW, legH, 0.66), legRCF, pants, Enum.Material.Fabric)
+    makePart(model, "ShoeL", Vector3.new(legW + 0.08, shoeH, 0.86), legL.CFrame * CFrame.new(0, -(legH / 2 + shoeH / 2 - 0.02), -0.08), shoes)
+    makePart(model, "ShoeR", Vector3.new(legW + 0.08, shoeH, 0.86), legR.CFrame * CFrame.new(0, -(legH / 2 + shoeH / 2 - 0.02), -0.08), shoes)
+    makePart(model, "Waist", Vector3.new(torsoW * 0.76, 0.18, torsoD * 0.82), torsoCF * CFrame.new(0, -torsoH / 2 - 0.02, 0), pants, Enum.Material.Fabric)
 
-    local upperH = isChild and 0.88 or 1.12
-    local foreH = isChild and 0.78 or 0.98
-    local armW = isChild and 0.45 or 0.52
-    local leftUpper = torsoCF * CFrame.new(-(bodyWidth / 2 + armW * 0.68), 0.28, 0) * CFrame.Angles(0, 0, math.rad(5))
-    local rightUpper = torsoCF * CFrame.new(bodyWidth / 2 + armW * 0.68, 0.28, 0) * CFrame.Angles(0, 0, math.rad(-5))
-    makePart(model, "UpperArmL", Vector3.new(armW, upperH, 0.62), leftUpper, outfit, Enum.Material.Fabric)
-    makePart(model, "UpperArmR", Vector3.new(armW, upperH, 0.62), rightUpper, outfit, Enum.Material.Fabric)
-    local leftFore = leftUpper * CFrame.new(0.03, -(upperH / 2 + foreH / 2 - 0.04), -0.03)
-    local rightFore = rightUpper * CFrame.new(-0.03, -(upperH / 2 + foreH / 2 - 0.04), -0.03)
-    makePart(model, "ForearmL", Vector3.new(armW * 0.86, foreH, 0.57), leftFore, skin)
-    makePart(model, "ForearmR", Vector3.new(armW * 0.86, foreH, 0.57), rightFore, skin)
-    makePart(model, "HandL", Vector3.new(0.44, 0.44, 0.44), leftFore * CFrame.new(0, -(foreH / 2 + 0.16), 0), skin, Enum.Material.SmoothPlastic, Enum.PartType.Ball)
-    makePart(model, "HandR", Vector3.new(0.44, 0.44, 0.44), rightFore * CFrame.new(0, -(foreH / 2 + 0.16), 0), skin, Enum.Material.SmoothPlastic, Enum.PartType.Ball)
+    local shoulderW = isChild and 0.52 or 0.62
+    local shoulderY = torsoH * 0.31
+    makePart(model, "ShoulderL", Vector3.new(shoulderW, 0.46, 0.72), torsoCF * CFrame.new(-(torsoW / 2 + shoulderW * 0.24), shoulderY, 0), outfit, Enum.Material.Fabric, Enum.PartType.Ball)
+    makePart(model, "ShoulderR", Vector3.new(shoulderW, 0.46, 0.72), torsoCF * CFrame.new(torsoW / 2 + shoulderW * 0.24, shoulderY, 0), outfit, Enum.Material.Fabric, Enum.PartType.Ball)
 
-    local legH = isChild and 1.50 or (2.08 + ((h % 4) * 0.04))
-    local legW = (isChild and 0.58 or 0.68) + widthAdjust
-    local legY = -(torsoHeight / 2 + legH / 2 - 0.04)
-    local legL = makePart(model, "LegL", Vector3.new(legW, legH, 0.74), torsoCF * CFrame.new(-bodyWidth * 0.23, legY, 0), pants, Enum.Material.Fabric)
-    local legR = makePart(model, "LegR", Vector3.new(legW, legH, 0.74), torsoCF * CFrame.new(bodyWidth * 0.23, legY, 0), pants, Enum.Material.Fabric)
-    local shoeH = isChild and 0.24 or 0.29
-    makePart(model, "ShoeL", Vector3.new(legW + 0.05, shoeH, 0.92), legL.CFrame * CFrame.new(0, -(legH / 2 + shoeH / 2 - 0.03), -0.08), shoes)
-    makePart(model, "ShoeR", Vector3.new(legW + 0.05, shoeH, 0.92), legR.CFrame * CFrame.new(0, -(legH / 2 + shoeH / 2 - 0.03), -0.08), shoes)
+    local upperH = isChild and 0.72 or 0.92
+    local foreH = isChild and 0.66 or 0.82
+    local armW = isChild and 0.38 or 0.46
+    local leftUpper = torsoCF * CFrame.new(-(torsoW / 2 + armW * 0.64), 0.22, 0) * CFrame.Angles(math.rad(-2), 0, math.rad(5))
+    local rightUpper = torsoCF * CFrame.new(torsoW / 2 + armW * 0.64, 0.22, 0) * CFrame.Angles(math.rad(-2), 0, math.rad(-5))
+    makePart(model, "UpperArmL", Vector3.new(armW, upperH, 0.55), leftUpper, outfit, Enum.Material.Fabric)
+    makePart(model, "UpperArmR", Vector3.new(armW, upperH, 0.55), rightUpper, outfit, Enum.Material.Fabric)
+    local leftFore = leftUpper * CFrame.new(0.02, -(upperH / 2 + foreH / 2 - 0.04), -0.04) * CFrame.Angles(math.rad(-5), 0, math.rad(-2))
+    local rightFore = rightUpper * CFrame.new(-0.02, -(upperH / 2 + foreH / 2 - 0.04), -0.04) * CFrame.Angles(math.rad(-5), 0, math.rad(2))
+    makePart(model, "ForearmL", Vector3.new(armW * 0.86, foreH, 0.50), leftFore, skin)
+    makePart(model, "ForearmR", Vector3.new(armW * 0.86, foreH, 0.50), rightFore, skin)
+    makePart(model, "HandL", Vector3.new(0.38, 0.42, 0.38), leftFore * CFrame.new(0, -(foreH / 2 + 0.16), 0), skin, Enum.Material.SmoothPlastic, Enum.PartType.Ball)
+    makePart(model, "HandR", Vector3.new(0.38, 0.42, 0.38), rightFore * CFrame.new(0, -(foreH / 2 + 0.16), 0), skin, Enum.Material.SmoothPlastic, Enum.PartType.Ball)
 
-    local outfitMode = math.floor(h / 11) % 4
-    if outfitMode == 0 then
-        makePart(model, "OutfitAccent", Vector3.new(bodyWidth * 0.70, 0.17, torso.Size.Z + 0.03), torsoCF * CFrame.new(0, torsoHeight * 0.17, -0.01), accent, Enum.Material.Fabric)
-    elseif outfitMode == 1 then
-        makePart(model, "JacketPanelL", Vector3.new(bodyWidth * 0.31, torsoHeight * 0.74, 0.07), torsoCF * CFrame.new(-bodyWidth * 0.17, -0.02, -(torso.Size.Z / 2 + 0.04)), accent:Lerp(outfit, 0.56), Enum.Material.Fabric)
-        makePart(model, "JacketPanelR", Vector3.new(bodyWidth * 0.31, torsoHeight * 0.74, 0.07), torsoCF * CFrame.new(bodyWidth * 0.17, -0.02, -(torso.Size.Z / 2 + 0.04)), accent:Lerp(outfit, 0.56), Enum.Material.Fabric)
-    elseif outfitMode == 2 then
-        makePart(model, "ChestBand", Vector3.new(bodyWidth * 0.80, 0.21, torso.Size.Z + 0.03), torsoCF * CFrame.new(0, 0.04, -0.01), accent, Enum.Material.Fabric)
-    else
-        makePart(model, "CollarL", Vector3.new(bodyWidth * 0.24, 0.27, 0.07), torsoCF * CFrame.new(-bodyWidth * 0.12, torsoHeight * 0.34, -(torso.Size.Z / 2 + 0.04)) * CFrame.Angles(0, 0, math.rad(-18)), accent, Enum.Material.Fabric)
-        makePart(model, "CollarR", Vector3.new(bodyWidth * 0.24, 0.27, 0.07), torsoCF * CFrame.new(bodyWidth * 0.12, torsoHeight * 0.34, -(torso.Size.Z / 2 + 0.04)) * CFrame.Angles(0, 0, math.rad(18)), accent, Enum.Material.Fabric)
-    end
-
-    addHair(model, head, headCF, hair, h % 7)
-    addFace(model, head, headCF, hair, h)
-    addAccessory(model, torso, torsoCF, head, headCF, accent, h, isChild)
+    addOutfit(model, torso, torsoCF, outfit, accent, profile.outfit)
+    addHair(model, head, headCF, hair, profile.hair)
+    addFace(head, hair, skin, h)
+    addGlasses(model, headCF, head, h)
+    addAccessory(model, torso, torsoCF, accent, h, isChild)
 
     local billboard = head:FindFirstChild("ClaimantLabel")
     if billboard and billboard:IsA("BillboardGui") then
         billboard.AlwaysOnTop = false
         billboard.MaxDistance = 20
-        billboard.StudsOffset = Vector3.new(0, isChild and 1.42 or 1.58, 0)
+        billboard.StudsOffset = Vector3.new(0, isChild and 1.20 or 1.36, 0)
         billboard.Size = UDim2.fromOffset(142, 38)
         local label = billboard:FindFirstChildOfClass("TextLabel")
         if label then
@@ -293,6 +428,7 @@ local function polish(model)
         end
     end
 
+    model:SetAttribute("NpcCharacterProfile", profile.id)
     model:SetAttribute("M4EPolished", true)
     model:SetAttribute("M4E1Depth", true)
     model:SetAttribute("NpcVisualVersion", VISUAL_VERSION)
@@ -310,7 +446,7 @@ local function tryPolish(model)
                 pending[model] = nil
                 return
             end
-            if not ok then warn("[LOST FOUND] claimant visual retry:", result) end
+            if not ok then warn("[LOST FOUND] claimant character quality retry:", result) end
             task.wait(RETRY_DELAY)
         end
         pending[model] = nil
