@@ -29,6 +29,11 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Locale;
 import java.util.UUID;
 
@@ -36,6 +41,7 @@ public class MainActivity extends Activity {
     private static final String PREFS = "bbya_music_manager";
     private static final String CATALOG_KEY = "catalog_json";
     private static final int PICK_AUDIO_REQUEST = 4401;
+    private static final long MAX_AUDIO_BYTES = 20L * 1024L * 1024L;
 
     private SharedPreferences prefs;
     private LinearLayout page;
@@ -57,25 +63,28 @@ public class MainActivity extends Activity {
         if (requestCode != PICK_AUDIO_REQUEST || resultCode != RESULT_OK || data == null) return;
         if (pendingImportZoneIndex < 0 || pendingImportZoneIndex >= zones.length()) return;
 
-        int imported = 0;
+        final int zoneIndex = pendingImportZoneIndex;
+        ArrayList<Uri> selected = new ArrayList<>();
         ClipData clip = data.getClipData();
         if (clip != null) {
-            for (int i = 0; i < clip.getItemCount(); i++) {
-                if (importAudioUri(pendingImportZoneIndex, clip.getItemAt(i).getUri())) imported++;
-            }
+            for (int i = 0; i < clip.getItemCount(); i++) selected.add(clip.getItemAt(i).getUri());
         } else if (data.getData() != null) {
-            if (importAudioUri(pendingImportZoneIndex, data.getData())) imported++;
+            selected.add(data.getData());
         }
-
-        if (imported > 0) {
-            persist(true);
-            toast(imported + " lagu masuk ke playlist");
-        } else {
-            toast("Tidak ada file audio yang berhasil diimport");
-        }
-        int zoneToRender = pendingImportZoneIndex;
         pendingImportZoneIndex = -1;
-        renderZone(zoneToRender);
+
+        if (selected.isEmpty()) return;
+        toast("Mengimpor " + selected.size() + " lagu...");
+        new Thread(() -> {
+            int imported = 0;
+            for (Uri uri : selected) if (importAudioUri(zoneIndex, uri)) imported++;
+            final int totalImported = imported;
+            if (totalImported > 0) persist(true);
+            runOnUiThread(() -> {
+                toast(totalImported > 0 ? totalImported + " lagu masuk ke playlist" : "Tidak ada file audio yang berhasil diimport");
+                renderZone(zoneIndex);
+            });
+        }).start();
     }
 
     private void loadCatalog() {
@@ -114,6 +123,7 @@ public class MainActivity extends Activity {
                 try {
                     if (!track.has("sourceUri")) track.put("sourceUri", "");
                     if (!track.has("sourceName")) track.put("sourceName", "");
+                    if (!track.has("localPath")) track.put("localPath", "");
                     if (!track.has("mimeType")) track.put("mimeType", "");
                     if (!track.has("sizeBytes")) track.put("sizeBytes", 0);
                     if (!track.has("uploadState")) {
@@ -199,7 +209,7 @@ public class MainActivity extends Activity {
         return catalog;
     }
 
-    private void persist(boolean bumpRevision) {
+    private synchronized void persist(boolean bumpRevision) {
         if (bumpRevision) revision++;
         prefs.edit().putString(CATALOG_KEY, buildCatalog().toString()).apply();
     }
@@ -220,7 +230,6 @@ public class MainActivity extends Activity {
         page.addView(title("BBYA MUSIC MANAGER", 26));
         page.addView(label("Import lagu dari Google Drive / file HP, lalu susun playlist per area. APK tidak memutar musik.", 14, Color.LTGRAY));
         page.addView(space(12));
-
         LinearLayout actions = row();
         Button addZone = primaryButton("+ AREA");
         Button export = secondaryButton("MIRROR JSON");
@@ -230,11 +239,9 @@ public class MainActivity extends Activity {
         page.addView(actions);
         addZone.setOnClickListener(v -> showAddZoneDialog());
         export.setOnClickListener(v -> showExportDialog());
-
         page.addView(space(18));
         page.addView(label("AREA / CHANNEL", 12, Color.rgb(214, 174, 93)));
         page.addView(space(8));
-
         for (int i = 0; i < zones.length(); i++) {
             JSONObject zone = zones.optJSONObject(i);
             if (zone != null) page.addView(zoneCard(zone, i));
@@ -276,7 +283,6 @@ public class MainActivity extends Activity {
         JSONObject zone = zones.optJSONObject(zoneIndex);
         if (zone == null) { renderHome(); return; }
         setupPage();
-
         Button back = secondaryButton("← SEMUA AREA");
         back.setOnClickListener(v -> renderHome());
         page.addView(back, wrapWidth());
@@ -285,7 +291,6 @@ public class MainActivity extends Activity {
         page.addView(label(zone.optString("genre", ""), 15, Color.rgb(214, 174, 93)));
         page.addView(label("Panel map membaca channel: " + zone.optString("id", "-"), 12, Color.GRAY));
         page.addView(space(12));
-
         CheckBox enabled = new CheckBox(this);
         enabled.setText("Aktif untuk panel musik area ini");
         enabled.setTextColor(Color.WHITE);
@@ -295,26 +300,21 @@ public class MainActivity extends Activity {
             persist(true);
         });
         page.addView(enabled);
-
         Button importButton = primaryButton("IMPORT LAGU DARI DRIVE / HP");
         page.addView(importButton, matchWidth());
         importButton.setOnClickListener(v -> openAudioPicker(zoneIndex));
         page.addView(space(8));
-
         Button edit = secondaryButton("EDIT NAMA / GENRE AREA");
         page.addView(edit, matchWidth());
         edit.setOnClickListener(v -> showEditZoneDialog(zoneIndex));
-
         page.addView(space(18));
         page.addView(label("PLAYLIST", 12, Color.rgb(214, 174, 93)));
         page.addView(space(8));
-
         JSONArray tracks = zone.optJSONArray("tracks");
         if (tracks == null) {
             tracks = new JSONArray();
             try { zone.put("tracks", tracks); } catch (JSONException ignored) {}
         }
-
         if (tracks.length() == 0) {
             LinearLayout empty = card();
             empty.addView(label("Belum ada lagu. Tekan IMPORT LAGU lalu pilih file dari Google Drive atau penyimpanan HP.", 14, Color.LTGRAY));
@@ -325,7 +325,6 @@ public class MainActivity extends Activity {
                 if (track != null) page.addView(trackCard(zoneIndex, track, i, tracks.length()));
             }
         }
-
         page.addView(space(16));
         Button deleteZone = dangerButton("HAPUS AREA");
         page.addView(deleteZone, matchWidth());
@@ -352,27 +351,35 @@ public class MainActivity extends Activity {
             try { zone.put("tracks", tracks); } catch (JSONException ignored) {}
         }
 
-        try {
-            getContentResolver().takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION);
-        } catch (Exception ignored) {}
-
         String sourceName = getDisplayName(uri);
+        String ext = extension(sourceName);
+        if (!isSupportedExtension(ext)) return false;
+        long reportedSize = getSize(uri);
+        if (reportedSize > MAX_AUDIO_BYTES) return false;
         String mimeType = getContentResolver().getType(uri);
-        long sizeBytes = getSize(uri);
+        String trackId = "track-" + UUID.randomUUID();
+        String localPath = copyIntoAppStorage(uri, zone.optString("id", "unknown"), trackId, ext);
+        if (localPath.isEmpty()) return false;
+        File localFile = new File(localPath);
+        if (!localFile.exists() || localFile.length() <= 0 || localFile.length() > MAX_AUDIO_BYTES) {
+            localFile.delete();
+            return false;
+        }
+
         String title = stripExtension(sourceName);
         if (title.isEmpty()) title = "Imported Track";
-
         JSONObject track = new JSONObject();
         try {
-            track.put("id", "track-" + UUID.randomUUID());
+            track.put("id", trackId);
             track.put("title", title);
             track.put("artist", "Unknown Artist");
             track.put("enabled", true);
             track.put("order", tracks.length() + 1);
             track.put("sourceUri", uri.toString());
             track.put("sourceName", sourceName);
-            track.put("mimeType", mimeType == null ? "audio/*" : mimeType);
-            track.put("sizeBytes", sizeBytes);
+            track.put("localPath", localPath);
+            track.put("mimeType", mimeType == null ? mimeForExtension(ext) : mimeType);
+            track.put("sizeBytes", localFile.length());
             track.put("robloxAssetId", "");
             track.put("coverImage", "");
             track.put("uploadState", "PENDING_UPLOAD");
@@ -381,8 +388,53 @@ public class MainActivity extends Activity {
             normalizeOrders(tracks);
             return true;
         } catch (JSONException e) {
+            localFile.delete();
             return false;
         }
+    }
+
+    private String copyIntoAppStorage(Uri uri, String zoneId, String trackId, String ext) {
+        File dir = new File(getFilesDir(), "audio/" + zoneId);
+        if (!dir.exists() && !dir.mkdirs()) return "";
+        File target = new File(dir, trackId + "." + ext);
+        long total = 0;
+        try (InputStream in = getContentResolver().openInputStream(uri); FileOutputStream out = new FileOutputStream(target)) {
+            if (in == null) return "";
+            byte[] buffer = new byte[64 * 1024];
+            int read;
+            while ((read = in.read(buffer)) != -1) {
+                total += read;
+                if (total > MAX_AUDIO_BYTES) {
+                    out.close();
+                    target.delete();
+                    return "";
+                }
+                out.write(buffer, 0, read);
+            }
+            out.flush();
+            return target.getAbsolutePath();
+        } catch (Exception e) {
+            target.delete();
+            return "";
+        }
+    }
+
+    private boolean isSupportedExtension(String ext) {
+        return "mp3".equals(ext) || "ogg".equals(ext) || "wav".equals(ext) || "flac".equals(ext);
+    }
+
+    private String mimeForExtension(String ext) {
+        if ("mp3".equals(ext)) return "audio/mpeg";
+        if ("ogg".equals(ext)) return "audio/ogg";
+        if ("wav".equals(ext)) return "audio/wav";
+        if ("flac".equals(ext)) return "audio/flac";
+        return "application/octet-stream";
+    }
+
+    private String extension(String name) {
+        if (name == null) return "";
+        int dot = name.lastIndexOf('.');
+        return dot >= 0 && dot < name.length() - 1 ? name.substring(dot + 1).toLowerCase(Locale.US) : "";
     }
 
     private String getDisplayName(Uri uri) {
@@ -430,9 +482,8 @@ public class MainActivity extends Activity {
         String sourceName = track.optString("sourceName", "");
         if (!sourceName.isEmpty()) card.addView(label("File: " + sourceName, 12, Color.GRAY));
         String assetId = track.optString("robloxAssetId", "");
-        String state = assetId.isEmpty() ? "MENUNGGU UPLOAD / SYNC" : "SIAP DIBACA ROBLOX";
+        String state = assetId.isEmpty() ? "TERSIMPAN • MENUNGGU SYNC" : "SIAP DIBACA ROBLOX";
         card.addView(label(state, 12, assetId.isEmpty() ? Color.rgb(225, 185, 94) : Color.rgb(130, 210, 160)));
-
         CheckBox active = new CheckBox(this);
         active.setText("Aktif di playlist area");
         active.setTextColor(Color.WHITE);
@@ -442,7 +493,6 @@ public class MainActivity extends Activity {
             persist(true);
         });
         card.addView(active);
-
         LinearLayout controls = row();
         Button up = secondaryButton("↑");
         Button down = secondaryButton("↓");
@@ -456,14 +506,12 @@ public class MainActivity extends Activity {
         controls.addView(spaceH(5));
         controls.addView(remove, weighted());
         card.addView(controls);
-
         up.setEnabled(trackIndex > 0);
         down.setEnabled(trackIndex < total - 1);
         up.setOnClickListener(v -> moveTrack(zoneIndex, trackIndex, trackIndex - 1));
         down.setOnClickListener(v -> moveTrack(zoneIndex, trackIndex, trackIndex + 1));
         edit.setOnClickListener(v -> showEditTrackDialog(zoneIndex, trackIndex));
         remove.setOnClickListener(v -> confirmDeleteTrack(zoneIndex, trackIndex));
-
         LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
         lp.setMargins(0, 0, 0, dp(10));
         card.setLayoutParams(lp);
@@ -477,7 +525,6 @@ public class MainActivity extends Activity {
         if (tracks == null) return;
         JSONObject track = tracks.optJSONObject(trackIndex);
         if (track == null) return;
-
         LinearLayout form = form();
         EditText title = input("Judul lagu");
         EditText artist = input("Artist");
@@ -485,14 +532,14 @@ public class MainActivity extends Activity {
         artist.setText(track.optString("artist", ""));
         form.addView(title);
         form.addView(artist);
-
         new AlertDialog.Builder(this)
                 .setTitle("Edit Metadata Lagu")
                 .setView(form)
                 .setNegativeButton("Batal", null)
                 .setPositiveButton("Simpan", (dialog, which) -> {
                     try {
-                        track.put("title", title.getText().toString().trim());
+                        String titleText = title.getText().toString().trim();
+                        track.put("title", titleText.isEmpty() ? stripExtension(track.optString("sourceName", "Imported Track")) : titleText);
                         String artistText = artist.getText().toString().trim();
                         track.put("artist", artistText.isEmpty() ? "Unknown Artist" : artistText);
                     } catch (JSONException ignored) {}
@@ -551,11 +598,15 @@ public class MainActivity extends Activity {
         if (zone == null) return;
         JSONArray tracks = zone.optJSONArray("tracks");
         if (tracks == null || from < 0 || to < 0 || from >= tracks.length() || to >= tracks.length()) return;
-        JSONArray reordered = new JSONArray();
+        ArrayList<JSONObject> list = new ArrayList<>();
         for (int i = 0; i < tracks.length(); i++) {
-            if (i == to) reordered.put(tracks.optJSONObject(from));
-            if (i != from) reordered.put(tracks.optJSONObject(i));
+            JSONObject track = tracks.optJSONObject(i);
+            if (track != null) list.add(track);
         }
+        if (from >= list.size() || to >= list.size()) return;
+        Collections.swap(list, from, to);
+        JSONArray reordered = new JSONArray();
+        for (JSONObject track : list) reordered.put(track);
         normalizeOrders(reordered);
         try { zone.put("tracks", reordered); } catch (JSONException ignored) {}
         persist(true);
@@ -569,16 +620,25 @@ public class MainActivity extends Activity {
         }
     }
 
+    private void deleteLocalFile(JSONObject track) {
+        if (track == null) return;
+        String path = track.optString("localPath", "");
+        if (!path.isEmpty()) {
+            try { new File(path).delete(); } catch (Exception ignored) {}
+        }
+    }
+
     private void confirmDeleteTrack(int zoneIndex, int trackIndex) {
         new AlertDialog.Builder(this)
                 .setTitle("Hapus lagu?")
-                .setMessage("Lagu akan dihapus dari playlist area ini. File asli di Drive / HP tidak dihapus.")
+                .setMessage("Lagu akan dihapus dari playlist dan penyimpanan APK. File asli di Drive / HP tidak dihapus.")
                 .setNegativeButton("Batal", null)
                 .setPositiveButton("Hapus", (d, w) -> {
                     JSONObject zone = zones.optJSONObject(zoneIndex);
                     if (zone == null) return;
                     JSONArray tracks = zone.optJSONArray("tracks");
                     if (tracks == null) return;
+                    deleteLocalFile(tracks.optJSONObject(trackIndex));
                     JSONArray next = new JSONArray();
                     for (int i = 0; i < tracks.length(); i++) if (i != trackIndex) next.put(tracks.optJSONObject(i));
                     normalizeOrders(next);
@@ -593,9 +653,11 @@ public class MainActivity extends Activity {
         if (zone == null) return;
         new AlertDialog.Builder(this)
                 .setTitle("Hapus area?")
-                .setMessage("Area " + zone.optString("name") + " dan playlist lokalnya akan dihapus dari APK.")
+                .setMessage("Area " + zone.optString("name") + " dan semua salinan lagunya di APK akan dihapus. File asli tetap aman.")
                 .setNegativeButton("Batal", null)
                 .setPositiveButton("Hapus", (d, w) -> {
+                    JSONArray tracks = zone.optJSONArray("tracks");
+                    if (tracks != null) for (int i = 0; i < tracks.length(); i++) deleteLocalFile(tracks.optJSONObject(i));
                     JSONArray next = new JSONArray();
                     for (int i = 0; i < zones.length(); i++) if (i != zoneIndex) next.put(zones.optJSONObject(i));
                     zones = next;
@@ -613,7 +675,7 @@ public class MainActivity extends Activity {
         scroll.addView(text);
         new AlertDialog.Builder(this)
                 .setTitle("Mirror JSON")
-                .setMessage("Debug contract untuk backend/panel Roblox. URI file Drive/HP tidak diekspor.")
+                .setMessage("Debug contract untuk backend/panel Roblox. Path lokal dan URI Drive/HP tidak diekspor.")
                 .setView(scroll)
                 .setNegativeButton("Tutup", null)
                 .setPositiveButton("Copy", (d, w) -> {
