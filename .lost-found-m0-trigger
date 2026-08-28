@@ -1,6 +1,6 @@
-LOST FOUND M5-B.2 FIVE-SLOT PERSONAL COLLECTION SHOWCASE
-Triggered: 2026-08-28
-Retry: 49
+LOST FOUND M5-B.2.1 ALL-STATIONS FIVE-SLOT SHOWCASE RACK
+Triggered: 2026-08-29
+Retry: 50
 Universe: 10745354451
 Place: 93699016600671
-Reason: Owner explicitly expands the Personal Collection Showcase from 3 to 5 slots after runtime QC of the large upper-right rack. Keep the rack large/readable in the upper-right/back-wall zone; add slots 4 and 5 with persistent server-validated ownership, 3D collectible display, rarity and immutable serial plates, duplicate prevention and trade/ownership cleanup. Slots 1-3 remain compatible with M5-B persistence; slots 4-5 use presentation-only persistence. Roblox in-engine geometry/UI only; no generated images or external textures. Preserve Credits/XP, Station Shop, case logic/difficulty, Season 1 mystery canon, collectible drop chances, Collection Index history, mint counters, immutable instanceId/serial/provenance, TradeService rules, station isolation, SCAN/TAG/OPEN/DECIDE validation, EN/ID foundation and hard-locked decision colors.
+Reason: Runtime QC shows the occupied/current station upgraded to the five-slot M5-B.2 rack while other/vacant stations could still retain the old three-slot rack. Add world-level reconciliation so every Station A-H uses the same large five-slot upper-right/back-wall showcase whether vacant or occupied. Vacant stations show five empty physical slots; occupied stations keep owner-only server-validated collectible rendering. Roblox in-engine geometry/UI only; no generated images or external textures. Preserve Credits/XP, Station Shop, case logic/difficulty/answers, Season 1 mystery canon, collectible drop chances, Collection Index history, inventory ownership, mint counters, immutable instanceId/serial/provenance, TradeService rules, station isolation, SCAN/TAG/OPEN/DECIDE validation, EN/ID foundation and hard-locked decision colors.
