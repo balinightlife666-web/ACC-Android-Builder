@@ -2,6 +2,11 @@ name: BBYA Music Manager APK
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - feat/bbya-music-manager-mvp
+    paths:
+      - '.github/workflows/bbya-music-manager-build.yml'
 
 permissions:
   contents: read
@@ -19,13 +24,16 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Patch OAuth, creator target, sync progress and Roblox audio limits
+      - name: Patch OAuth, creator target, resilient sync and Roblox audio limits
         shell: bash
         run: |
           set -euo pipefail
           FILE="tools/bbya-music-manager/app/src/main/java/com/acc/bbyamusic/OAuthSyncActivity.java"
+          GRADLE="tools/bbya-music-manager/app/build.gradle"
           sed -i 's/openid profile asset:read asset:write universe-messaging-service:publish/openid asset:read asset:write universe-messaging-service:publish/' "$FILE"
           sed -i 's/appendQueryParameter("prompt", "login consent")/appendQueryParameter("prompt", "consent select_account")/' "$FILE"
+          sed -i 's/versionCode 11/versionCode 12/' "$GRADLE"
+          sed -i "s/versionName '0.3.10-underground-sync-pilot'/versionName '0.3.11-underground-sync-pilot'/" "$GRADLE"
           python3 - <<'PY'
           from pathlib import Path
           p = Path("tools/bbya-music-manager/app/src/main/java/com/acc/bbyamusic/OAuthSyncActivity.java")
@@ -36,37 +44,118 @@ jobs:
           new = 'JSONObject creator = CreatorResolver.resolveUniverseCreator(UNIVERSE_ID, userId);'
           if old in s:
               s = s.replace(old, new, 1)
+
           marker = 'HttpResponse create = request("POST", ASSET_CREATE_URL, accessToken, "multipart/form-data; boundary=" + boundary, body.toByteArray());'
           if 'Upload ke Roblox: ' not in s:
               s = s.replace(marker, 'setStatusFromThread("Upload ke Roblox: " + title + " ...");\n        ' + marker, 1)
           marker2 = 'String operationId = operationPath.substring("operations/".length());'
           if 'Roblox menerima file. Memproses:' not in s:
               s = s.replace(marker2, marker2 + '\n        setStatusFromThread("Roblox menerima file. Memproses: " + title);', 1)
-          oldpoll = 'for (int attempt = 1; attempt <= 36; attempt++) {\n            Thread.sleep(5000L);'
-          newpoll = 'for (int attempt = 1; attempt <= 36; attempt++) {\n            setStatusFromThread("Roblox processing: " + title + " (" + attempt + "/36)");\n            Thread.sleep(5000L);'
+
+          oldpoll = 'for (int attempt = 1; attempt <= 36; attempt++) {\n            Thread.sleep(5000L);\n            HttpResponse poll = request("GET", ASSET_OPERATION_URL + urlEncode(operationId), accessToken, null, null);'
+          newpoll = 'for (int attempt = 1; attempt <= 36; attempt++) {\n            setStatusFromThread("Roblox processing: " + title + " (" + attempt + "/36)");\n            Thread.sleep(5000L);\n            HttpResponse poll;\n            try {\n                poll = request("GET", ASSET_OPERATION_URL + urlEncode(operationId), accessToken, null, null);\n            } catch (java.net.SocketTimeoutException timeout) {\n                setStatusFromThread("Roblox processing timeout sementara: " + title + " (" + attempt + "/36), lanjut cek...");\n                continue;\n            }'
           if oldpoll in s:
               s = s.replace(oldpoll, newpoll, 1)
+          else:
+              oldpoll2 = 'for (int attempt = 1; attempt <= 36; attempt++) {\n            Thread.sleep(5000L);'
+              if oldpoll2 in s:
+                  s = s.replace(oldpoll2, 'for (int attempt = 1; attempt <= 36; attempt++) {\n            setStatusFromThread("Roblox processing: " + title + " (" + attempt + "/36)");\n            Thread.sleep(5000L);', 1)
+
           oldreturn = 'boolean approved = "MODERATION_STATE_APPROVED".equals(moderation) || "APPROVED".equals(moderation);\n            return new UploadResult(assetId, moderation, approved);'
           newreturn = 'boolean approved = "MODERATION_STATE_APPROVED".equals(moderation) || "APPROVED".equals(moderation);\n            setStatusFromThread("Roblox selesai: " + title + " • " + moderation);\n            return new UploadResult(assetId, moderation, approved);'
           if oldreturn in s:
               s = s.replace(oldreturn, newreturn, 1)
-          publish = 'publishDelta(access, delta);'
-          if 'Mengirim ke Underground:' not in s:
-              s = s.replace(publish, 'setStatusFromThread("Mengirim ke Underground: " + track.optString("title", "Track"));\n                    ' + publish, 1)
+
           if 'int skippedTooLong = 0;' not in s:
               s = s.replace('int synced = 0;\n                int pending = 0;', 'int synced = 0;\n                int pending = 0;\n                int skippedTooLong = 0;', 1)
+
           duration_guard_anchor = 'String assetId = track.optString("robloxAssetId", "");\n                    if (assetId.isEmpty()) {'
-          duration_guard = 'String assetId = track.optString("robloxAssetId", "");\n                    long durationMs = getAudioDurationMs(track.optString("localPath", ""));\n                    if (durationMs > 7L * 60L * 1000L) {\n                        track.put("uploadState", "TOO_LONG");\n                        track.put("syncState", "SKIPPED_TOO_LONG");\n                        skippedTooLong++;\n                        persistCatalog(catalog);\n                        setStatusFromThread("Dilewati >7 menit: " + track.optString("title", "Track") + " • " + formatDuration(durationMs));\n                        continue;\n                    }\n                    if (assetId.isEmpty()) {'
+          duration_guard = 'String assetId = track.optString("robloxAssetId", "");\n                    long durationMs = getAudioDurationMs(track.optString("localPath", ""));\n                    if (durationMs >= 7L * 60L * 1000L) {\n                        track.put("uploadState", "TOO_LONG");\n                        track.put("syncState", "SKIPPED_TOO_LONG");\n                        skippedTooLong++;\n                        persistCatalog(catalog);\n                        setStatusFromThread("Dilewati >=7 menit: " + track.optString("title", "Track") + " • " + formatDuration(durationMs));\n                        continue;\n                    }\n                    if (assetId.isEmpty()) {'
           if 'SKIPPED_TOO_LONG' not in s and duration_guard_anchor in s:
               s = s.replace(duration_guard_anchor, duration_guard, 1)
+
+          upload_block = '''if (assetId.isEmpty()) {
+                        UploadResult upload = uploadAudio(access, userId, track);
+                        if (!upload.approved || upload.assetId.isEmpty()) {
+                            track.put("uploadState", upload.moderation.isEmpty() ? "UPLOAD_FAILED" : upload.moderation);
+                            track.put("syncState", "WAITING_ROBLOX");
+                            pending++;
+                            persistCatalog(catalog);
+                            continue;
+                        }
+                        assetId = upload.assetId;
+                        track.put("robloxAssetId", assetId);
+                        track.put("uploadState", "READY");
+                        persistCatalog(catalog);
+                    }'''
+          upload_resilient = '''if (assetId.isEmpty()) {
+                        try {
+                            UploadResult upload = uploadAudio(access, userId, track);
+                            if (!upload.approved || upload.assetId.isEmpty()) {
+                                track.put("uploadState", upload.moderation.isEmpty() ? "UPLOAD_FAILED" : upload.moderation);
+                                track.put("syncState", "WAITING_ROBLOX");
+                                pending++;
+                                persistCatalog(catalog);
+                                continue;
+                            }
+                            assetId = upload.assetId;
+                            track.put("robloxAssetId", assetId);
+                            track.put("uploadState", "READY");
+                            persistCatalog(catalog);
+                        } catch (java.net.SocketTimeoutException timeout) {
+                            track.put("uploadState", "UPLOAD_TIMEOUT");
+                            track.put("syncState", "WAITING_RETRY");
+                            pending++;
+                            persistCatalog(catalog);
+                            setStatusFromThread("Timeout upload: " + track.optString("title", "Track") + " • lanjut track berikutnya");
+                            continue;
+                        } catch (Exception uploadError) {
+                            track.put("uploadState", "UPLOAD_ERROR");
+                            track.put("syncState", "WAITING_RETRY");
+                            pending++;
+                            persistCatalog(catalog);
+                            setStatusFromThread("Upload gagal: " + track.optString("title", "Track") + " • " + compact(uploadError.getMessage()) + " • lanjut");
+                            continue;
+                        }
+                    }'''
+          if upload_block in s:
+              s = s.replace(upload_block, upload_resilient, 1)
+
+          publish = 'publishDelta(access, delta);\n                    track.put("syncState", "SYNCED");\n                    synced++;\n                    persistCatalog(catalog);'
+          publish_resilient = '''try {
+                        setStatusFromThread("Mengirim ke Underground: " + track.optString("title", "Track"));
+                        publishDelta(access, delta);
+                        track.put("syncState", "SYNCED");
+                        synced++;
+                        persistCatalog(catalog);
+                    } catch (java.net.SocketTimeoutException timeout) {
+                        track.put("syncState", "MESSAGE_TIMEOUT");
+                        pending++;
+                        persistCatalog(catalog);
+                        setStatusFromThread("Timeout kirim playlist: " + track.optString("title", "Track") + " • lanjut");
+                        continue;
+                    } catch (Exception messageError) {
+                        track.put("syncState", "MESSAGE_ERROR");
+                        pending++;
+                        persistCatalog(catalog);
+                        setStatusFromThread("Kirim playlist gagal: " + track.optString("title", "Track") + " • " + compact(messageError.getMessage()) + " • lanjut");
+                        continue;
+                    }'''
+          if publish in s:
+              s = s.replace(publish, publish_resilient, 1)
+
           old_msg = 'String msg = pending == 0\n                        ? "SYNCED ✓ " + synced + " lagu Underground dikirim ke Roblox."\n                        : "Sync sebagian: " + synced + " siap, " + pending + " masih menunggu Roblox/moderasi.";'
-          new_msg = 'String msg;\n                if (pending == 0 && skippedTooLong == 0) {\n                    msg = "SYNCED ✓ " + synced + " lagu Underground dikirim ke Roblox.";\n                } else {\n                    msg = "Sync selesai: " + synced + " siap, " + pending + " menunggu Roblox/moderasi, " + skippedTooLong + " dilewati karena >7 menit.";\n                }'
+          new_msg = 'String msg;\n                if (pending == 0 && skippedTooLong == 0) {\n                    msg = "SYNCED ✓ " + synced + " lagu Underground dikirim ke Roblox.";\n                } else {\n                    msg = "Sync selesai: " + synced + " siap, " + pending + " menunggu/retry, " + skippedTooLong + " dilewati karena >=7 menit.";\n                }'
           if old_msg in s:
               s = s.replace(old_msg, new_msg, 1)
+
           method_anchor = '    private void publishDelta(String accessToken, JSONObject delta) throws Exception {'
           duration_methods = '    private long getAudioDurationMs(String path) {\n        if (path == null || path.isEmpty()) return 0L;\n        MediaMetadataRetriever retriever = new MediaMetadataRetriever();\n        try {\n            retriever.setDataSource(path);\n            String raw = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION);\n            return raw == null || raw.isEmpty() ? 0L : Long.parseLong(raw);\n        } catch (Exception ignored) {\n            return 0L;\n        } finally {\n            try { retriever.release(); } catch (Exception ignored) {}\n        }\n    }\n\n    private String formatDuration(long durationMs) {\n        long totalSeconds = Math.max(0L, durationMs / 1000L);\n        return String.format(Locale.US, "%d:%02d", totalSeconds / 60L, totalSeconds % 60L);\n    }\n\n'
           if 'private long getAudioDurationMs(' not in s and method_anchor in s:
               s = s.replace(method_anchor, duration_methods + method_anchor, 1)
+
+          s = s.replace('connection.setConnectTimeout(20000);', 'connection.setConnectTimeout(30000);')
+          s = s.replace('connection.setReadTimeout(45000);', 'connection.setReadTimeout(240000);')
           p.write_text(s)
           PY
           grep -q 'openid asset:read asset:write universe-messaging-service:publish' "$FILE"
@@ -74,7 +163,11 @@ jobs:
           grep -q 'CreatorResolver.resolveUniverseCreator(UNIVERSE_ID, userId)' "$FILE"
           grep -q 'Roblox processing:' "$FILE"
           grep -q 'SKIPPED_TOO_LONG' "$FILE"
-          grep -q 'getAudioDurationMs' "$FILE"
+          grep -q 'UPLOAD_TIMEOUT' "$FILE"
+          grep -q 'MESSAGE_TIMEOUT' "$FILE"
+          grep -q 'setReadTimeout(240000)' "$FILE"
+          grep -q "versionCode 12" "$GRADLE"
+          grep -q "versionName '0.3.11-underground-sync-pilot'" "$GRADLE"
 
       - name: Setup Java
         uses: actions/setup-java@v5
@@ -137,12 +230,12 @@ jobs:
       - name: Prepare APK
         run: |
           mkdir -p dist
-          cp tools/bbya-music-manager/app/build/outputs/apk/debug/app-debug.apk dist/BBYA-Music-Manager-v0.3.10.apk
+          cp tools/bbya-music-manager/app/build/outputs/apk/debug/app-debug.apk dist/BBYA-Music-Manager-v0.3.11.apk
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: BBYA-Music-Manager-v0.3.10
-          path: dist/BBYA-Music-Manager-v0.3.10.apk
+          name: BBYA-Music-Manager-v0.3.11
+          path: dist/BBYA-Music-Manager-v0.3.11.apk
           if-no-files-found: error
           retention-days: 30
