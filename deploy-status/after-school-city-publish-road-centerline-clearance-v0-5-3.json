@@ -1,0 +1,16 @@
+{
+  "status": "LIVE_PUBLISHED",
+  "project": "AFTER SCHOOL CITY",
+  "mode": "ROAD_CENTERLINE_CLEARANCE_V0_5_3",
+  "sourceRepo": "ardarawk-cloud/ACC-Roblox-maps",
+  "sourceCommit": "b18cbdf5d49ecb6d5f81f938069674836ffb935a",
+  "universeId": "10745359869",
+  "placeId": "121603385909425",
+  "versionNumber": 19,
+  "rojoVersion": "7.7.0",
+  "placeBytes": 63274,
+  "placeSha256": "01185036bd93fce95bc60da6da71477b51e6f9cf7bccfdbc2bfa64a4f66e09c3",
+  "runId": "33148465570",
+  "publishedAt": "2026-08-28T06:36:17Z",
+  "note": "Road Centerline Clearance v0.5.3; exact locked source; Spatial V4 + Orientation V1 + Visual Fidelity V1 + Runtime Reconcile V1 + Runtime Hard Cleanup V1 + Road Centerline Clearance V1 gates passed; dedication intro preserved."
+}
