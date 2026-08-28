@@ -1,0 +1,16 @@
+{
+  "status": "LIVE_PUBLISHED",
+  "project": "AFTER SCHOOL CITY",
+  "mode": "SCHOOL_INTERIOR_V0_7",
+  "sourceRepo": "ardarawk-cloud/ACC-Roblox-maps",
+  "sourceCommit": "dcaa53170892974af7704423cb4fdc9e2ee25a1f",
+  "universeId": "10745359869",
+  "placeId": "121603385909425",
+  "versionNumber": 20,
+  "rojoVersion": "7.7.0",
+  "placeBytes": 76573,
+  "placeSha256": "3e97e34b0a0cfec873c86e690442cb51b163d9a88d4d2be79dce64f414e568cd",
+  "runId": "33187014191",
+  "publishedAt": "2026-08-28T15:49:47Z",
+  "note": "School Interior v0.7 exact locked source; prior regression gates + School Interior Audit V1 passed; exact canonical QC build hash enforced; dedication intro preserved."
+}
