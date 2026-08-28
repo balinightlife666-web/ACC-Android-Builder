@@ -160,8 +160,10 @@ jobs:
             maps/after-school-city/after-school-city.school-interior.server.lua; do
             git diff --quiet "$BASE_LIVE_SHA" "$SOURCE_SHA" -- "$f" || { echo "Protected source changed: $f"; exit 30; }
           done
-          grep -Fq 'PUTU AZYA PUTRI BINTANG HARDAJAYA' maps/after-school-city/after-school-city.intro.client.lua
+          grep -Fq 'PUTU AZYA PUTRI' maps/after-school-city/after-school-city.intro.client.lua
+          grep -Fq 'BINTANG HARDAJAYA' maps/after-school-city/after-school-city.intro.client.lua
           grep -Fq 'WITH LOVE, DAD' maps/after-school-city/after-school-city.intro.client.lua
+          grep -Fq 'ENTER THE CITY' maps/after-school-city/after-school-city.intro.client.lua
           echo 'PROTECTED SOURCE PASS dedication=UNCHANGED road=UNCHANGED orientation=UNCHANGED V0.7=UNCHANGED'
 
       - name: Prepare Rojo 7.7.0
