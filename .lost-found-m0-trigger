@@ -1,6 +1,6 @@
-LOST FOUND M5-B PERSONAL COLLECTION SHOWCASE V1
+LOST FOUND M5-B.1 LARGE UPPER-RIGHT SHOWCASE RACK
 Triggered: 2026-08-28
-Retry: 47
+Retry: 48
 Universe: 10745354451
 Place: 93699016600671
-Reason: Add player-curated three-slot public station showcase using owned serialized inventory instances. INDEX gains SHOWCASE/PAJANGAN manager; players choose SLOT 1/2/3, view rarity + immutable serial, persist selection separately from canonical inventory, render replicated 3D collectibles on existing M4-D shelf anchors, and automatically remove invalid displayed instances after ownership changes/trades. Preserve Credits/XP, Station Shop, case logic/difficulty, Season 1 mystery canon, drop chances, mint counters, immutable serial/provenance, Collection Index history, trading rules, station isolation, SCAN/TAG/OPEN/DECIDE validation, EN/ID foundation and hard-locked decision colors.
+Reason: Owner runtime QC requests moving the three-slot collectible showcase out of the lower work area into the marked upper-right/back-wall zone and making the rack materially larger. Add a large 3-slot trophy rack, enlarge displayed collectible scale, and replace overlapping floating labels with fixed physical name/rarity/serial plates. Roblox in-engine geometry/UI only; no generated images or external textures. Preserve manual showcase selection/persistence/trade cleanup, Credits/XP, Station Shop, case logic/difficulty, Season 1 mystery canon, collectible drop chances, Index history, inventory ownership, mint counters, immutable instanceId/serial/provenance, TradeService rules, station isolation, SCAN/TAG/OPEN/DECIDE validation, EN/ID foundation and hard-locked decision colors.
