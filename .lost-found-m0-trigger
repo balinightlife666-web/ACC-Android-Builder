@@ -1,6 +1,6 @@
-LOST FOUND M4-E.1A NPC RUNTIME VISUAL HOTFIX
+LOST FOUND M4-E.1B NPC FACE ORIENTATION HOTFIX
 Triggered: 2026-08-28
-Retry: 38
+Retry: 39
 Universe: 10745354451
 Place: 93699016600671
-Reason: Runtime screenshot QC showed claimant visuals could still resolve as the legacy block mannequin. Harden claimant hook with retry + reconciliation, humanize head/body silhouette, add layered arms/legs/outfits/hair/face/accessories, and stamp a visual version only after successful construction. Roblox geometry only. Preserves all M4-E.1 case logic, Credits/XP/drop rates, collection mapping, trading, station ownership, serial/provenance, and Season 1 mystery canon.
+Reason: v39 runtime screenshot proved NPC hook active but claimant presented the back of the head to the player. Rotate claimant visual orientation exactly once toward station +Z/player approach, replace blank block head with built-in spherical Part head, and rebuild visible face/hair. Preserve all M4-E.1 case logic, Credits/XP/drop rates, collection mapping, trading, station ownership, serial/provenance, and Season 1 mystery canon.
