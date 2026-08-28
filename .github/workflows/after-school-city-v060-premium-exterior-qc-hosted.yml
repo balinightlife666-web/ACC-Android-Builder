@@ -1,0 +1,129 @@
+name: After School City V0.6 Premium Exterior QC Hosted
+
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/after-school-city-v060-premium-exterior-qc-hosted.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  qc:
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    env:
+      SOURCE_REPO: ardarawk-cloud/ACC-Roblox-maps
+      SOURCE_SHA: 39cddd7c9401ca0a80d5c35699fcea9854a7d5f2
+    steps:
+      - name: Checkout publisher repository
+        uses: actions/checkout@v4
+
+      - name: Checkout exact After School City source
+        uses: actions/checkout@v4
+        with:
+          repository: ardarawk-cloud/ACC-Roblox-maps
+          ref: 39cddd7c9401ca0a80d5c35699fcea9854a7d5f2
+          token: ${{ secrets.ACC_ROBLOX_MAPS_WRITE_TOKEN }}
+          path: asc-source
+          fetch-depth: 1
+
+      - name: Exact V0.6 source lock
+        shell: bash
+        run: |
+          set -euo pipefail
+          actual=$(git -C asc-source rev-parse HEAD)
+          [[ "$actual" == "$SOURCE_SHA" ]] || { echo "Source mismatch: $actual"; exit 11; }
+          grep -Fq 'Version = "0.6.0-premium-exterior-1"' asc-source/maps/after-school-city/after-school-city.config.lua
+          grep -Fq 'ASC_PremiumExterior' asc-source/maps/after-school-city/default.project.json
+          grep -Fq 'after-school-city.premium-exterior.server.lua' asc-source/maps/after-school-city/default.project.json
+          for token in 'PUTU AZYA PUTRI' 'BINTANG HARDAJAYA' 'WITH LOVE, DAD' 'ENTER THE CITY'; do grep -Fq "$token" asc-source/maps/after-school-city/after-school-city.intro.client.lua; done
+          echo "LOCK PASS source=$actual"
+
+      - name: Cloud source spatial audit V4
+        shell: pwsh
+        working-directory: asc-source
+        run: |
+          $ErrorActionPreference='Stop'
+          & '.github/scripts/after-school-city-spatial-audit.ps1'
+
+      - name: Cloud source orientation audit V1
+        shell: pwsh
+        working-directory: asc-source
+        run: |
+          $ErrorActionPreference='Stop'
+          & '.github/scripts/after-school-city-orientation-audit.ps1'
+
+      - name: Cloud source visual fidelity audit V1
+        shell: pwsh
+        working-directory: asc-source
+        run: |
+          $ErrorActionPreference='Stop'
+          & '.github/scripts/after-school-city-visual-fidelity-audit.ps1'
+
+      - name: Cloud source runtime reconcile audit V1
+        shell: pwsh
+        working-directory: asc-source
+        run: |
+          $ErrorActionPreference='Stop'
+          & '.github/scripts/after-school-city-runtime-reconcile-audit.ps1'
+
+      - name: Cloud source runtime hard cleanup audit V1
+        shell: pwsh
+        working-directory: asc-source
+        run: |
+          $ErrorActionPreference='Stop'
+          & '.github/scripts/after-school-city-runtime-hard-cleanup-audit.ps1'
+
+      - name: Cloud source road centerline clearance audit V1
+        shell: pwsh
+        working-directory: asc-source
+        run: |
+          $ErrorActionPreference='Stop'
+          & '.github/scripts/after-school-city-road-centerline-clearance-audit.ps1'
+
+      - name: Cloud source premium exterior audit V1
+        shell: pwsh
+        working-directory: asc-source
+        run: |
+          $ErrorActionPreference='Stop'
+          & '.github/scripts/after-school-city-premium-exterior-audit.ps1'
+
+      - name: Static authority lock
+        shell: bash
+        run: |
+          set -euo pipefail
+          premium='asc-source/maps/after-school-city/after-school-city.premium-exterior.server.lua'
+          config='asc-source/maps/after-school-city/after-school-city.config.lua'
+          for token in 'V060_PremiumExterior' 'ASC_SchoolPremiumExterior' 'ASC_DowntownPremiumFacades' 'ASC_StudentRowPremiumFacades' 'ASC_StreetPremiumMarkings' 'ASC_RecreationPremiumExterior' 'ASC_VehiclePremiumDetail' 'ASC_PremiumLightingBalanced'; do grep -Fq "$token" "$premium"; done
+          for token in 'EnableActivities = false' 'EnableEconomy = false' 'EnablePersistence = false'; do grep -Fq "$token" "$config"; done
+          if grep -Eq 'MarketplaceService|PromptProductPurchase|ProcessReceipt|DataStoreService|BillboardGui' "$premium"; then echo 'Forbidden authority/debug marker'; exit 12; fi
+          echo 'STATIC AUTHORITY PASS'
+
+      - name: Prepare Rojo 7.7.0
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/asc-rojo-v060"
+          curl -fsSL 'https://github.com/rojo-rbx/rojo/releases/download/v7.7.0/rojo-7.7.0-linux-x86_64.zip' -o "$RUNNER_TEMP/rojo-v060.zip"
+          unzip -q -o "$RUNNER_TEMP/rojo-v060.zip" -d "$RUNNER_TEMP/asc-rojo-v060"
+          rojo=$(find "$RUNNER_TEMP/asc-rojo-v060" -type f -name rojo | head -n1)
+          [[ -n "$rojo" ]] || exit 20
+          chmod +x "$rojo"
+          version=$("$rojo" --version)
+          echo "$version"
+          [[ "$version" == *'7.7.0'* ]] || exit 21
+          echo "ROJO_EXE=$rojo" >> "$GITHUB_ENV"
+
+      - name: Build exact V0.6 map
+        shell: bash
+        run: |
+          set -euo pipefail
+          place="$RUNNER_TEMP/after-school-city-v060.rbxl"
+          "$ROJO_EXE" build 'asc-source/maps/after-school-city/default.project.json' -o "$place"
+          test -f "$place"
+          bytes=$(stat -c%s "$place")
+          (( bytes >= 1024 ))
+          sha=$(sha256sum "$place" | awk '{print $1}')
+          echo "AFTER SCHOOL CITY V0.6 HOSTED QC PASS bytes=$bytes sha256=$sha source=$SOURCE_SHA"
