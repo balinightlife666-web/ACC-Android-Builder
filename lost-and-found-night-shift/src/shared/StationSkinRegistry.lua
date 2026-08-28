@@ -36,7 +36,7 @@ StationSkinRegistry.Skins = {
         kind = "PALETTE",
         label = "Default operations palette",
     }),
-    INDUSTRIAL_SHIFT = skin("INDUSTRIAL_SHIFT", "Industrial Shift", "FREE", 0, {
+    INDUSTRIAL_SHIFT = skin("INDUSTRIAL_SHIFT", "Industrial Shift", "CREDITS", 0, {
         base = Color3.fromRGB(48, 48, 45),
         panel = Color3.fromRGB(29, 30, 29),
         accent = Color3.fromRGB(203, 126, 47),
@@ -44,9 +44,9 @@ StationSkinRegistry.Skins = {
         light = Color3.fromRGB(232, 210, 176),
     }, {
         kind = "PALETTE",
-        label = "Warm industrial palette",
+        label = "Free warm industrial palette",
     }),
-    RETRO_AIRPORT = skin("RETRO_AIRPORT", "Retro Airport", "FREE", 0, {
+    RETRO_AIRPORT = skin("RETRO_AIRPORT", "Retro Airport", "CREDITS", 0, {
         base = Color3.fromRGB(53, 61, 64),
         panel = Color3.fromRGB(39, 48, 49),
         accent = Color3.fromRGB(81, 181, 174),
@@ -54,9 +54,9 @@ StationSkinRegistry.Skins = {
         light = Color3.fromRGB(230, 229, 204),
     }, {
         kind = "PALETTE",
-        label = "Retro terminal palette",
+        label = "Free retro terminal palette",
     }),
-    BLACK_OPS = skin("BLACK_OPS", "Black Ops", "FREE", 0, {
+    BLACK_OPS = skin("BLACK_OPS", "Black Ops", "CREDITS", 0, {
         base = Color3.fromRGB(20, 22, 25),
         panel = Color3.fromRGB(11, 13, 16),
         accent = Color3.fromRGB(190, 49, 54),
@@ -64,7 +64,7 @@ StationSkinRegistry.Skins = {
         light = Color3.fromRGB(196, 205, 216),
     }, {
         kind = "PALETTE",
-        label = "Dark operations palette",
+        label = "Free dark operations palette",
     }),
 
     ARMY_FIELD = skin("ARMY_FIELD", "Army Field", "CREDITS", 12000, {
