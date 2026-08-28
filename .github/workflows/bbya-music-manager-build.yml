@@ -56,12 +56,12 @@ jobs:
       - name: Prepare APK
         run: |
           mkdir -p dist
-          cp tools/bbya-music-manager/app/build/outputs/apk/debug/app-debug.apk dist/BBYA-Music-Manager-v0.3.2.apk
+          cp tools/bbya-music-manager/app/build/outputs/apk/debug/app-debug.apk dist/BBYA-Music-Manager-v0.3.3.apk
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: BBYA-Music-Manager-v0.3.2
-          path: dist/BBYA-Music-Manager-v0.3.2.apk
+          name: BBYA-Music-Manager-v0.3.3
+          path: dist/BBYA-Music-Manager-v0.3.3.apk
           if-no-files-found: error
           retention-days: 30
