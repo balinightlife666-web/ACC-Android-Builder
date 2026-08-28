@@ -33,91 +33,43 @@ jobs:
           from pathlib import Path
           p = Path("tools/bbya-music-manager/app/src/main/java/com/acc/bbyamusic/OAuthSyncActivity.java")
           s = p.read_text()
-
           if 'import android.media.MediaMetadataRetriever;' not in s:
               s = s.replace('import android.net.Uri;\n', 'import android.net.Uri;\nimport android.media.MediaMetadataRetriever;\n', 1)
-
           old = 'JSONObject creator = new JSONObject();\n        creator.put("userId", userId);'
           new = 'JSONObject creator = CreatorResolver.resolveUniverseCreator(UNIVERSE_ID, userId);'
           if old in s:
               s = s.replace(old, new, 1)
-
           marker = 'HttpResponse create = request("POST", ASSET_CREATE_URL, accessToken, "multipart/form-data; boundary=" + boundary, body.toByteArray());'
           if 'Upload ke Roblox: ' not in s:
               s = s.replace(marker, 'setStatusFromThread("Upload ke Roblox: " + title + " ...");\n        ' + marker, 1)
-
           marker2 = 'String operationId = operationPath.substring("operations/".length());'
           if 'Roblox menerima file. Memproses:' not in s:
               s = s.replace(marker2, marker2 + '\n        setStatusFromThread("Roblox menerima file. Memproses: " + title);', 1)
-
           oldpoll = 'for (int attempt = 1; attempt <= 36; attempt++) {\n            Thread.sleep(5000L);'
           newpoll = 'for (int attempt = 1; attempt <= 36; attempt++) {\n            setStatusFromThread("Roblox processing: " + title + " (" + attempt + "/36)");\n            Thread.sleep(5000L);'
           if oldpoll in s:
               s = s.replace(oldpoll, newpoll, 1)
-
           oldreturn = 'boolean approved = "MODERATION_STATE_APPROVED".equals(moderation) || "APPROVED".equals(moderation);\n            return new UploadResult(assetId, moderation, approved);'
           newreturn = 'boolean approved = "MODERATION_STATE_APPROVED".equals(moderation) || "APPROVED".equals(moderation);\n            setStatusFromThread("Roblox selesai: " + title + " • " + moderation);\n            return new UploadResult(assetId, moderation, approved);'
           if oldreturn in s:
               s = s.replace(oldreturn, newreturn, 1)
-
           publish = 'publishDelta(access, delta);'
           if 'Mengirim ke Underground:' not in s:
               s = s.replace(publish, 'setStatusFromThread("Mengirim ke Underground: " + track.optString("title", "Track"));\n                    ' + publish, 1)
-
           if 'int skippedTooLong = 0;' not in s:
               s = s.replace('int synced = 0;\n                int pending = 0;', 'int synced = 0;\n                int pending = 0;\n                int skippedTooLong = 0;', 1)
-
           duration_guard_anchor = 'String assetId = track.optString("robloxAssetId", "");\n                    if (assetId.isEmpty()) {'
-          duration_guard = '''String assetId = track.optString("robloxAssetId", "");
-                    long durationMs = getAudioDurationMs(track.optString("localPath", ""));
-                    if (durationMs > 7L * 60L * 1000L) {
-                        track.put("uploadState", "TOO_LONG");
-                        track.put("syncState", "SKIPPED_TOO_LONG");
-                        skippedTooLong++;
-                        persistCatalog(catalog);
-                        setStatusFromThread("Dilewati >7 menit: " + track.optString("title", "Track") + " • " + formatDuration(durationMs));
-                        continue;
-                    }
-                    if (assetId.isEmpty()) {'''
+          duration_guard = 'String assetId = track.optString("robloxAssetId", "");\n                    long durationMs = getAudioDurationMs(track.optString("localPath", ""));\n                    if (durationMs > 7L * 60L * 1000L) {\n                        track.put("uploadState", "TOO_LONG");\n                        track.put("syncState", "SKIPPED_TOO_LONG");\n                        skippedTooLong++;\n                        persistCatalog(catalog);\n                        setStatusFromThread("Dilewati >7 menit: " + track.optString("title", "Track") + " • " + formatDuration(durationMs));\n                        continue;\n                    }\n                    if (assetId.isEmpty()) {'
           if 'SKIPPED_TOO_LONG' not in s and duration_guard_anchor in s:
               s = s.replace(duration_guard_anchor, duration_guard, 1)
-
-          old_msg = '''String msg = pending == 0
-                        ? "SYNCED ✓ " + synced + " lagu Underground dikirim ke Roblox."
-                        : "Sync sebagian: " + synced + " siap, " + pending + " masih menunggu Roblox/moderasi.";'''
-          new_msg = '''String msg;
-                if (pending == 0 && skippedTooLong == 0) {
-                    msg = "SYNCED ✓ " + synced + " lagu Underground dikirim ke Roblox.";
-                } else {
-                    msg = "Sync selesai: " + synced + " siap, " + pending + " menunggu Roblox/moderasi, " + skippedTooLong + " dilewati karena >7 menit.";
-                }'''
+          old_msg = 'String msg = pending == 0\n                        ? "SYNCED ✓ " + synced + " lagu Underground dikirim ke Roblox."\n                        : "Sync sebagian: " + synced + " siap, " + pending + " masih menunggu Roblox/moderasi.";'
+          new_msg = 'String msg;\n                if (pending == 0 && skippedTooLong == 0) {\n                    msg = "SYNCED ✓ " + synced + " lagu Underground dikirim ke Roblox.";\n                } else {\n                    msg = "Sync selesai: " + synced + " siap, " + pending + " menunggu Roblox/moderasi, " + skippedTooLong + " dilewati karena >7 menit.";\n                }'
           if old_msg in s:
               s = s.replace(old_msg, new_msg, 1)
-
           method_anchor = '    private void publishDelta(String accessToken, JSONObject delta) throws Exception {'
-          duration_methods = '''    private long getAudioDurationMs(String path) {
-        if (path == null || path.isEmpty()) return 0L;
-        MediaMetadataRetriever retriever = new MediaMetadataRetriever();
-        try {
-            retriever.setDataSource(path);
-            String raw = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION);
-            return raw == null || raw.isEmpty() ? 0L : Long.parseLong(raw);
-        } catch (Exception ignored) {
-            return 0L;
-        } finally {
-            try { retriever.release(); } catch (Exception ignored) {}
-        }
-    }
-
-    private String formatDuration(long durationMs) {
-        long totalSeconds = Math.max(0L, durationMs / 1000L);
-        return String.format(Locale.US, "%d:%02d", totalSeconds / 60L, totalSeconds % 60L);
-    }
-
-'''
+          duration_methods = '    private long getAudioDurationMs(String path) {\n        if (path == null || path.isEmpty()) return 0L;\n        MediaMetadataRetriever retriever = new MediaMetadataRetriever();\n        try {\n            retriever.setDataSource(path);\n            String raw = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION);\n            return raw == null || raw.isEmpty() ? 0L : Long.parseLong(raw);\n        } catch (Exception ignored) {\n            return 0L;\n        } finally {\n            try { retriever.release(); } catch (Exception ignored) {}\n        }\n    }\n\n    private String formatDuration(long durationMs) {\n        long totalSeconds = Math.max(0L, durationMs / 1000L);\n        return String.format(Locale.US, "%d:%02d", totalSeconds / 60L, totalSeconds % 60L);\n    }\n\n'
           if 'private long getAudioDurationMs(' not in s and method_anchor in s:
               s = s.replace(method_anchor, duration_methods + method_anchor, 1)
-
           p.write_text(s)
           PY
           grep -q 'openid asset:read asset:write universe-messaging-service:publish' "$FILE"
