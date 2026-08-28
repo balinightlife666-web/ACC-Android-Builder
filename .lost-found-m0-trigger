@@ -1,6 +1,6 @@
-LOST FOUND M5-B.1 LARGE UPPER-RIGHT SHOWCASE RACK
+LOST FOUND M5-B.2 FIVE-SLOT PERSONAL COLLECTION SHOWCASE
 Triggered: 2026-08-28
-Retry: 48
+Retry: 49
 Universe: 10745354451
 Place: 93699016600671
-Reason: Owner runtime QC requests moving the three-slot collectible showcase out of the lower work area into the marked upper-right/back-wall zone and making the rack materially larger. Add a large 3-slot trophy rack, enlarge displayed collectible scale, and replace overlapping floating labels with fixed physical name/rarity/serial plates. Roblox in-engine geometry/UI only; no generated images or external textures. Preserve manual showcase selection/persistence/trade cleanup, Credits/XP, Station Shop, case logic/difficulty, Season 1 mystery canon, collectible drop chances, Index history, inventory ownership, mint counters, immutable instanceId/serial/provenance, TradeService rules, station isolation, SCAN/TAG/OPEN/DECIDE validation, EN/ID foundation and hard-locked decision colors.
+Reason: Owner explicitly expands the Personal Collection Showcase from 3 to 5 slots after runtime QC of the large upper-right rack. Keep the rack large/readable in the upper-right/back-wall zone; add slots 4 and 5 with persistent server-validated ownership, 3D collectible display, rarity and immutable serial plates, duplicate prevention and trade/ownership cleanup. Slots 1-3 remain compatible with M5-B persistence; slots 4-5 use presentation-only persistence. Roblox in-engine geometry/UI only; no generated images or external textures. Preserve Credits/XP, Station Shop, case logic/difficulty, Season 1 mystery canon, collectible drop chances, Collection Index history, mint counters, immutable instanceId/serial/provenance, TradeService rules, station isolation, SCAN/TAG/OPEN/DECIDE validation, EN/ID foundation and hard-locked decision colors.
