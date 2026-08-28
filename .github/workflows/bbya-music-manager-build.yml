@@ -2,9 +2,6 @@ name: BBYA Music Manager APK
 
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - feat/bbya-music-manager-mvp
 
 permissions:
   contents: read
@@ -33,34 +30,27 @@ jobs:
           from pathlib import Path
           p = Path("tools/bbya-music-manager/app/src/main/java/com/acc/bbyamusic/OAuthSyncActivity.java")
           s = p.read_text()
-
           old = 'JSONObject creator = new JSONObject();\n        creator.put("userId", userId);'
           new = 'JSONObject creator = CreatorResolver.resolveUniverseCreator(UNIVERSE_ID, userId);'
           if old in s:
               s = s.replace(old, new, 1)
-
           marker = 'HttpResponse create = request("POST", ASSET_CREATE_URL, accessToken, "multipart/form-data; boundary=" + boundary, body.toByteArray());'
           if 'Upload ke Roblox: ' not in s:
               s = s.replace(marker, 'setStatusFromThread("Upload ke Roblox: " + title + " ...");\n        ' + marker, 1)
-
           marker2 = 'String operationId = operationPath.substring("operations/".length());'
           if 'Roblox menerima file. Memproses:' not in s:
               s = s.replace(marker2, marker2 + '\n        setStatusFromThread("Roblox menerima file. Memproses: " + title);', 1)
-
           oldpoll = 'for (int attempt = 1; attempt <= 36; attempt++) {\n            Thread.sleep(5000L);'
           newpoll = 'for (int attempt = 1; attempt <= 36; attempt++) {\n            setStatusFromThread("Roblox processing: " + title + " (" + attempt + "/36)");\n            Thread.sleep(5000L);'
           if oldpoll in s:
               s = s.replace(oldpoll, newpoll, 1)
-
           oldreturn = 'boolean approved = "MODERATION_STATE_APPROVED".equals(moderation) || "APPROVED".equals(moderation);\n            return new UploadResult(assetId, moderation, approved);'
           newreturn = 'boolean approved = "MODERATION_STATE_APPROVED".equals(moderation) || "APPROVED".equals(moderation);\n            setStatusFromThread("Roblox selesai: " + title + " • " + moderation);\n            return new UploadResult(assetId, moderation, approved);'
           if oldreturn in s:
               s = s.replace(oldreturn, newreturn, 1)
-
           publish = 'publishDelta(access, delta);'
           if 'Mengirim ke Underground:' not in s:
               s = s.replace(publish, 'setStatusFromThread("Mengirim ke Underground: " + track.optString("title", "Track"));\n                    ' + publish, 1)
-
           p.write_text(s)
           PY
           grep -q 'openid asset:read asset:write universe-messaging-service:publish' "$FILE"
@@ -129,12 +119,12 @@ jobs:
       - name: Prepare APK
         run: |
           mkdir -p dist
-          cp tools/bbya-music-manager/app/build/outputs/apk/debug/app-debug.apk dist/BBYA-Music-Manager-v0.3.9.apk
+          cp tools/bbya-music-manager/app/build/outputs/apk/debug/app-debug.apk dist/BBYA-Music-Manager-v0.3.10.apk
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: BBYA-Music-Manager-v0.3.9
-          path: dist/BBYA-Music-Manager-v0.3.9.apk
+          name: BBYA-Music-Manager-v0.3.10
+          path: dist/BBYA-Music-Manager-v0.3.10.apk
           if-no-files-found: error
           retention-days: 30
