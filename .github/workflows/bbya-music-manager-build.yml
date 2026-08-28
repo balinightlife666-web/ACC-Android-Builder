@@ -2,6 +2,9 @@ name: BBYA Music Manager APK
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - feat/bbya-music-manager-mvp
 
 permissions:
   contents: read
@@ -19,13 +22,15 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Patch OAuth scope for pilot
+      - name: Patch OAuth pilot request
         shell: bash
         run: |
           set -euo pipefail
           FILE="tools/bbya-music-manager/app/src/main/java/com/acc/bbyamusic/OAuthSyncActivity.java"
           sed -i 's/openid profile asset:read asset:write universe-messaging-service:publish/openid asset:read asset:write universe-messaging-service:publish/' "$FILE"
+          sed -i 's/appendQueryParameter("prompt", "login consent")/appendQueryParameter("prompt", "select_account")/' "$FILE"
           grep -q 'openid asset:read asset:write universe-messaging-service:publish' "$FILE"
+          grep -q 'appendQueryParameter("prompt", "select_account")' "$FILE"
 
       - name: Setup Java
         uses: actions/setup-java@v5
@@ -51,12 +56,12 @@ jobs:
       - name: Prepare APK
         run: |
           mkdir -p dist
-          cp tools/bbya-music-manager/app/build/outputs/apk/debug/app-debug.apk dist/BBYA-Music-Manager-v0.3.1.apk
+          cp tools/bbya-music-manager/app/build/outputs/apk/debug/app-debug.apk dist/BBYA-Music-Manager-v0.3.2.apk
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: BBYA-Music-Manager-v0.3.1
-          path: dist/BBYA-Music-Manager-v0.3.1.apk
+          name: BBYA-Music-Manager-v0.3.2
+          path: dist/BBYA-Music-Manager-v0.3.2.apk
           if-no-files-found: error
           retention-days: 30
