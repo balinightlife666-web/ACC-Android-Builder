@@ -10,8 +10,8 @@ android {
         applicationId 'com.acc.bbyamusic'
         minSdk 26
         targetSdk 36
-        versionCode 7
-        versionName '0.3.6-underground-sync-pilot'
+        versionCode 8
+        versionName '0.3.7-underground-sync-pilot'
     }
 
     buildTypes {
