@@ -1,5 +1,6 @@
--- LOST & FOUND: NIGHT SHIFT — M5-A Station Shop v1 client.
--- Compact mobile-safe Credits cosmetic shop. Server remains purchase/equip authority.
+-- LOST & FOUND: NIGHT SHIFT — M5-A.2 Station Shop preview client.
+-- Compact mobile-safe Credits shop with temporary no-cost TRY/COBA preview.
+-- Server remains purchase/equip/preview authority.
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -60,7 +61,8 @@ local openButton = Instance.new("TextButton")
 openButton.Name = "StationShopButton"
 openButton.AnchorPoint = Vector2.new(1, 0)
 openButton.Size = UDim2.fromOffset(128, 30)
-openButton.Position = UDim2.new(1, -18, 0, 54)
+-- M5-A.1 hard stack: Credits -> Index -> Archive -> Trade -> Station Shop.
+openButton.Position = UDim2.new(1, -18, 0, 170)
 openButton.BackgroundColor3 = Color3.fromRGB(17, 21, 28)
 openButton.BackgroundTransparency = 0.04
 openButton.BorderSizePixel = 0
@@ -111,7 +113,10 @@ subtitle.TextWrapped = true
 subtitle.TextColor3 = Color3.fromRGB(167, 178, 192)
 subtitle.Font = Enum.Font.Gotham
 subtitle.TextSize = 11
-subtitle.Text = tr("Earn Credits from shifts. Station skins are cosmetic only.", "Kumpulkan Credits dari shift. Skin stasiun hanya kosmetik.")
+subtitle.Text = tr(
+    "Try a skin free for 20s before buying. Purchases stay permanent.",
+    "Coba skin gratis 20 detik sebelum beli. Pembelian tetap permanen."
+)
 subtitle.Parent = panel
 
 local close = Instance.new("TextButton")
@@ -171,8 +176,25 @@ status.TextWrapped = true
 status.TextColor3 = Color3.fromRGB(164, 213, 235)
 status.Font = Enum.Font.GothamMedium
 status.TextSize = 11
-status.Text = tr("Choose an earnable station skin.", "Pilih skin stasiun yang bisa dibeli dengan Credits.")
+status.Text = tr("Choose a skin to try or buy.", "Pilih skin untuk dicoba atau dibeli.")
 status.Parent = panel
+
+local previewBanner = Instance.new("TextLabel")
+previewBanner.Name = "PreviewBanner"
+previewBanner.AnchorPoint = Vector2.new(0.5, 1)
+previewBanner.Size = UDim2.fromOffset(330, 42)
+previewBanner.Position = UDim2.new(0.5, 0, 1, -22)
+previewBanner.BackgroundColor3 = Color3.fromRGB(20, 27, 35)
+previewBanner.BackgroundTransparency = 0.03
+previewBanner.BorderSizePixel = 0
+previewBanner.TextColor3 = Color3.fromRGB(255, 211, 125)
+previewBanner.Font = Enum.Font.GothamBold
+previewBanner.TextSize = 11
+previewBanner.TextWrapped = true
+previewBanner.Visible = false
+previewBanner.Parent = gui
+corner(previewBanner, 9)
+stroke(previewBanner, Color3.fromRGB(224, 163, 64), 0.20)
 
 local current = nil
 local requestBusy = false
@@ -185,6 +207,7 @@ local function ownedMap(data)
 end
 
 local function localizedSkinName(entry)
+    if not entry then return "Skin" end
     if not ID then return entry.name end
     local names = {
         STANDARD_OPS = "Operasi Standar",
@@ -195,16 +218,27 @@ local function localizedSkinName(entry)
     return names[entry.id] or entry.name
 end
 
+local function entryById(id)
+    for _, entry in ipairs(current and current.entries or {}) do
+        if entry.id == id then return entry end
+    end
+    return nil
+end
+
 local function resultMessage(result)
     if not result then return tr("No response from Station Shop.", "Tidak ada respons dari Toko Stasiun.") end
     local code = tostring(result.code or "")
     local idMessages = {
         PURCHASED = "Skin dibeli dan langsung dipakai.",
         EQUIPPED = "Skin stasiun sudah dipakai.",
+        PREVIEWING = "Trial aktif 20 detik. Panel ditutup agar kamu bisa melihat stasiun.",
+        PREVIEW_ENDED = "Trial selesai. Skin yang kamu pakai sebelumnya sudah dikembalikan.",
+        PREVIEW_UNAVAILABLE = "Skin ini belum bisa dicoba.",
         INSUFFICIENT_CREDITS = "Credits belum cukup untuk membeli skin ini.",
         ALREADY_OWNED = "Skin ini sudah kamu miliki.",
         NOT_OWNED = "Beli skin ini terlebih dahulu.",
         NOT_READY = "Data pemain masih dimuat. Coba sebentar lagi.",
+        NO_STATION = "Stasiun pribadimu belum siap.",
         BUSY = "Toko sedang memproses permintaan sebelumnya.",
         SAVE_FAILED = "Perubahan gagal disimpan dengan aman. Coba lagi.",
         NOT_FOR_CREDITS = "Skin ini belum tersedia dengan Credits.",
@@ -212,6 +246,21 @@ local function resultMessage(result)
     }
     if ID and idMessages[code] then return idMessages[code] end
     return tostring(result.message or code or "Station Shop updated.")
+end
+
+local function refreshPreviewBanner(data)
+    local previewSkin = data and data.previewSkin
+    if not previewSkin or previewSkin == "" then
+        previewBanner.Visible = false
+        return
+    end
+    local entry = entryById(previewSkin)
+    local seconds = math.max(1, math.floor(tonumber(data.previewSeconds) or 20))
+    previewBanner.Text = tr(
+        string.format("FREE PREVIEW • %s • about %ds", localizedSkinName(entry), seconds),
+        string.format("TRIAL GRATIS • %s • sekitar %d detik", localizedSkinName(entry), seconds)
+    )
+    previewBanner.Visible = true
 end
 
 local function invoke(action, skinId)
@@ -236,22 +285,43 @@ local function transact(action, skinId)
         current = result.snapshot or result
         status.Text = resultMessage(result)
         render()
+        refreshPreviewBanner(current)
+        if action == "PREVIEW" then
+            -- Hide the shop so the player can inspect the station itself during the trial.
+            panel.Visible = false
+        end
     else
         status.Text = resultMessage(result)
         local sync = invoke("SYNC", "")
         if sync and sync.ok then
             current = sync
             render()
+            refreshPreviewBanner(current)
         end
     end
 end
 
-local function makeRow(entry, owned, equipped, order)
+local function makeAction(parent, text, size, position, background, textColor)
+    local action = Instance.new("TextButton")
+    action.Size = size
+    action.Position = position
+    action.BorderSizePixel = 0
+    action.Font = Enum.Font.GothamBold
+    action.TextSize = 10
+    action.Text = text
+    action.BackgroundColor3 = background
+    action.TextColor3 = textColor
+    action.Parent = parent
+    corner(action, 8)
+    return action
+end
+
+local function makeRow(entry, owned, equipped, previewing, anyPreview, order)
     local skin = StationSkinRegistry.Skins[entry.id]
     local row = Instance.new("Frame")
     row.Name = entry.id
     row.LayoutOrder = order
-    row.Size = UDim2.new(1, -2, 0, 67)
+    row.Size = UDim2.new(1, -2, 0, 74)
     row.BackgroundColor3 = Color3.fromRGB(28, 34, 44)
     row.BackgroundTransparency = 0.04
     row.BorderSizePixel = 0
@@ -259,8 +329,8 @@ local function makeRow(entry, owned, equipped, order)
     corner(row, 9)
 
     local swatch = Instance.new("Frame")
-    swatch.Size = UDim2.fromOffset(11, 49)
-    swatch.Position = UDim2.fromOffset(8, 9)
+    swatch.Size = UDim2.fromOffset(11, 54)
+    swatch.Position = UDim2.fromOffset(8, 10)
     swatch.BackgroundColor3 = skin and skin.palette and skin.palette.accent or Color3.fromRGB(224, 163, 64)
     swatch.BorderSizePixel = 0
     swatch.Parent = row
@@ -278,7 +348,7 @@ local function makeRow(entry, owned, equipped, order)
     name.Parent = row
 
     local detail = Instance.new("TextLabel")
-    detail.Size = UDim2.new(1, -132, 0, 28)
+    detail.Size = UDim2.new(1, -132, 0, 34)
     detail.Position = UDim2.fromOffset(28, 32)
     detail.BackgroundTransparency = 1
     detail.TextXAlignment = Enum.TextXAlignment.Left
@@ -286,6 +356,7 @@ local function makeRow(entry, owned, equipped, order)
     detail.TextColor3 = Color3.fromRGB(158, 171, 188)
     detail.Font = Enum.Font.Gotham
     detail.TextSize = 10
+    detail.TextWrapped = true
     if entry.acquisition == "FREE" then
         detail.Text = tr("Default • Free", "Bawaan • Gratis")
     else
@@ -293,31 +364,62 @@ local function makeRow(entry, owned, equipped, order)
     end
     detail.Parent = row
 
-    local action = Instance.new("TextButton")
-    action.Size = UDim2.fromOffset(92, 36)
-    action.Position = UDim2.new(1, -101, 0.5, -18)
-    action.BorderSizePixel = 0
-    action.Font = Enum.Font.GothamBold
-    action.TextSize = 10
-    action.Parent = row
-    corner(action, 8)
-
-    if equipped then
-        action.Text = tr("EQUIPPED", "DIPAKAI")
-        action.BackgroundColor3 = Color3.fromRGB(54, 83, 70)
-        action.TextColor3 = Color3.fromRGB(184, 235, 203)
+    if equipped and anyPreview then
+        local restore = makeAction(
+            row,
+            tr("RESTORE", "KEMBALI"),
+            UDim2.fromOffset(92, 36),
+            UDim2.new(1, -101, 0.5, -18),
+            Color3.fromRGB(74, 66, 48),
+            Color3.fromRGB(245, 218, 157)
+        )
+        restore.Activated:Connect(function() transact("END_PREVIEW", "") end)
+    elseif equipped then
+        local action = makeAction(
+            row,
+            tr("EQUIPPED", "DIPAKAI"),
+            UDim2.fromOffset(92, 36),
+            UDim2.new(1, -101, 0.5, -18),
+            Color3.fromRGB(54, 83, 70),
+            Color3.fromRGB(184, 235, 203)
+        )
         action.AutoButtonColor = false
         action.Active = false
     elseif owned then
-        action.Text = tr("EQUIP", "PAKAI")
-        action.BackgroundColor3 = Color3.fromRGB(55, 68, 87)
-        action.TextColor3 = Color3.fromRGB(222, 230, 240)
+        local action = makeAction(
+            row,
+            tr("EQUIP", "PAKAI"),
+            UDim2.fromOffset(92, 36),
+            UDim2.new(1, -101, 0.5, -18),
+            Color3.fromRGB(55, 68, 87),
+            Color3.fromRGB(222, 230, 240)
+        )
         action.Activated:Connect(function() transact("EQUIP", entry.id) end)
     else
-        action.Text = tr("BUY", "BELI")
-        action.BackgroundColor3 = Color3.fromRGB(184, 125, 47)
-        action.TextColor3 = Color3.fromRGB(25, 25, 27)
-        action.Activated:Connect(function() transact("BUY", entry.id) end)
+        local try = makeAction(
+            row,
+            previewing and tr("TRYING", "DICOBA") or tr("TRY 20S", "COBA 20D"),
+            UDim2.fromOffset(92, 27),
+            UDim2.new(1, -101, 0, 7),
+            previewing and Color3.fromRGB(54, 83, 70) or Color3.fromRGB(50, 67, 80),
+            previewing and Color3.fromRGB(184, 235, 203) or Color3.fromRGB(184, 222, 238)
+        )
+        if previewing then
+            try.AutoButtonColor = false
+            try.Active = false
+        else
+            try.Activated:Connect(function() transact("PREVIEW", entry.id) end)
+        end
+
+        local buy = makeAction(
+            row,
+            tr("BUY", "BELI"),
+            UDim2.fromOffset(92, 27),
+            UDim2.new(1, -101, 0, 40),
+            Color3.fromRGB(184, 125, 47),
+            Color3.fromRGB(25, 25, 27)
+        )
+        buy.Activated:Connect(function() transact("BUY", entry.id) end)
     end
 end
 
@@ -329,11 +431,19 @@ render = function()
 
     creditsLabel.Text = "CREDITS  " .. formatCredits(current.credits or 0)
     local owned = ownedMap(current)
+    local anyPreview = current.previewSkin ~= nil and current.previewSkin ~= ""
     local order = 0
     for _, entry in ipairs(current.entries or {}) do
         if entry.acquisition == "FREE" or entry.acquisition == "CREDITS" then
             order += 1
-            makeRow(entry, owned[entry.id] == true, current.equippedSkin == entry.id, order)
+            makeRow(
+                entry,
+                owned[entry.id] == true,
+                current.equippedSkin == entry.id,
+                current.previewSkin == entry.id,
+                anyPreview,
+                order
+            )
         end
     end
 end
@@ -345,7 +455,18 @@ local function syncShop()
         if data and data.ok then
             current = data
             render()
-            status.Text = tr("Credits skins are permanent once purchased.", "Skin Credits menjadi milikmu permanen setelah dibeli.")
+            refreshPreviewBanner(current)
+            if current.previewSkin then
+                status.Text = tr(
+                    "A free preview is active. Choose another skin or restore your equipped skin.",
+                    "Trial gratis sedang aktif. Coba skin lain atau kembalikan skin yang dipakai."
+                )
+            else
+                status.Text = tr(
+                    "Try any Credits skin free for 20 seconds before buying.",
+                    "Coba skin Credits gratis selama 20 detik sebelum membeli."
+                )
+            end
             return true
         end
         task.wait(0.5)
@@ -359,17 +480,23 @@ openButton.Activated:Connect(function()
     if panel.Visible then task.spawn(syncShop) end
 end)
 
+-- Closing the panel does NOT cancel the trial; the server restores the persisted skin
+-- automatically after 20 seconds so the player can actually look around.
 close.Activated:Connect(function()
     panel.Visible = false
 end)
 
-update.OnClientEvent:Connect(function(_, data)
-    if type(data) == "table" and data.ok then
-        current = data
-        if panel.Visible then
-            render()
-            if data.message then status.Text = resultMessage(data) end
-        end
+update.OnClientEvent:Connect(function(kind, data)
+    if type(data) ~= "table" or not data.ok then return end
+    current = data
+    if kind == "PREVIEW_ENDED" then
+        previewBanner.Visible = false
+    else
+        refreshPreviewBanner(current)
+    end
+    if panel.Visible then
+        render()
+        if data.message then status.Text = resultMessage(data) end
     end
 end)
 
