@@ -1,0 +1,111 @@
+name: After School City V0.5.3 Road Centerline QC Hosted
+
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/after-school-city-v053-road-centerline-qc-hosted.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  qc:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      SOURCE_REPO: ardarawk-cloud/ACC-Roblox-maps
+      SOURCE_SHA: b18cbdf5d49ecb6d5f81f938069674836ffb935a
+    steps:
+      - name: Checkout publisher repository
+        uses: actions/checkout@v4
+
+      - name: Checkout exact After School City source
+        uses: actions/checkout@v4
+        with:
+          repository: ardarawk-cloud/ACC-Roblox-maps
+          ref: b18cbdf5d49ecb6d5f81f938069674836ffb935a
+          token: ${{ secrets.ACC_ROBLOX_MAPS_WRITE_TOKEN }}
+          path: asc-source
+          fetch-depth: 1
+
+      - name: Exact source lock
+        shell: bash
+        run: |
+          set -euo pipefail
+          actual=$(git -C asc-source rev-parse HEAD)
+          [[ "$actual" == "$SOURCE_SHA" ]] || { echo "Source mismatch: $actual"; exit 11; }
+          grep -Fq 'Version = "0.5.3-road-centerline-clearance-1"' asc-source/maps/after-school-city/after-school-city.config.lua
+          grep -Fq 'ASC_RoadCenterlineClearance' asc-source/maps/after-school-city/default.project.json
+          grep -Fq 'after-school-city.road-centerline-clearance.server.lua' asc-source/maps/after-school-city/default.project.json
+          for token in 'PUTU AZYA PUTRI' 'BINTANG HARDAJAYA' 'WITH LOVE, DAD' 'ENTER THE CITY'; do grep -Fq "$token" asc-source/maps/after-school-city/after-school-city.intro.client.lua; done
+          echo "LOCK PASS source=$actual"
+
+      - name: Cloud source spatial audit V4
+        shell: pwsh
+        working-directory: asc-source
+        run: |
+          $ErrorActionPreference='Stop'
+          & '.github/scripts/after-school-city-spatial-audit.ps1'
+
+      - name: Cloud source orientation audit V1
+        shell: pwsh
+        working-directory: asc-source
+        run: |
+          $ErrorActionPreference='Stop'
+          & '.github/scripts/after-school-city-orientation-audit.ps1'
+
+      - name: Cloud source visual fidelity audit V1
+        shell: pwsh
+        working-directory: asc-source
+        run: |
+          $ErrorActionPreference='Stop'
+          & '.github/scripts/after-school-city-visual-fidelity-audit.ps1'
+
+      - name: Cloud source runtime reconcile audit V1
+        shell: pwsh
+        working-directory: asc-source
+        run: |
+          $ErrorActionPreference='Stop'
+          & '.github/scripts/after-school-city-runtime-reconcile-audit.ps1'
+
+      - name: Cloud source V0.5.2 component regression
+        shell: pwsh
+        working-directory: asc-source
+        run: |
+          $ErrorActionPreference='Stop'
+          & '.github/scripts/after-school-city-runtime-hard-cleanup-audit.ps1'
+
+      - name: Cloud source road centerline clearance audit V1
+        shell: pwsh
+        working-directory: asc-source
+        run: |
+          $ErrorActionPreference='Stop'
+          & '.github/scripts/after-school-city-road-centerline-clearance-audit.ps1'
+
+      - name: Prepare Rojo 7.7.0
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/asc-rojo-v053"
+          curl -fsSL 'https://github.com/rojo-rbx/rojo/releases/download/v7.7.0/rojo-7.7.0-linux-x86_64.zip' -o "$RUNNER_TEMP/rojo-v053.zip"
+          unzip -q -o "$RUNNER_TEMP/rojo-v053.zip" -d "$RUNNER_TEMP/asc-rojo-v053"
+          rojo=$(find "$RUNNER_TEMP/asc-rojo-v053" -type f -name rojo | head -n1)
+          [[ -n "$rojo" ]] || exit 20
+          chmod +x "$rojo"
+          version=$("$rojo" --version)
+          echo "$version"
+          [[ "$version" == *'7.7.0'* ]] || exit 21
+          echo "ROJO_EXE=$rojo" >> "$GITHUB_ENV"
+
+      - name: Build exact V0.5.3 map
+        shell: bash
+        run: |
+          set -euo pipefail
+          place="$RUNNER_TEMP/after-school-city-v053.rbxl"
+          "$ROJO_EXE" build 'asc-source/maps/after-school-city/default.project.json' -o "$place"
+          test -f "$place"
+          bytes=$(stat -c%s "$place")
+          (( bytes >= 1024 ))
+          sha=$(sha256sum "$place" | awk '{print $1}')
+          echo "AFTER SCHOOL CITY V0.5.3 HOSTED QC PASS bytes=$bytes sha256=$sha source=$SOURCE_SHA"
