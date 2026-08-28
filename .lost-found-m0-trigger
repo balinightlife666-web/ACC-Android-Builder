@@ -1,6 +1,6 @@
-LOST FOUND M5-A.3 PREMIUM STATION THEME REWORK
+LOST FOUND M5-B PERSONAL COLLECTION SHOWCASE V1
 Triggered: 2026-08-28
-Retry: 46
+Retry: 47
 Universe: 10745354451
 Place: 93699016600671
-Reason: Owner runtime QC rejected paid palette-only skins as not worth Credits. Make legacy palette variants zero-Credit unlocks, add three paid Roblox-only full station themes (Army Field, Sakura Night, Street Graffiti) with procedural floor/wall/material/sign/decor treatment, and replace close-to-restore preview UX with walk-around Preview Mode plus BACK TO SHOP / END PREVIEW. No image generation or external theme textures. Preserve case logic/difficulty, mystery canon, Credits earning/XP, collectible drop rates, Index/Archive, trading, station ownership/isolation, serial/provenance, SCAN/TAG/OPEN/DECIDE validation, EN/ID foundation and hard-locked decision colors.
+Reason: Add player-curated three-slot public station showcase using owned serialized inventory instances. INDEX gains SHOWCASE/PAJANGAN manager; players choose SLOT 1/2/3, view rarity + immutable serial, persist selection separately from canonical inventory, render replicated 3D collectibles on existing M4-D shelf anchors, and automatically remove invalid displayed instances after ownership changes/trades. Preserve Credits/XP, Station Shop, case logic/difficulty, Season 1 mystery canon, drop chances, mint counters, immutable serial/provenance, Collection Index history, trading rules, station isolation, SCAN/TAG/OPEN/DECIDE validation, EN/ID foundation and hard-locked decision colors.
