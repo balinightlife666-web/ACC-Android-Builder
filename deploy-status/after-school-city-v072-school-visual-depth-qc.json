@@ -1,0 +1,14 @@
+{
+  "status": "QC_PASS",
+  "project": "AFTER SCHOOL CITY",
+  "mode": "SCHOOL_VISUAL_DEPTH_V0_7_2",
+  "sourceRepo": "ardarawk-cloud/ACC-Roblox-maps",
+  "sourceCommit": "1aaf8623cd5a59bc77bbb24bb8e0831a72642cc5",
+  "baseLiveCommit": "817ed8e29b96327f3f9ba48526908b5b4260437c",
+  "rojoVersion": "7.7.0",
+  "placeBytes": 85445,
+  "placeSha256": "4367678ec49f5d4d1b149e2c3e2387424d775f64407bbbee89000888b9fcb12d",
+  "runId": "33191306079",
+  "checkedAt": "2026-08-28T16:43:34Z",
+  "note": "Hosted QC only; NOT PUBLISHED. Narrow 3-file delta from LIVE v21; V0.7/V0.7.1/protected source preserved; side-facing signage geometry, architectural signage, corridor depth, lockers and furniture normalization audited."
+}
