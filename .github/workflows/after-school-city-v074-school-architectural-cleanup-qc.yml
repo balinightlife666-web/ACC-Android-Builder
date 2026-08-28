@@ -1,0 +1,187 @@
+name: After School City V0.7.4 School Architectural Cleanup QC
+
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/after-school-city-v074-school-architectural-cleanup-qc.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: after-school-city-v074-school-architectural-cleanup-qc
+  cancel-in-progress: false
+
+jobs:
+  qc:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      SOURCE_REPO: ardarawk-cloud/ACC-Roblox-maps
+      SOURCE_SHA: db0fe8df0b18daac792e4893492633086a692e85
+      BASE_LIVE_SHA: 29530dd451bb35d9d6d9e801435aca14f9ba7b5a
+      EXPECTED_VERSION: 0.7.4-school-architectural-cleanup-1
+    steps:
+      - name: Checkout QC repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Checkout exact After School City source
+        uses: actions/checkout@v4
+        with:
+          repository: ardarawk-cloud/ACC-Roblox-maps
+          ref: db0fe8df0b18daac792e4893492633086a692e85
+          token: ${{ secrets.ACC_ROBLOX_MAPS_WRITE_TOKEN }}
+          path: asc-source
+          fetch-depth: 0
+
+      - name: Verify exact source and narrow delta
+        shell: bash
+        run: |
+          set -euo pipefail
+          actual=$(git -C asc-source rev-parse HEAD)
+          [[ "$actual" == "$SOURCE_SHA" ]] || { echo "Source SHA mismatch: $actual"; exit 10; }
+          git -C asc-source cat-file -e "${BASE_LIVE_SHA}^{commit}"
+          mapfile -t files < <(git -C asc-source diff --name-only "$BASE_LIVE_SHA" "$SOURCE_SHA")
+          printf '%s\n' "${files[@]}"
+          [[ ${#files[@]} -eq 3 ]] || { echo "Unexpected V0.7.4 delta file count: ${#files[@]}"; exit 11; }
+          expected=(
+            'maps/after-school-city/after-school-city.config.lua'
+            'maps/after-school-city/after-school-city.school-architectural-cleanup.server.lua'
+            'maps/after-school-city/default.project.json'
+          )
+          for f in "${expected[@]}"; do
+            printf '%s\n' "${files[@]}" | grep -Fxq "$f" || { echo "Expected delta missing: $f"; exit 12; }
+          done
+          echo "SOURCE LOCK PASS source=$actual base=$BASE_LIVE_SHA delta=3-files"
+
+      - name: Audit V0.7.4 architectural cleanup contract
+        shell: pwsh
+        working-directory: asc-source
+        run: |
+          $ErrorActionPreference='Stop'
+          $map='maps/after-school-city'
+          $arch=Get-Content "$map/after-school-city.school-architectural-cleanup.server.lua" -Raw
+          $config=Get-Content "$map/after-school-city.config.lua" -Raw
+          $project=Get-Content "$map/default.project.json" -Raw
+          $null=$project|ConvertFrom-Json
+          function Need([string]$text,[string]$token,[string]$label){if($text.IndexOf($token,[StringComparison]::Ordinal)-lt 0){throw "V0.7.4 missing contract: $label"}}
+          foreach($token in @(
+            'V074_SchoolArchitecturalCleanup',
+            '0.7.4-school-architectural-cleanup-1',
+            'ASC_SignageOrientationPass',
+            'MAX_CLEANUP_PARTS = 58',
+            'compactSignWidth',
+            'ASC_V074CompactArchitecturalSign',
+            'ClassroomAFrame',
+            'ClassroomBFrame',
+            'LeftWingConnectorFrame',
+            'RightWingConnectorFrame',
+            'LibraryCanteenPassageFrame',
+            'AdminClubPassageFrame',
+            'CanteenCounterToeKick',
+            'WarmCoveStrip',
+            'light.Brightness = math.min(0.20, 0.22)',
+            'light.Range = math.min(9.0, 10)',
+            'ASC_SchoolArchitecturalCleanupPass'
+          )){Need $arch $token $token}
+          foreach($forbidden in @('MarketplaceService','PromptProductPurchase','ProcessReceipt','DataStoreService','BillboardGui','NorthSouthRoad')){
+            if($arch -match [regex]::Escape($forbidden)){throw "Forbidden V0.7.4 scope token: $forbidden"}
+          }
+          foreach($token in @(
+            'Version = "0.7.4-school-architectural-cleanup-1"',
+            'SignageOrientationHotfixVersion = "0.7.3-signage-orientation-hotfix-1"',
+            'SchoolArchitecturalCleanupVersion = "0.7.4-school-architectural-cleanup-1"',
+            'EnableSignageOrientationHotfixPass = true',
+            'EnableSchoolArchitecturalCleanupPass = true',
+            'EnableActivities = false',
+            'EnableEconomy = false',
+            'EnablePersistence = false',
+            'EnablePersonalRoom = false',
+            'EnableClubs = false'
+          )){Need $config $token $token}
+          Need $project 'ASC_SignageOrientationHotfix' 'Rojo V0.7.3 node'
+          Need $project 'ASC_SchoolArchitecturalCleanup' 'Rojo V0.7.4 node'
+          Need $project 'after-school-city.school-architectural-cleanup.server.lua' 'Rojo V0.7.4 source'
+          $i73=$project.IndexOf('ASC_SignageOrientationHotfix',[StringComparison]::Ordinal)
+          $i74=$project.IndexOf('ASC_SchoolArchitecturalCleanup',[StringComparison]::Ordinal)
+          if($i73 -lt 0 -or $i74 -lt 0 -or $i74 -le $i73){throw 'Rojo ordering invalid: V0.7.4 must follow V0.7.3'}
+          Write-Host 'V0.7.4 ARCHITECTURAL CLEANUP AUDIT PASS gameplayAuthority=OFF partBudget=58'
+
+      - name: Verify v23 protected source unchanged
+        shell: bash
+        working-directory: asc-source
+        run: |
+          set -euo pipefail
+          for f in \
+            maps/after-school-city/after-school-city.intro.client.lua \
+            maps/after-school-city/after-school-city.orientation-correction.server.lua \
+            maps/after-school-city/after-school-city.road-centerline-clearance.server.lua \
+            maps/after-school-city/after-school-city.premium-exterior.server.lua \
+            maps/after-school-city/after-school-city.school-interior.server.lua \
+            maps/after-school-city/after-school-city.school-interior-polish.server.lua \
+            maps/after-school-city/after-school-city.school-visual-depth.server.lua \
+            maps/after-school-city/after-school-city.signage-orientation-hotfix.server.lua; do
+            git diff --quiet "$BASE_LIVE_SHA" "$SOURCE_SHA" -- "$f" || { echo "Protected source changed: $f"; exit 20; }
+          done
+          grep -Fq 'PUTU AZYA PUTRI' maps/after-school-city/after-school-city.intro.client.lua
+          grep -Fq 'BINTANG HARDAJAYA' maps/after-school-city/after-school-city.intro.client.lua
+          grep -Fq 'WITH LOVE, DAD' maps/after-school-city/after-school-city.intro.client.lua
+          echo 'PROTECTED SOURCE PASS v23=UNCHANGED dedication=UNCHANGED road=UNCHANGED orientation=UNCHANGED V0.7-V0.7.3=UNCHANGED'
+
+      - name: Prepare Rojo 7.7.0
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/asc-rojo"
+          curl -fsSL 'https://github.com/rojo-rbx/rojo/releases/download/v7.7.0/rojo-7.7.0-linux-x86_64.zip' -o "$RUNNER_TEMP/rojo.zip"
+          unzip -q -o "$RUNNER_TEMP/rojo.zip" -d "$RUNNER_TEMP/asc-rojo"
+          rojo=$(find "$RUNNER_TEMP/asc-rojo" -type f -name rojo | head -n1)
+          [[ -n "$rojo" ]] || exit 30
+          chmod +x "$rojo"
+          version=$("$rojo" --version)
+          [[ "$version" == *'7.7.0'* ]] || { echo "Wrong Rojo: $version"; exit 31; }
+          echo "ROJO_EXE=$rojo" >> "$GITHUB_ENV"
+
+      - name: Build exact V0.7.4 place
+        shell: bash
+        run: |
+          set -euo pipefail
+          place="$RUNNER_TEMP/after-school-city-v074.rbxl"
+          "$ROJO_EXE" build 'asc-source/maps/after-school-city/default.project.json' -o "$place"
+          test -f "$place"
+          bytes=$(stat -c%s "$place")
+          (( bytes > 88445 )) || { echo "Unexpected build size: $bytes"; exit 40; }
+          sha=$(sha256sum "$place" | awk '{print $1}')
+          echo "PLACE_BYTES=$bytes" >> "$GITHUB_ENV"
+          echo "PLACE_SHA256=$sha" >> "$GITHUB_ENV"
+          echo "BUILD PASS source=$SOURCE_SHA bytes=$bytes sha256=$sha"
+
+      - name: Persist QC receipt
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p deploy-status
+          jq -n \
+            --arg status 'QC_PASS' \
+            --arg project 'AFTER SCHOOL CITY' \
+            --arg mode 'SCHOOL_ARCHITECTURAL_CLEANUP_V0_7_4' \
+            --arg sourceRepo "$SOURCE_REPO" \
+            --arg sourceCommit "$SOURCE_SHA" \
+            --arg baseLiveCommit "$BASE_LIVE_SHA" \
+            --arg rojoVersion '7.7.0' \
+            --arg placeBytes "$PLACE_BYTES" \
+            --arg placeSha256 "$PLACE_SHA256" \
+            --arg runId "$GITHUB_RUN_ID" \
+            --arg checkedAt "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+            '{status:$status,project:$project,mode:$mode,sourceRepo:$sourceRepo,sourceCommit:$sourceCommit,baseLiveCommit:$baseLiveCommit,rojoVersion:$rojoVersion,placeBytes:($placeBytes|tonumber),placeSha256:$placeSha256,runId:$runId,checkedAt:$checkedAt,note:"Hosted QC only; NOT PUBLISHED. Narrow 3-file delta from LIVE v23; signage orientation preserved; compact architectural signage, doorway frames, grounded furniture and warm lighting finishing audited; protected source unchanged."}' \
+            > deploy-status/after-school-city-v074-school-architectural-cleanup-qc.json
+          cat deploy-status/after-school-city-v074-school-architectural-cleanup-qc.json
+          git config user.name 'After School City QC Bot'
+          git config user.email 'actions@users.noreply.github.com'
+          git add deploy-status/after-school-city-v074-school-architectural-cleanup-qc.json
+          git commit -m "Record After School City V0.7.4 architectural cleanup QC [skip ci]"
+          git pull --rebase origin main
+          git push origin HEAD:main
