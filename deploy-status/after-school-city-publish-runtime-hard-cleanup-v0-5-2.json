@@ -1,0 +1,16 @@
+{
+  "status": "LIVE_PUBLISHED",
+  "project": "AFTER SCHOOL CITY",
+  "mode": "RUNTIME_HARD_CLEANUP_V0_5_2",
+  "sourceRepo": "ardarawk-cloud/ACC-Roblox-maps",
+  "sourceCommit": "7a258992b9999310d428da80f341c7143941ca98",
+  "universeId": "10745359869",
+  "placeId": "121603385909425",
+  "versionNumber": 18,
+  "rojoVersion": "7.7.0",
+  "placeBytes": 60770,
+  "placeSha256": "2f393e2ac5324d0bf3957c77fc4cb81b1b9c0377d9bdf524a4edd73ee94bbb9c",
+  "runId": "33147069046",
+  "publishedAt": "2026-08-28T06:11:06Z",
+  "note": "Runtime Hard Cleanup v0.5.2; exact locked source; Spatial V4 + Orientation V1 + Visual Fidelity V1 + Runtime Reconcile V1 + Runtime Hard Cleanup V1 gates passed; dedication intro preserved."
+}
