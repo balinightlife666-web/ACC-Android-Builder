@@ -77,3 +77,5 @@ The Asset ID is an internal field. The user does not type or manage it in the AP
 Drive/phone import + local playlist management is implemented in the MVP branch. Backend upload/sync and Roblox panel wiring are the next layer and are deliberately not faked.
 
 Mall and Pasar Malam have dedicated channels so their future panels do not share Main Club music.
+
+Build validation is performed from PR #33 before the app is merged.
