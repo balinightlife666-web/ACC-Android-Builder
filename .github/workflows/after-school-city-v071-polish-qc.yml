@@ -102,7 +102,8 @@ jobs:
             'LIBRARY',
             'CANTEEN',
             'TEACHER / ADMIN',
-            'StudentDeskSupport',
+            'StudentDesk = {height = 2.6',
+            'obj.Name .. "Support"',
             'LibraryShelfBand',
             'ASC_SchoolInteriorPolishPass'
           )){Need $polish $token $token}
@@ -127,8 +128,8 @@ jobs:
           )){Need $config $token $token}
           Need $project 'ASC_SchoolInteriorPolish' 'Rojo polish node'
           Need $project 'after-school-city.school-interior-polish.server.lua' 'Rojo polish source'
-          $i70=$project.IndexOf('ASC_SchoolInterior',[StringComparison]::Ordinal)
-          $i71=$project.IndexOf('ASC_SchoolInteriorPolish',[StringComparison]::Ordinal)
+          $i70=$project.IndexOf('"ASC_SchoolInterior":',[StringComparison]::Ordinal)
+          $i71=$project.IndexOf('"ASC_SchoolInteriorPolish":',[StringComparison]::Ordinal)
           if($i70 -lt 0 -or $i71 -lt 0 -or $i71 -le $i70){throw 'Rojo ordering invalid: V0.7.1 must follow V0.7'}
           Write-Host "V0.7.1 POLISH AUDIT PASS budget=$budget gameplayAuthority=OFF"
 
@@ -145,7 +146,8 @@ jobs:
             maps/after-school-city/after-school-city.school-interior.server.lua; do
             git diff --quiet "$BASE_LIVE_SHA" "$SOURCE_SHA" -- "$f" || { echo "Protected source changed: $f"; exit 20; }
           done
-          grep -Fq 'PUTU AZYA PUTRI BINTANG HARDAJAYA' maps/after-school-city/after-school-city.intro.client.lua
+          grep -Fq 'PUTU AZYA PUTRI' maps/after-school-city/after-school-city.intro.client.lua
+          grep -Fq 'BINTANG HARDAJAYA' maps/after-school-city/after-school-city.intro.client.lua
           grep -Fq 'WITH LOVE, DAD' maps/after-school-city/after-school-city.intro.client.lua
           echo 'PROTECTED SOURCE PASS dedication=UNCHANGED road=UNCHANGED orientation=UNCHANGED V0.7=UNCHANGED'
 
