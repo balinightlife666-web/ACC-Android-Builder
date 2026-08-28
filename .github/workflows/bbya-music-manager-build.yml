@@ -2,6 +2,9 @@ name: BBYA Music Manager APK
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - feat/bbya-music-manager-mvp
 
 permissions:
   contents: read
@@ -46,6 +49,28 @@ jobs:
           distribution: temurin
           java-version: '17'
 
+      - name: Restore stable debug signing key
+        id: signing-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.android/debug.keystore
+          key: bbya-music-debug-signing-v1
+
+      - name: Create stable debug signing key
+        if: steps.signing-cache.outputs.cache-hit != 'true'
+        shell: bash
+        run: |
+          mkdir -p "$HOME/.android"
+          keytool -genkeypair -v \
+            -keystore "$HOME/.android/debug.keystore" \
+            -storepass android \
+            -alias androiddebugkey \
+            -keypass android \
+            -keyalg RSA \
+            -keysize 2048 \
+            -validity 10000 \
+            -dname "CN=BBYA Music Dev,O=AM STUDIO,C=ID"
+
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
 
@@ -64,12 +89,12 @@ jobs:
       - name: Prepare APK
         run: |
           mkdir -p dist
-          cp tools/bbya-music-manager/app/build/outputs/apk/debug/app-debug.apk dist/BBYA-Music-Manager-v0.3.5.apk
+          cp tools/bbya-music-manager/app/build/outputs/apk/debug/app-debug.apk dist/BBYA-Music-Manager-v0.3.6.apk
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: BBYA-Music-Manager-v0.3.5
-          path: dist/BBYA-Music-Manager-v0.3.5.apk
+          name: BBYA-Music-Manager-v0.3.6
+          path: dist/BBYA-Music-Manager-v0.3.6.apk
           if-no-files-found: error
           retention-days: 30
