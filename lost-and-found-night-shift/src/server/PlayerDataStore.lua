@@ -9,6 +9,7 @@ local MAX_INVENTORY_ITEMS = 500
 local MAX_PROVENANCE_EVENTS = 12
 local MAX_OWNED_SKINS = 64
 local economyCache = {}
+local stationProfileCache = {}
 
 local function keyFor(userId)
     return "u_" .. tostring(userId)
@@ -155,6 +156,17 @@ local function sanitizeStationProfile(raw)
     return result
 end
 
+local function cloneStationProfile(raw)
+    local clean = sanitizeStationProfile(raw)
+    local owned = {}
+    for _, id in ipairs(clean.ownedSkins) do table.insert(owned, id) end
+    return {
+        equippedSkin = clean.equippedSkin,
+        ownedSkins = owned,
+        title = clean.title,
+    }
+end
+
 local function sanitize(raw)
     local data = defaults()
     if type(raw) ~= "table" then
@@ -198,6 +210,20 @@ local function sanitize(raw)
     return data
 end
 
+local function payloadFromClean(clean)
+    return {
+        version = 6,
+        credits = clean.credits,
+        xp = clean.xp,
+        discovered = clean.discovered,
+        inventory = clean.inventory,
+        serialMigrationComplete = clean.serialMigrationComplete,
+        economyStats = clean.economyStats,
+        stationProfile = clean.stationProfile,
+        updatedAt = os.time(),
+    }
+end
+
 function PlayerDataStore.Load(userId)
     local ok, result = pcall(function()
         return store:GetAsync(keyFor(userId))
@@ -210,6 +236,7 @@ function PlayerDataStore.Load(userId)
 
     local clean = sanitize(result)
     economyCache[userId] = cloneEconomyStats(clean.economyStats)
+    stationProfileCache[userId] = cloneStationProfile(clean.stationProfile)
     return clean, true
 end
 
@@ -230,31 +257,92 @@ function PlayerDataStore.IncrementEconomy(userId, metric, amount)
     return true
 end
 
-function PlayerDataStore.Save(userId, payload)
-    payload = type(payload) == "table" and payload or {}
-    if type(payload.economyStats) ~= "table" and economyCache[userId] then
-        local copy = {}
-        for key, value in pairs(payload) do copy[key] = value end
-        copy.economyStats = economyCache[userId]
-        payload = copy
+function PlayerDataStore.GetStationProfile(userId)
+    stationProfileCache[userId] = stationProfileCache[userId] or defaultStationProfile()
+    return cloneStationProfile(stationProfileCache[userId])
+end
+
+function PlayerDataStore.SetStationProfile(userId, profile)
+    stationProfileCache[userId] = cloneStationProfile(profile)
+end
+
+-- Station Shop transactions persist the cosmetic profile and Credits immediately,
+-- while preserving the rest of the canonical player payload. The in-memory caches
+-- are updated before the write so a concurrent normal autosave cannot revert the
+-- newly purchased/equipped skin with stale station-profile state.
+function PlayerDataStore.CommitStationProfile(userId, profile, credits, creditsSpentDelta)
+    local cleanProfile = cloneStationProfile(profile)
+    local balance = math.max(0, math.floor(tonumber(credits) or 0))
+    local spent = math.max(0, math.floor(tonumber(creditsSpentDelta) or 0))
+
+    local previousProfile = stationProfileCache[userId] and cloneStationProfile(stationProfileCache[userId]) or nil
+    local previousEconomy = economyCache[userId] and cloneEconomyStats(economyCache[userId]) or nil
+
+    stationProfileCache[userId] = cloneStationProfile(cleanProfile)
+    local sessionEconomy = cloneEconomyStats(economyCache[userId] or defaultEconomyStats())
+    sessionEconomy.creditsSpent = math.max(0, sessionEconomy.creditsSpent + spent)
+    economyCache[userId] = sessionEconomy
+
+    local ok, written = pcall(function()
+        return store:UpdateAsync(keyFor(userId), function(raw)
+            local clean = sanitize(raw)
+            clean.credits = balance
+            clean.stationProfile = cloneStationProfile(cleanProfile)
+
+            local persistedEconomy = sanitizeEconomyStats(clean.economyStats)
+            -- Preserve whichever side has the higher accumulated counters, then add
+            -- the shop spend exactly once to the persisted creditsSpent metric.
+            for key, value in pairs(sessionEconomy) do
+                if key ~= "creditsSpent" then
+                    persistedEconomy[key] = math.max(persistedEconomy[key] or 0, value)
+                end
+            end
+            persistedEconomy.creditsSpent = math.max(persistedEconomy.creditsSpent or 0, (previousEconomy and previousEconomy.creditsSpent or 0)) + spent
+            clean.economyStats = persistedEconomy
+            return payloadFromClean(clean)
+        end)
+    end)
+
+    if not ok then
+        if previousProfile then
+            stationProfileCache[userId] = previousProfile
+        else
+            stationProfileCache[userId] = nil
+        end
+        if previousEconomy then
+            economyCache[userId] = previousEconomy
+        else
+            economyCache[userId] = nil
+        end
+        warn("[LostAndFound] station profile commit failed for", userId, written)
+        return false
     end
 
-    local clean = sanitize(payload)
+    local cleanWritten = sanitize(written)
+    stationProfileCache[userId] = cloneStationProfile(cleanWritten.stationProfile)
+    economyCache[userId] = cloneEconomyStats(cleanWritten.economyStats)
+    return true
+end
+
+function PlayerDataStore.Save(userId, payload)
+    payload = type(payload) == "table" and payload or {}
+    local copy = {}
+    for key, value in pairs(payload) do copy[key] = value end
+
+    if type(copy.economyStats) ~= "table" and economyCache[userId] then
+        copy.economyStats = economyCache[userId]
+    end
+    if stationProfileCache[userId] then
+        copy.stationProfile = stationProfileCache[userId]
+    end
+
+    local clean = sanitize(copy)
     economyCache[userId] = cloneEconomyStats(clean.economyStats)
+    stationProfileCache[userId] = cloneStationProfile(clean.stationProfile)
 
     local ok, err = pcall(function()
         store:UpdateAsync(keyFor(userId), function()
-            return {
-                version = 6,
-                credits = clean.credits,
-                xp = clean.xp,
-                discovered = clean.discovered,
-                inventory = clean.inventory,
-                serialMigrationComplete = clean.serialMigrationComplete,
-                economyStats = clean.economyStats,
-                stationProfile = clean.stationProfile,
-                updatedAt = os.time(),
-            }
+            return payloadFromClean(clean)
         end)
     end)
 
