@@ -1,0 +1,14 @@
+{
+  "status": "QC_PASS",
+  "project": "AFTER SCHOOL CITY",
+  "mode": "SCHOOL_INTERIOR_POLISH_V0_7_1",
+  "sourceRepo": "ardarawk-cloud/ACC-Roblox-maps",
+  "sourceCommit": "817ed8e29b96327f3f9ba48526908b5b4260437c",
+  "baseLiveCommit": "dcaa53170892974af7704423cb4fdc9e2ee25a1f",
+  "rojoVersion": "7.7.0",
+  "placeBytes": 80467,
+  "placeSha256": "d2fa708a5b43aa54adeab59c17fc866203345cdd6aa60ab9ee7e872fcde7deff",
+  "runId": "33188367992",
+  "checkedAt": "2026-08-28T16:06:29Z",
+  "note": "Hosted QC only; NOT PUBLISHED. Narrow 3-file delta; V0.7 baseline preserved; street-light geometry/signage/furniture polish audited."
+}
