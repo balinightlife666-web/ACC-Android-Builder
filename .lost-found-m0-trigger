@@ -1,6 +1,6 @@
-LOST FOUND M5-A STATION SHOP V1
+LOST FOUND M5-A.1 INDEX + SHOP HUD STACK HOTFIX
 Triggered: 2026-08-28
-Retry: 43
+Retry: 44
 Universe: 10745354451
 Place: 93699016600671
-Reason: M4-E foundation is stable. Add server-authoritative Credits Station Shop v1 with persistent owned/equipped station skins using existing LostAndFound_PlayerData_v1 stationProfile, immediate safe purchase/equip persistence, English/Bahasa Indonesia mobile UI, and cosmetic-only station recolor. Preserve case logic/difficulty, mystery canon, Credits earning/XP rewards, collectible drop rates, trading, station ownership/isolation, serial/provenance, SCAN/TAG/OPEN/DECIDE validation and hard-locked decision colors.
+Reason: Runtime v44 Station Shop button occupied the same top-right Y slot as Collection Index, visually covering INDEX. Move Station Shop to the next utility slot below TRADE while preserving Credits, Index, Archive, Trade, Station Shop behavior, localization, case logic, mystery canon, rewards, collectible drops, trading, station ownership/isolation, serial/provenance and hard-locked decision colors.
