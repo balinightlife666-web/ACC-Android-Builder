@@ -2,6 +2,9 @@ name: BBYA Music Manager APK
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - feat/bbya-music-manager-mvp
 
 permissions:
   contents: read
@@ -71,20 +74,20 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-      - name: Restore stable debug signing key
+      - name: Restore explicit BBYA signing key
         id: signing-cache
         uses: actions/cache@v4
         with:
-          path: ~/.android/debug.keystore
-          key: bbya-music-debug-signing-v1
+          path: .ci-signing/bbya-debug.keystore
+          key: bbya-music-explicit-signing-v2
 
-      - name: Create stable debug signing key
+      - name: Create explicit BBYA signing key
         if: steps.signing-cache.outputs.cache-hit != 'true'
         shell: bash
         run: |
-          mkdir -p "$HOME/.android"
+          mkdir -p .ci-signing
           keytool -genkeypair -v \
-            -keystore "$HOME/.android/debug.keystore" \
+            -keystore .ci-signing/bbya-debug.keystore \
             -storepass android \
             -alias androiddebugkey \
             -keypass android \
@@ -106,17 +109,32 @@ jobs:
 
       - name: Build BBYA Music Manager
         working-directory: tools/bbya-music-manager
+        env:
+          BBYA_KEYSTORE_PATH: ${{ github.workspace }}/.ci-signing/bbya-debug.keystore
         run: gradle assembleDebug --stacktrace
+
+      - name: Verify APK signing certificate
+        shell: bash
+        run: |
+          set -euo pipefail
+          KEYSTORE="${GITHUB_WORKSPACE}/.ci-signing/bbya-debug.keystore"
+          APK="tools/bbya-music-manager/app/build/outputs/apk/debug/app-debug.apk"
+          KEY_SHA=$(keytool -exportcert -alias androiddebugkey -keystore "$KEYSTORE" -storepass android | sha256sum | awk '{print $1}')
+          APK_SHA=$("${ANDROID_HOME}/build-tools/36.0.0/apksigner" verify --print-certs "$APK" | sed -n 's/^Signer #1 certificate SHA-256 digest: //p' | tr '[:upper:]' '[:lower:]' | head -n1)
+          echo "Keystore cert SHA256: ${KEY_SHA}"
+          echo "APK signer SHA256: ${APK_SHA}"
+          test -n "$APK_SHA"
+          test "$KEY_SHA" = "$APK_SHA"
 
       - name: Prepare APK
         run: |
           mkdir -p dist
-          cp tools/bbya-music-manager/app/build/outputs/apk/debug/app-debug.apk dist/BBYA-Music-Manager-v0.3.8.apk
+          cp tools/bbya-music-manager/app/build/outputs/apk/debug/app-debug.apk dist/BBYA-Music-Manager-v0.3.9.apk
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: BBYA-Music-Manager-v0.3.8
-          path: dist/BBYA-Music-Manager-v0.3.8.apk
+          name: BBYA-Music-Manager-v0.3.9
+          path: dist/BBYA-Music-Manager-v0.3.9.apk
           if-no-files-found: error
           retention-days: 30
