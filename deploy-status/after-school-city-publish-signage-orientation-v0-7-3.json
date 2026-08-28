@@ -1,0 +1,18 @@
+{
+  "status": "LIVE_PUBLISHED",
+  "project": "AFTER SCHOOL CITY",
+  "mode": "SIGNAGE_ORIENTATION_HOTFIX_V0_7_3",
+  "sourceRepo": "ardarawk-cloud/ACC-Roblox-maps",
+  "sourceCommit": "29530dd451bb35d9d6d9e801435aca14f9ba7b5a",
+  "baseLiveCommit": "1aaf8623cd5a59bc77bbb24bb8e0831a72642cc5",
+  "qcRunId": "33196827268",
+  "universeId": "10745359869",
+  "placeId": "121603385909425",
+  "versionNumber": 23,
+  "rojoVersion": "7.7.0",
+  "placeBytes": 88445,
+  "placeSha256": "4a317c68559516af2419e48a56d48427e6203893ef94bfa1d19021e1ef19f8a3",
+  "runId": "33197299386",
+  "publishedAt": "2026-08-28T18:00:35Z",
+  "note": "Signage Orientation Hotfix v0.7.3 exact QC-locked source; directional signs derived from current wing positions; corridor-facing SurfaceGui orientation corrected; room signage readable on both physical faces; protected v22 source unchanged."
+}
