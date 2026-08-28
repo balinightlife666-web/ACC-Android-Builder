@@ -1,6 +1,6 @@
--- LOST & FOUND: NIGHT SHIFT — M5-A.2 Station Skin Preview client.
--- Adds a compact TRY / COBA button to each earnable Station Shop row.
--- Preview is temporary and automatically restores the persisted equipped skin when the shop closes.
+-- LOST & FOUND: NIGHT SHIFT — M5-A.3 proper station skin preview mode.
+-- TRY / COBA hides the shop while leaving the temporary theme active so the player
+-- can walk around the station. Preview ends only through END PREVIEW or session reset.
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -30,11 +30,8 @@ local gui = playerGui:WaitForChild("LostAndFoundStationShop", 30)
 if not gui then return end
 
 local panel = gui:WaitForChild("ShopPanel", 10)
-local openButton = gui:WaitForChild("StationShopButton", 10)
-if not panel or not openButton then return end
-
-local list = panel:WaitForChild("SkinList", 10)
-if not list then return end
+local list = panel and panel:WaitForChild("SkinList", 10)
+if not panel or not list then return end
 
 local status = nil
 for _, child in ipairs(panel:GetChildren()) do
@@ -44,21 +41,90 @@ for _, child in ipairs(panel:GetChildren()) do
     end
 end
 
-local closeButton = nil
-for _, child in ipairs(panel:GetChildren()) do
-    if child:IsA("TextButton") and child.Text == "×" then
-        closeButton = child
-        break
-    end
-end
-
 local activePreview = nil
+local activePreviewName = nil
 local requestBusy = false
-local restoreBusy = false
+
+local function corner(target, radius)
+    local c = Instance.new("UICorner")
+    c.CornerRadius = UDim.new(0, radius or 8)
+    c.Parent = target
+end
 
 local function setStatus(text)
     if status then status.Text = tostring(text or "") end
 end
+
+local previewHud = Instance.new("Frame")
+previewHud.Name = "M5A3PreviewHud"
+previewHud.AnchorPoint = Vector2.new(0.5, 1)
+previewHud.Size = UDim2.fromOffset(350, 68)
+previewHud.Position = UDim2.new(0.5, 0, 1, -30)
+previewHud.BackgroundColor3 = Color3.fromRGB(16, 20, 27)
+previewHud.BackgroundTransparency = 0.03
+previewHud.BorderSizePixel = 0
+previewHud.Visible = false
+previewHud.ZIndex = 30
+previewHud.Parent = gui
+corner(previewHud, 11)
+
+local hudStroke = Instance.new("UIStroke")
+hudStroke.Color = Color3.fromRGB(224, 163, 64)
+hudStroke.Transparency = 0.24
+hudStroke.Thickness = 1.2
+hudStroke.Parent = previewHud
+
+local previewTitle = Instance.new("TextLabel")
+previewTitle.Size = UDim2.new(1, -150, 0, 24)
+previewTitle.Position = UDim2.fromOffset(12, 7)
+previewTitle.BackgroundTransparency = 1
+previewTitle.TextXAlignment = Enum.TextXAlignment.Left
+previewTitle.TextColor3 = Color3.fromRGB(245, 218, 157)
+previewTitle.Font = Enum.Font.GothamBold
+previewTitle.TextSize = 11
+previewTitle.ZIndex = 31
+previewTitle.Text = tr("PREVIEW MODE", "MODE PRATINJAU")
+previewTitle.Parent = previewHud
+
+local previewName = Instance.new("TextLabel")
+previewName.Size = UDim2.new(1, -150, 0, 25)
+previewName.Position = UDim2.fromOffset(12, 31)
+previewName.BackgroundTransparency = 1
+previewName.TextXAlignment = Enum.TextXAlignment.Left
+previewName.TextColor3 = Color3.fromRGB(218, 226, 237)
+previewName.Font = Enum.Font.GothamMedium
+previewName.TextSize = 10
+previewName.ZIndex = 31
+previewName.Text = "—"
+previewName.Parent = previewHud
+
+local backButton = Instance.new("TextButton")
+backButton.Size = UDim2.fromOffset(78, 46)
+backButton.Position = UDim2.new(1, -142, 0.5, -23)
+backButton.BackgroundColor3 = Color3.fromRGB(45, 58, 75)
+backButton.BorderSizePixel = 0
+backButton.TextColor3 = Color3.fromRGB(194, 224, 239)
+backButton.Font = Enum.Font.GothamBold
+backButton.TextSize = 9
+backButton.TextWrapped = true
+backButton.ZIndex = 31
+backButton.Text = tr("BACK\nTO SHOP", "KEMBALI\nKE TOKO")
+backButton.Parent = previewHud
+corner(backButton, 8)
+
+local endButton = Instance.new("TextButton")
+endButton.Size = UDim2.fromOffset(54, 46)
+endButton.Position = UDim2.new(1, -60, 0.5, -23)
+endButton.BackgroundColor3 = Color3.fromRGB(84, 48, 50)
+endButton.BorderSizePixel = 0
+endButton.TextColor3 = Color3.fromRGB(246, 199, 199)
+endButton.Font = Enum.Font.GothamBold
+endButton.TextSize = 9
+endButton.TextWrapped = true
+endButton.ZIndex = 31
+endButton.Text = tr("END", "SELESAI")
+endButton.Parent = previewHud
+corner(endButton, 8)
 
 local function invoke(action, skinId)
     if requestBusy then return nil end
@@ -74,15 +140,36 @@ local function invoke(action, skinId)
     return result
 end
 
-local function restorePreview()
-    if not activePreview or restoreBusy then return end
-    restoreBusy = true
+local function updatePreviewHud()
+    previewHud.Visible = activePreview ~= nil and not panel.Visible
+    if activePreview then
+        previewName.Text = tostring(activePreviewName or activePreview) .. tr(" • walk around to inspect", " • jalan keliling untuk melihat")
+    else
+        previewName.Text = "—"
+    end
+end
+
+local function endPreview(reopenShop)
+    if not activePreview then
+        previewHud.Visible = false
+        if reopenShop then panel.Visible = true end
+        return
+    end
+
+    previewTitle.Text = tr("RESTORING...", "MENGEMBALIKAN...")
     local result = invoke("RESTORE", "")
     if result and result.ok then
         activePreview = nil
+        activePreviewName = nil
+        previewTitle.Text = tr("PREVIEW MODE", "MODE PRATINJAU")
         setStatus(tr("Your equipped skin is active again.", "Skin yang kamu pakai sudah kembali."))
+        previewHud.Visible = false
+        if reopenShop then panel.Visible = true end
+    else
+        previewTitle.Text = tr("PREVIEW MODE", "MODE PRATINJAU")
+        setStatus(tr("Could not restore preview yet.", "Pratinjau belum bisa dikembalikan."))
+        updatePreviewHud()
     end
-    restoreBusy = false
 end
 
 local function previewSkin(skinId)
@@ -93,43 +180,47 @@ local function previewSkin(skinId)
     local result = invoke("PREVIEW", skinId)
     if result and result.ok then
         activePreview = skinId
+        activePreviewName = tostring(result.skinName or skin.name)
         setStatus(tr(
-            tostring(result.skinName or skin.name) .. " preview — no Credits spent. Close shop to restore.",
-            "Pratinjau " .. tostring(result.skinName or skin.name) .. " — tanpa potong Kredit. Tutup toko untuk kembali."
+            activePreviewName .. " preview active — 0 Credits spent.",
+            "Pratinjau " .. activePreviewName .. " aktif — 0 Kredit terpotong."
         ))
+
+        -- The important M5-A.3 UX change: hide the shop WITHOUT restoring the skin.
+        panel.Visible = false
+        updatePreviewHud()
     elseif result then
-        setStatus(ID and ({
+        local idMessages = {
             NOT_READY = "Profil stasiun masih dimuat.",
             NO_STATION = "Stasiun pribadimu belum siap.",
             PREVIEW_LOCKED = "Skin ini belum tersedia untuk dicoba.",
             BUSY = "Pratinjau sedang memproses permintaan sebelumnya.",
-        })[tostring(result.code)] or tostring(result.message or "Preview unavailable."))
+        }
+        setStatus(ID and (idMessages[tostring(result.code)] or tostring(result.message or "Pratinjau tidak tersedia.")) or tostring(result.message or "Preview unavailable."))
     end
-end
-
-local function makeCorner(target)
-    local corner = Instance.new("UICorner")
-    corner.CornerRadius = UDim.new(0, 7)
-    corner.Parent = target
 end
 
 local function attachRow(row)
     if not row:IsA("Frame") then return end
-    if row:FindFirstChild("M5A2PreviewButton") then return end
+    if row:FindFirstChild("M5A3PreviewButton") then return end
 
     local skin = StationSkinRegistry.Skins[row.Name]
     if not skin then return end
     if skin.acquisition ~= "FREE" and skin.acquisition ~= "CREDITS" then return end
 
-    -- Make a narrow middle slot without increasing row height or mobile panel width.
+    -- Keep the row mobile-safe: reserve a narrow middle preview slot.
     for _, child in ipairs(row:GetChildren()) do
         if child:IsA("TextLabel") and child.Position.X.Offset == 28 then
             child.Size = UDim2.new(1, -184, child.Size.Y.Scale, child.Size.Y.Offset)
         end
     end
 
+    -- Remove the retired M5-A.2 button if a stale client instance created one first.
+    local legacy = row:FindFirstChild("M5A2PreviewButton")
+    if legacy then legacy:Destroy() end
+
     local button = Instance.new("TextButton")
-    button.Name = "M5A2PreviewButton"
+    button.Name = "M5A3PreviewButton"
     button.Size = UDim2.fromOffset(48, 36)
     button.Position = UDim2.new(1, -154, 0.5, -18)
     button.BackgroundColor3 = Color3.fromRGB(44, 58, 75)
@@ -140,7 +231,7 @@ local function attachRow(row)
     button.TextSize = 9
     button.Text = tr("TRY", "COBA")
     button.Parent = row
-    makeCorner(button)
+    corner(button, 7)
 
     button.Activated:Connect(function()
         previewSkin(row.Name)
@@ -156,19 +247,25 @@ list.ChildAdded:Connect(function(child)
 end)
 
 panel:GetPropertyChangedSignal("Visible"):Connect(function()
-    if not panel.Visible then
-        task.spawn(restorePreview)
+    updatePreviewHud()
+end)
+
+backButton.Activated:Connect(function()
+    if activePreview then
+        panel.Visible = true
+        updatePreviewHud()
     end
 end)
 
-openButton.Activated:Connect(function()
-    task.defer(function()
-        if not panel.Visible then task.spawn(restorePreview) end
+endButton.Activated:Connect(function()
+    task.spawn(function()
+        endPreview(false)
     end)
 end)
 
-if closeButton then
-    closeButton.Activated:Connect(function()
-        task.defer(function() task.spawn(restorePreview) end)
-    end)
-end
+player:GetAttributeChangedSignal("LostFoundStationId"):Connect(function()
+    -- Server invalidates previews when a temporary A-H assignment changes.
+    activePreview = nil
+    activePreviewName = nil
+    previewHud.Visible = false
+end)
