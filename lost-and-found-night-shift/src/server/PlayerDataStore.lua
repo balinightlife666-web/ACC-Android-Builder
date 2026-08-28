@@ -290,14 +290,11 @@ function PlayerDataStore.CommitStationProfile(userId, profile, credits, creditsS
             clean.stationProfile = cloneStationProfile(cleanProfile)
 
             local persistedEconomy = sanitizeEconomyStats(clean.economyStats)
-            -- Preserve whichever side has the higher accumulated counters, then add
-            -- the shop spend exactly once to the persisted creditsSpent metric.
+            -- Use the session target as an idempotent floor so UpdateAsync callback
+            -- retries cannot count one shop purchase more than once.
             for key, value in pairs(sessionEconomy) do
-                if key ~= "creditsSpent" then
-                    persistedEconomy[key] = math.max(persistedEconomy[key] or 0, value)
-                end
+                persistedEconomy[key] = math.max(persistedEconomy[key] or 0, value)
             end
-            persistedEconomy.creditsSpent = math.max(persistedEconomy.creditsSpent or 0, (previousEconomy and previousEconomy.creditsSpent or 0)) + spent
             clean.economyStats = persistedEconomy
             return payloadFromClean(clean)
         end)
