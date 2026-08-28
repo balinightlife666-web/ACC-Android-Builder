@@ -1,6 +1,6 @@
-LOST FOUND M4-E.1 CASE + NPC DEPTH PASS
+LOST FOUND M4-E.1A NPC RUNTIME VISUAL HOTFIX
 Triggered: 2026-08-28
-Retry: 37
+Retry: 38
 Universe: 10745354451
 Place: 93699016600671
-Reason: Publish M4-E.1 weighted routine evidence depth + claimant variation. Adds 26 routine archetypes, weighted easy/medium/hard pools, recent-scenario/name suppression, authorized-collector and replacement-tag counter-patterns, richer in-engine NPC outfits/hair/accessories. Preserves Credits/XP/drop rates, collection pair mapping, trading, station ownership, serial/provenance, and canonical Season 1 mystery outcomes.
+Reason: Runtime screenshot QC showed claimant visuals could still resolve as the legacy block mannequin. Harden claimant hook with retry + reconciliation, humanize head/body silhouette, add layered arms/legs/outfits/hair/face/accessories, and stamp a visual version only after successful construction. Roblox geometry only. Preserves all M4-E.1 case logic, Credits/XP/drop rates, collection mapping, trading, station ownership, serial/provenance, and Season 1 mystery canon.
