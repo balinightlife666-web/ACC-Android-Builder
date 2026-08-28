@@ -1,36 +1,54 @@
 # BBYA Music Manager MVP
 
-Android playlist manager for BBYA Social Hub.
+Android playlist library for BBYA Social Hub.
 
 ## Hard contract
 
 The APK is **not a music player**. It contains no Play, Pause, Next, Previous, MediaPlayer, audio streaming, or map playback controls.
 
-Its job is to maintain playlist data per BBYA area/channel. Roblox remains responsible for automatic playback and zone detection.
+Its job is to import/store songs, organize them into playlist channels per BBYA area, and later sync those channels to the backend consumed by Roblox panels. Roblox remains responsible for automatic zone playback.
 
 Target flow:
 
-`BBYA Music Manager APK -> playlist API/backend -> Roblox HttpService -> zone playlist -> automatic Roblox playback + zone panel`
+`Google Drive / phone storage -> BBYA Music Manager -> playlist area -> secure backend -> Roblox panel for same area -> automatic Roblox playback`
 
-## MVP features
+## MVP v0.2 features
 
 - Separate playlist channel per area.
 - Seed channels: Main Club, Underground, Rooftop, Mall, Pasar Malam, Lake / Outdoor.
-- Add custom areas later without rebuilding the data model.
-- Edit area name and genre.
-- Add/edit/delete tracks.
-- Track fields: title, artist, Roblox Audio Asset ID, optional cover Asset ID.
+- Add/edit/delete custom areas and genres.
+- Import one or multiple audio files through Android's system file picker; Google Drive appears there when available on the device.
+- Supported import formats for the Roblox pipeline: MP3, OGG, WAV, FLAC.
+- Imported files are copied into the app's private storage. Removing a playlist entry removes only the APK copy; the original Drive/phone file is not deleted.
+- Conservative 20 MB per-file validation for the downstream Roblox upload pipeline.
+- Edit song title and artist without manually entering a Roblox Asset ID.
 - Enable/disable areas and tracks.
 - Reorder tracks with Up/Down.
-- Local persistence with Android SharedPreferences.
-- Export current catalog as JSON for backend/Roblox integration.
+- Local catalog persistence with SharedPreferences.
+- `MIRROR JSON` exports only the sanitized channel/track contract; private device paths and Drive URIs are never exposed to Roblox.
 
-## Catalog shape
+## Hidden integration fields
+
+Every imported song begins with:
 
 ```json
 {
-  "schemaVersion": 1,
-  "revision": 7,
+  "robloxAssetId": "",
+  "uploadState": "PENDING_UPLOAD",
+  "syncState": "LOCAL_ONLY"
+}
+```
+
+The Asset ID is an internal field. The user does not type or manage it in the APK. In the next integration step, the APK sends the stored audio file to a secure backend; the backend performs the Roblox upload with its server-side credential, stores the returned Asset ID, and publishes the sanitized playlist state.
+
+**Never put a Roblox Open Cloud API key inside the APK.**
+
+## Mirror catalog shape
+
+```json
+{
+  "schemaVersion": 2,
+  "revision": 8,
   "zones": [
     {
       "id": "mall",
@@ -42,10 +60,11 @@ Target flow:
           "id": "track-example",
           "title": "Example Track",
           "artist": "Artist",
-          "robloxAssetId": "123456789",
-          "coverImage": "rbxassetid://987654321",
           "enabled": true,
-          "order": 1
+          "order": 1,
+          "robloxAssetId": "",
+          "coverImage": "",
+          "uploadState": "PENDING_UPLOAD"
         }
       ]
     }
@@ -55,6 +74,6 @@ Target flow:
 
 ## Integration status
 
-MVP is local-only by design. `EXPORT JSON` exposes the exact sanitized catalog shape that the future backend will store. Backend sync and Roblox wiring are deliberately not faked in this revision.
+Drive/phone import + local playlist management is implemented in the MVP branch. Backend upload/sync and Roblox panel wiring are the next layer and are deliberately not faked.
 
-Mall and Pasar Malam channels are included so their future in-map music panels can consume dedicated playlists without sharing the Main Club playlist.
+Mall and Pasar Malam have dedicated channels so their future panels do not share Main Club music.
