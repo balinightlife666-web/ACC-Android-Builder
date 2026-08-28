@@ -1,6 +1,6 @@
-LOST FOUND M5-A.2 STATION SKIN PREVIEW
+LOST FOUND M5-A.3 PREMIUM STATION THEME REWORK
 Triggered: 2026-08-28
-Retry: 45
+Retry: 46
 Universe: 10745354451
 Place: 93699016600671
-Reason: Runtime owner QC requests a no-cost way to see station cosmetics before purchase. Add temporary TRY/COBA preview for current FREE/CREDITS Station Shop skins, auto-restore the persisted equipped skin when shop closes, and never mutate ownership, Credits, economy, persistence, case logic, mystery canon, collectible drops, trading, station isolation, serial/provenance, localization or hard-locked decision colors.
+Reason: Owner runtime QC rejected paid palette-only skins as not worth Credits. Make legacy palette variants zero-Credit unlocks, add three paid Roblox-only full station themes (Army Field, Sakura Night, Street Graffiti) with procedural floor/wall/material/sign/decor treatment, and replace close-to-restore preview UX with walk-around Preview Mode plus BACK TO SHOP / END PREVIEW. No image generation or external theme textures. Preserve case logic/difficulty, mystery canon, Credits earning/XP, collectible drop rates, Index/Archive, trading, station ownership/isolation, serial/provenance, SCAN/TAG/OPEN/DECIDE validation, EN/ID foundation and hard-locked decision colors.
