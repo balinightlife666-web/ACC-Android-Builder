@@ -2,9 +2,6 @@ name: BBYA Music Manager APK
 
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - feat/bbya-music-manager-mvp
 
 permissions:
   contents: read
