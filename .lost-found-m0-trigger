@@ -1,6 +1,6 @@
-LOST FOUND M4-E.1E IDENTITY + M4-E.2 EN-ID LOCALIZATION FOUNDATION
+LOST FOUND M5-A STATION SHOP V1
 Triggered: 2026-08-28
-Retry: 42
+Retry: 43
 Universe: 10745354451
 Place: 93699016600671
-Reason: Runtime v42 exposed claimant identity-coherence mismatch and English-only operational terminology remains a barrier for younger/non-English players. Add authored fictional-NPC presentation coherence, Roblox-locale-driven English/Bahasa Indonesia localization for core case HUD/evidence/prompts/decisions, simple Indonesian terminology, and English fallback. Preserve all case archetypes/difficulty, mystery canon, Credits/XP/drop rates, collection mapping, trading, station ownership, serial/provenance, decision validation and decision colors.
+Reason: M4-E foundation is stable. Add server-authoritative Credits Station Shop v1 with persistent owned/equipped station skins using existing LostAndFound_PlayerData_v1 stationProfile, immediate safe purchase/equip persistence, English/Bahasa Indonesia mobile UI, and cosmetic-only station recolor. Preserve case logic/difficulty, mystery canon, Credits earning/XP rewards, collectible drop rates, trading, station ownership/isolation, serial/provenance, SCAN/TAG/OPEN/DECIDE validation and hard-locked decision colors.
