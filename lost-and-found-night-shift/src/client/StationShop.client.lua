@@ -239,7 +239,10 @@ local function transact(action, skinId)
     else
         status.Text = resultMessage(result)
         local sync = invoke("SYNC", "")
-        if sync and sync.ok then current = sync render() end
+        if sync and sync.ok then
+            current = sync
+            render()
+        end
     end
 end
 
