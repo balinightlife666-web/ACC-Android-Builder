@@ -31,6 +31,13 @@ if not update then
     update.Parent = remotes
 end
 
+local DECISION_COLORS = {
+    RETURN = Color3.fromRGB(58, 170, 90),
+    STORE = Color3.fromRGB(58, 158, 194),
+    QUARANTINE = Color3.fromRGB(214, 151, 55),
+    SECURITY = Color3.fromRGB(190, 58, 62),
+}
+
 local busy = {}
 
 local function creditsValue(player)
@@ -87,12 +94,33 @@ local function currentStationModel(player)
     return station
 end
 
+local function restoreDecisionColors(station)
+    for decision, color in pairs(DECISION_COLORS) do
+        local console = station:FindFirstChild(decision .. "Console")
+        if console then
+            for _, name in ipairs({"Top", "FootGlow"}) do
+                local part = console:FindFirstChild(name)
+                if part and part:IsA("BasePart") then
+                    part:SetAttribute("StationSkinRole", "decisionColor")
+                    part.Color = color
+                    part.Material = Enum.Material.Neon
+                end
+            end
+            local face = console:FindFirstChild("DecisionFace")
+            local gui = face and face:FindFirstChildOfClass("SurfaceGui")
+            local label = gui and gui:FindFirstChild("Text")
+            if label and label:IsA("TextLabel") then label.TextColor3 = color end
+        end
+    end
+end
+
 local function applyEquipped(player)
     local station = currentStationModel(player)
     if not station then return false end
     local profile = PlayerDataStore.GetStationProfile(player.UserId)
     local skin = StationSkinRegistry.Skins[profile.equippedSkin] or StationSkinRegistry.Skins.STANDARD_OPS
     PersonalStationWorld.ApplySkin({ Model = station }, skin)
+    restoreDecisionColors(station)
     player:SetAttribute("LostFoundStationSkin", skin.id)
     return true
 end
