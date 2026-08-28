@@ -1,6 +1,6 @@
-LOST FOUND M5-A.1 INDEX + SHOP HUD STACK HOTFIX
+LOST FOUND M5-A.2 STATION SKIN PREVIEW
 Triggered: 2026-08-28
-Retry: 44
+Retry: 45
 Universe: 10745354451
 Place: 93699016600671
-Reason: Runtime v44 Station Shop button occupied the same top-right Y slot as Collection Index, visually covering INDEX. Move Station Shop to the next utility slot below TRADE while preserving Credits, Index, Archive, Trade, Station Shop behavior, localization, case logic, mystery canon, rewards, collectible drops, trading, station ownership/isolation, serial/provenance and hard-locked decision colors.
+Reason: Runtime owner QC requests a no-cost way to see station cosmetics before purchase. Add temporary TRY/COBA preview for current FREE/CREDITS Station Shop skins, auto-restore the persisted equipped skin when shop closes, and never mutate ownership, Credits, economy, persistence, case logic, mystery canon, collectible drops, trading, station isolation, serial/provenance, localization or hard-locked decision colors.
