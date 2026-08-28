@@ -75,8 +75,8 @@ jobs:
             'mainCF:PointToObjectSpace(leftMass.Position).X',
             'mainCF:PointToObjectSpace(rightMass.Position).X',
             'entry.gui.Face = signX < 0 and Enum.NormalId.Right or Enum.NormalId.Left',
-            '← LIBRARY / CANTEEN',
-            'ADMIN / CLUBS',
+            'entry.label.Text = "← " .. baseText',
+            'entry.label.Text = baseText .. " →"',
             'V073OppositeSignage',
             'ASC_V073DirectionalSignFixed',
             'ASC_SignageOrientationPass'
