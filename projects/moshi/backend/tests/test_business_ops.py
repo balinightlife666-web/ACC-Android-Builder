@@ -109,7 +109,7 @@ def test_order_status_stock_and_permissions() -> None:
         assert confirmed.status_code == 200, confirmed.text
         assert confirmed.json()["status"] == "confirmed"
 
-        catalog = client.get("/v1/business/catalog", headers=seller["headers"])
+        catalog = client.get("/v1/business/me/catalog", headers=seller["headers"])
         assert catalog.status_code == 200
         assert next(item for item in catalog.json() if item["id"] == product["id"])["stock_qty"] == 3
 
@@ -119,7 +119,7 @@ def test_order_status_stock_and_permissions() -> None:
             json={"status": "confirmed"},
         )
         assert same_confirm.status_code == 200
-        catalog = client.get("/v1/business/catalog", headers=seller["headers"])
+        catalog = client.get("/v1/business/me/catalog", headers=seller["headers"])
         assert next(item for item in catalog.json() if item["id"] == product["id"])["stock_qty"] == 3
 
         processing = client.patch(
@@ -135,7 +135,7 @@ def test_order_status_stock_and_permissions() -> None:
             json={"status": "cancelled"},
         )
         assert cancelled.status_code == 200
-        catalog = client.get("/v1/business/catalog", headers=seller["headers"])
+        catalog = client.get("/v1/business/me/catalog", headers=seller["headers"])
         assert next(item for item in catalog.json() if item["id"] == product["id"])["stock_qty"] == 5
 
         terminal = client.patch(
