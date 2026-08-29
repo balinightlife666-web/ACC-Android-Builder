@@ -22,19 +22,14 @@ def get_db() -> Generator[Session, None, None]:
         db.close()
 
 
-def get_current_user(
-    credentials: HTTPAuthorizationCredentials | None = Depends(bearer),
-    db: Session = Depends(get_db),
-) -> User:
+def authenticate_access_token(token: str, db: Session) -> User:
     unauthorized = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="invalid or expired access token",
         headers={"WWW-Authenticate": "Bearer"},
     )
-    if credentials is None:
-        raise unauthorized
     try:
-        payload = decode_access_token(credentials.credentials)
+        payload = decode_access_token(token)
         user_id = str(payload["sub"])
         session_id = str(payload["sid"])
     except (jwt.InvalidTokenError, KeyError):
@@ -47,3 +42,16 @@ def get_current_user(
     if user is None:
         raise unauthorized
     return user
+
+
+def get_current_user(
+    credentials: HTTPAuthorizationCredentials | None = Depends(bearer),
+    db: Session = Depends(get_db),
+) -> User:
+    if credentials is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="invalid or expired access token",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    return authenticate_access_token(credentials.credentials, db)
