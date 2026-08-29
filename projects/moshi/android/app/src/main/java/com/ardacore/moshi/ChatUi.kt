@@ -28,6 +28,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.ardacore.moshi.auth.AuthSession
@@ -95,11 +96,20 @@ private fun UserResultCard(user: ChatUser, onClick: () -> Unit) {
 
 @Composable
 private fun ConversationCard(conversation: ChatConversation, onClick: () -> Unit) {
+    val latest = conversation.latestMessage
     Card(onClick = onClick, modifier = Modifier.fillMaxWidth()) {
         Row(modifier = Modifier.fillMaxWidth().padding(14.dp), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(conversation.peer?.displayName ?: "MOSHI chat", fontWeight = FontWeight.SemiBold)
-                Text(conversation.latestMessage?.body ?: "Start talking", maxLines = 1, style = MaterialTheme.typography.bodyMedium)
+                Text(
+                    when {
+                        latest == null -> "Start talking"
+                        latest.isDeleted -> "Message deleted"
+                        else -> latest.body
+                    },
+                    maxLines = 1,
+                    style = MaterialTheme.typography.bodyMedium,
+                )
             }
             if (conversation.unreadCount > 0) {
                 Spacer(Modifier.width(8.dp))
@@ -114,6 +124,13 @@ private fun ConversationScreen(controller: ChatController, me: MoshiUser, modifi
     val scope = rememberCoroutineScope()
     val conversation = controller.activeConversation ?: return
     var messageText by remember(conversation.id) { mutableStateOf("") }
+    var selectedId by remember(conversation.id) { mutableStateOf<String?>(null) }
+    var replyToId by remember(conversation.id) { mutableStateOf<String?>(null) }
+    var editingId by remember(conversation.id) { mutableStateOf<String?>(null) }
+    val selected = controller.messages.firstOrNull { it.id == selectedId }
+    val replyingTo = controller.messages.firstOrNull { it.id == replyToId }
+    val editing = controller.messages.firstOrNull { it.id == editingId }
+
     Column(modifier = modifier.fillMaxSize().padding(12.dp)) {
         Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             OutlinedButton(onClick = controller::closeConversation) { Text("Back") }
@@ -124,27 +141,133 @@ private fun ConversationScreen(controller: ChatController, me: MoshiUser, modifi
         }
         HorizontalDivider(Modifier.padding(vertical = 8.dp))
         LazyColumn(modifier = Modifier.weight(1f).fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            items(controller.messages, key = { it.id }) { item -> MessageBubble(item, item.senderId == me.id) }
+            items(controller.messages, key = { it.id }) { item ->
+                MessageBubble(
+                    message = item,
+                    mine = item.senderId == me.id,
+                    selected = selectedId == item.id,
+                    onSelect = { selectedId = if (selectedId == item.id) null else item.id },
+                )
+            }
         }
+
+        if (selected != null) {
+            MessageActionBar(
+                message = selected,
+                mine = selected.senderId == me.id,
+                enabled = !controller.busy,
+                onReply = {
+                    replyToId = selected.id
+                    editingId = null
+                    selectedId = null
+                    messageText = ""
+                },
+                onReact = { emoji -> scope.launch { controller.toggleReaction(selected, emoji) } },
+                onEdit = {
+                    editingId = selected.id
+                    replyToId = null
+                    selectedId = null
+                    messageText = selected.body
+                },
+                onDelete = {
+                    selectedId = null
+                    scope.launch { controller.delete(selected) }
+                },
+                onCancel = { selectedId = null },
+            )
+        }
+
+        replyingTo?.let {
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                Text("Replying to: ${if (it.isDeleted) "Message deleted" else it.body}", maxLines = 1, modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodySmall)
+                TextButton(onClick = { replyToId = null }) { Text("Cancel") }
+            }
+        }
+        editing?.let {
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                Text("Editing message", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold)
+                TextButton(onClick = { editingId = null; messageText = "" }) { Text("Cancel") }
+            }
+        }
+
         controller.error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
         Row(modifier = Modifier.fillMaxWidth().padding(top = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-            OutlinedTextField(value = messageText, onValueChange = { messageText = it }, modifier = Modifier.weight(1f), placeholder = { Text("Message") }, maxLines = 4)
+            OutlinedTextField(value = messageText, onValueChange = { messageText = it }, modifier = Modifier.weight(1f), placeholder = { Text(if (editing != null) "Edit message" else "Message") }, maxLines = 4)
             Button(onClick = {
                 val body = messageText
                 messageText = ""
-                scope.launch { controller.send(body) }
-            }, enabled = messageText.isNotBlank() && !controller.busy) { Text("Send") }
+                if (editing != null) {
+                    editingId = null
+                    scope.launch { controller.edit(editing, body) }
+                } else {
+                    val replyId = replyToId
+                    replyToId = null
+                    scope.launch { controller.send(body, replyId) }
+                }
+            }, enabled = messageText.isNotBlank() && !controller.busy) { Text(if (editing != null) "Save" else "Send") }
         }
     }
 }
 
 @Composable
-private fun MessageBubble(message: ChatMessage, mine: Boolean) {
+private fun MessageActionBar(
+    message: ChatMessage,
+    mine: Boolean,
+    enabled: Boolean,
+    onReply: () -> Unit,
+    onReact: (String) -> Unit,
+    onEdit: () -> Unit,
+    onDelete: () -> Unit,
+    onCancel: () -> Unit,
+) {
+    Column(modifier = Modifier.fillMaxWidth()) {
+        HorizontalDivider()
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly, verticalAlignment = Alignment.CenterVertically) {
+            TextButton(onClick = onReply, enabled = enabled) { Text("Reply") }
+            TextButton(onClick = { onReact("👍") }, enabled = enabled && !message.isDeleted) { Text("👍") }
+            TextButton(onClick = { onReact("❤️") }, enabled = enabled && !message.isDeleted) { Text("❤️") }
+            TextButton(onClick = { onReact("😂") }, enabled = enabled && !message.isDeleted) { Text("😂") }
+            TextButton(onClick = onCancel) { Text("Close") }
+        }
+        if (mine && !message.isDeleted) {
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                TextButton(onClick = onEdit, enabled = enabled) { Text("Edit") }
+                TextButton(onClick = onDelete, enabled = enabled) { Text("Delete") }
+            }
+        }
+    }
+}
+
+@Composable
+private fun MessageBubble(message: ChatMessage, mine: Boolean, selected: Boolean, onSelect: () -> Unit) {
     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = if (mine) Arrangement.End else Arrangement.Start) {
-        Card(modifier = Modifier.fillMaxWidth(0.78f)) {
-            Column(Modifier.padding(10.dp)) {
-                Text(message.body)
-                if (mine) Text(message.state, style = MaterialTheme.typography.labelSmall)
+        Card(onClick = onSelect, modifier = Modifier.fillMaxWidth(0.78f)) {
+            Column(Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                if (selected) Text("Selected", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.SemiBold)
+                message.replyTo?.let { reply ->
+                    Text(
+                        "↪ ${if (reply.isDeleted) "Message deleted" else reply.body}",
+                        style = MaterialTheme.typography.bodySmall,
+                        maxLines = 2,
+                    )
+                    HorizontalDivider()
+                }
+                if (message.isDeleted) {
+                    Text("Message deleted", fontStyle = FontStyle.Italic)
+                } else {
+                    Text(message.body)
+                }
+                if (message.reactions.isNotEmpty()) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        message.reactions.forEach { reaction ->
+                            Text("${reaction.emoji} ${reaction.count}", style = MaterialTheme.typography.labelMedium, fontWeight = if (reaction.reactedByMe) FontWeight.Bold else FontWeight.Normal)
+                        }
+                    }
+                }
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    if (message.editedAt != null && !message.isDeleted) Text("edited", style = MaterialTheme.typography.labelSmall)
+                    if (mine) Text(message.state, style = MaterialTheme.typography.labelSmall)
+                }
             }
         }
     }
