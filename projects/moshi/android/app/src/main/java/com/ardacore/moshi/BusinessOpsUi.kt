@@ -2,7 +2,6 @@ package com.ardacore.moshi
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
@@ -67,13 +66,11 @@ fun BusinessOpsPanel(session: AuthSession, modifier: Modifier = Modifier) {
                                 Text(title, fontWeight = FontWeight.SemiBold)
                                 Text("${order.status.replace('_', ' ')} · ${order.totalAmount?.let { "${order.currency} $it" } ?: "Ask price"}")
                                 if (order.note.isNotBlank()) Text(order.note)
-                                FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                    controller.allowedStatusActions(order).forEach { target ->
-                                        OutlinedButton(
-                                            onClick = { scope.launch { controller.setOrderStatus(order, target) } },
-                                            enabled = !controller.busy,
-                                        ) { Text(target.replace('_', ' ')) }
-                                    }
+                                controller.allowedStatusActions(order).forEach { target ->
+                                    OutlinedButton(
+                                        onClick = { scope.launch { controller.setOrderStatus(order, target) } },
+                                        enabled = !controller.busy,
+                                    ) { Text(target.replace('_', ' ')) }
                                 }
                             }
                         }
@@ -112,24 +109,20 @@ fun BusinessOpsPanel(session: AuthSession, modifier: Modifier = Modifier) {
                         onClick = { scope.launch { if (controller.createLabel(labelName)) labelName = "" } },
                         enabled = labelName.isNotBlank() && !controller.busy,
                     ) { Text("Create label") }
-                    FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                        controller.labels.forEach { label ->
-                            OutlinedButton(onClick = { scope.launch { controller.deleteLabel(label) } }) { Text("${label.name} ×") }
-                        }
+                    controller.labels.forEach { label ->
+                        OutlinedButton(onClick = { scope.launch { controller.deleteLabel(label) } }) { Text("${label.name} ×") }
                     }
                     OutlinedTextField(customerUsername, { customerUsername = it }, label = { Text("Customer @username") }, modifier = Modifier.fillMaxWidth())
                     Button(
                         onClick = { scope.launch { controller.loadCustomer(customerUsername) } },
                         enabled = customerUsername.isNotBlank() && !controller.busy,
                     ) { Text("Load customer labels") }
-                    FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                        controller.labels.forEach { label ->
-                            val assigned = controller.selectedCustomerLabels.any { it.id == label.id }
-                            if (assigned) {
-                                Button(onClick = { scope.launch { controller.toggleCustomerLabel(customerUsername, label) } }) { Text(label.name) }
-                            } else {
-                                OutlinedButton(onClick = { scope.launch { controller.toggleCustomerLabel(customerUsername, label) } }) { Text(label.name) }
-                            }
+                    controller.labels.forEach { label ->
+                        val assigned = controller.selectedCustomerLabels.any { it.id == label.id }
+                        if (assigned) {
+                            Button(onClick = { scope.launch { controller.toggleCustomerLabel(customerUsername, label) } }) { Text(label.name) }
+                        } else {
+                            OutlinedButton(onClick = { scope.launch { controller.toggleCustomerLabel(customerUsername, label) } }) { Text(label.name) }
                         }
                     }
                     controller.error?.let {
