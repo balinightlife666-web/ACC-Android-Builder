@@ -119,6 +119,7 @@ class ChatController(
             state = "queued",
             replyTo = replyPreview,
             reactions = emptyList(),
+            attachments = emptyList(),
         )
         local.enqueue(
             conversationId = conversation.id,
@@ -135,6 +136,36 @@ class ChatController(
             if (!sent) error = "Message queued. MOSHI will retry when connected."
         }
         runCatching { syncConversations() }
+    }
+
+    suspend fun sendAttachment(
+        body: String,
+        replyToId: String?,
+        kind: String,
+        fileName: String,
+        contentType: String,
+        bytes: ByteArray,
+    ) = runBusy {
+        val conversation = activeConversation ?: return@runBusy
+        val ticket = api.initUpload(
+            accessToken = session.accessToken,
+            kind = kind,
+            fileName = fileName,
+            contentType = contentType,
+            sizeBytes = bytes.size.toLong(),
+        )
+        val attachment = api.uploadContent(session.accessToken, ticket, bytes)
+        val sent = api.sendMessage(
+            accessToken = session.accessToken,
+            conversationId = conversation.id,
+            clientMessageId = UUID.randomUUID().toString(),
+            body = body.trim(),
+            replyToId = replyToId,
+            attachmentIds = listOf(attachment.id),
+        )
+        local.cacheMessage(sent)
+        upsertMessage(sent)
+        syncConversations()
     }
 
     suspend fun retryPending() = runBusy {
