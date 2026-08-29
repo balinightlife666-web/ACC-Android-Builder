@@ -1,0 +1,14 @@
+{
+  "status": "QC_PASS",
+  "project": "AFTER SCHOOL CITY",
+  "mode": "SCHOOL_ROAD_VISUAL_DEFECT_CLEANUP_V0_7_7",
+  "sourceRepo": "ardarawk-cloud/ACC-Roblox-maps",
+  "sourceCommit": "c6f0f836d69ddbb8648765b6647709447c3ea8fa",
+  "baseLiveCommit": "f3e86fbe1bb056ea1e21f2000dc9dee7d289a49b",
+  "rojoVersion": "7.7.0",
+  "placeBytes": 100748,
+  "placeSha256": "01dce63868d630b5ac5b6a007b6e40ba326295a31505b8197ccf6c2776566620",
+  "runId": "33251160995",
+  "checkedAt": "2026-08-29T11:53:18Z",
+  "note": "Hosted QC only; NOT PUBLISHED. Narrow 3-file delta from LIVE v26; legacy SPORTS wayfinding removed, SportsWestBufferWalk road crossing removed, SportsGround road-edge overlap trimmed, Club Rooms placeholder pads/tables/sinks/signage refined; protected source unchanged."
+}
