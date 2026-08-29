@@ -52,17 +52,67 @@ class ChatApi(
         parseMessages(request("GET", "/v1/conversations/$conversationId/messages", accessToken = accessToken))
     }
 
+    suspend fun initUpload(
+        accessToken: String,
+        kind: String,
+        fileName: String,
+        contentType: String,
+        sizeBytes: Long,
+    ): UploadTicket = withContext(Dispatchers.IO) {
+        val json = JSONObject(
+            request(
+                method = "POST",
+                path = "/v1/uploads",
+                accessToken = accessToken,
+                body = JSONObject()
+                    .put("kind", kind)
+                    .put("file_name", fileName)
+                    .put("content_type", contentType)
+                    .put("size_bytes", sizeBytes),
+            )
+        )
+        UploadTicket(
+            id = json.getString("id"),
+            kind = json.getString("kind"),
+            fileName = json.getString("file_name"),
+            contentType = json.getString("content_type"),
+            sizeBytes = json.getLong("size_bytes"),
+            status = json.getString("status"),
+            uploadPath = json.getString("upload_path"),
+        )
+    }
+
+    suspend fun uploadContent(
+        accessToken: String,
+        ticket: UploadTicket,
+        bytes: ByteArray,
+    ): ChatAttachment = withContext(Dispatchers.IO) {
+        parseAttachment(
+            JSONObject(
+                rawRequest(
+                    method = "PUT",
+                    path = ticket.uploadPath,
+                    accessToken = accessToken,
+                    contentType = ticket.contentType,
+                    bytes = bytes,
+                )
+            )
+        )
+    }
+
     suspend fun sendMessage(
         accessToken: String,
         conversationId: String,
         clientMessageId: String,
         body: String,
         replyToId: String? = null,
+        attachmentIds: List<String> = emptyList(),
     ): ChatMessage = withContext(Dispatchers.IO) {
         val payload = JSONObject()
             .put("client_message_id", clientMessageId)
             .put("body", body)
         if (replyToId != null) payload.put("reply_to_id", replyToId)
+        if (attachmentIds.isNotEmpty()) payload.put("attachment_ids", JSONArray(attachmentIds))
         parseMessage(
             JSONObject(
                 request(
@@ -123,6 +173,8 @@ class ChatApi(
         Unit
     }
 
+    fun absoluteUrl(path: String): String = if (path.startsWith("http://") || path.startsWith("https://")) path else "$baseUrl$path"
+
     fun openRealtime(
         accessToken: String,
         onOpen: () -> Unit,
@@ -177,7 +229,30 @@ class ChatApi(
             "DELETE" -> builder.delete()
             else -> error("Unsupported method $method")
         }
-        client.newCall(builder.build()).execute().use { response ->
+        return execute(builder.build())
+    }
+
+    private fun rawRequest(
+        method: String,
+        path: String,
+        accessToken: String,
+        contentType: String,
+        bytes: ByteArray,
+    ): String {
+        val body = bytes.toRequestBody(contentType.toMediaType())
+        val builder = Request.Builder()
+            .url("$baseUrl$path")
+            .header("Accept", "application/json")
+            .header("Authorization", "Bearer $accessToken")
+        when (method) {
+            "PUT" -> builder.put(body)
+            else -> error("Unsupported raw method $method")
+        }
+        return execute(builder.build())
+    }
+
+    private fun execute(request: Request): String {
+        client.newCall(request).execute().use { response ->
             val text = response.body?.string().orEmpty()
             if (!response.isSuccessful) {
                 val detail = runCatching { JSONObject(text).optString("detail") }.getOrNull()
@@ -213,6 +288,7 @@ class ChatApi(
     fun parseMessage(json: JSONObject): ChatMessage {
         val replyJson = json.optJSONObject("reply_to")
         val reactionsJson = json.optJSONArray("reactions") ?: JSONArray()
+        val attachmentsJson = json.optJSONArray("attachments") ?: JSONArray()
         return ChatMessage(
             id = json.getString("id"),
             conversationId = json.getString("conversation_id"),
@@ -240,8 +316,19 @@ class ChatApi(
                     reactedByMe = item.optBoolean("reacted_by_me", false),
                 )
             },
+            attachments = List(attachmentsJson.length()) { index -> parseAttachment(attachmentsJson.getJSONObject(index)) },
         )
     }
+
+    private fun parseAttachment(json: JSONObject): ChatAttachment = ChatAttachment(
+        id = json.getString("id"),
+        kind = json.getString("kind"),
+        fileName = json.getString("file_name"),
+        contentType = json.getString("content_type"),
+        sizeBytes = json.getLong("size_bytes"),
+        status = json.getString("status"),
+        downloadPath = json.getString("download_path"),
+    )
 
     private fun parseUser(json: JSONObject): ChatUser = ChatUser(
         id = json.getString("id"),
