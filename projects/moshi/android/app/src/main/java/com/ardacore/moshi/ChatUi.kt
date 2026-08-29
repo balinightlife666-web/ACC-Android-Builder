@@ -1,6 +1,7 @@
 package com.ardacore.moshi
 
 import android.content.Context
+import android.content.Intent
 import android.net.Uri
 import android.provider.OpenableColumns
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -39,6 +40,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.ardacore.moshi.auth.AuthSession
 import com.ardacore.moshi.auth.MoshiUser
+import com.ardacore.moshi.chat.ChatAttachment
 import com.ardacore.moshi.chat.ChatController
 import com.ardacore.moshi.chat.ChatConversation
 import com.ardacore.moshi.chat.ChatMessage
@@ -47,7 +49,6 @@ import com.ardacore.moshi.chat.local.ChatLocalStore
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import java.io.ByteArrayOutputStream
 
 private const val MAX_ATTACHMENT_BYTES = 20 * 1024 * 1024
 
@@ -55,7 +56,8 @@ private data class PickedAttachmentData(
     val kind: String,
     val fileName: String,
     val contentType: String,
-    val bytes: ByteArray,
+    val sizeBytes: Long,
+    val uri: String,
 )
 
 @Composable
@@ -79,8 +81,16 @@ private fun ConversationListScreen(controller: ChatController, modifier: Modifie
         Text("MOSHI", style = MaterialTheme.typography.headlineLarge, fontWeight = FontWeight.Bold)
         Text("Chats", style = MaterialTheme.typography.titleLarge)
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            OutlinedTextField(value = query, onValueChange = { query = it }, modifier = Modifier.weight(1f), label = { Text("Find @username") }, singleLine = true)
-            Button(onClick = { scope.launch { controller.search(query) } }, enabled = query.isNotBlank() && !controller.busy) { Text("Find") }
+            OutlinedTextField(
+                value = query,
+                onValueChange = { query = it },
+                modifier = Modifier.weight(1f),
+                label = { Text("Find @username") },
+                singleLine = true,
+            )
+            Button(onClick = { scope.launch { controller.search(query) } }, enabled = query.isNotBlank() && !controller.busy) {
+                Text("Find")
+            }
         }
         controller.error?.let {
             Text(it, color = MaterialTheme.colorScheme.error)
@@ -91,7 +101,9 @@ private fun ConversationListScreen(controller: ChatController, modifier: Modifie
         }
         if (controller.searchResults.isNotEmpty()) {
             Text("People", fontWeight = FontWeight.SemiBold)
-            controller.searchResults.forEach { user -> UserResultCard(user) { scope.launch { controller.startDirect(user) } } }
+            controller.searchResults.forEach { user ->
+                UserResultCard(user) { scope.launch { controller.startDirect(user) } }
+            }
             HorizontalDivider()
         }
         if (controller.conversations.isEmpty()) {
@@ -128,7 +140,11 @@ private fun ConversationCard(conversation: ChatConversation, onClick: () -> Unit
         else -> "Message"
     }
     Card(onClick = onClick, modifier = Modifier.fillMaxWidth()) {
-        Row(modifier = Modifier.fillMaxWidth().padding(14.dp), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(14.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(conversation.peer?.displayName ?: "MOSHI chat", fontWeight = FontWeight.SemiBold)
                 Text(latestText, maxLines = 1, style = MaterialTheme.typography.bodyMedium)
@@ -164,21 +180,43 @@ private fun ConversationScreen(controller: ChatController, me: MoshiUser, modifi
         val replyId = replyToId
         scope.launch {
             try {
-                val picked = withContext(Dispatchers.IO) { readPickedAttachment(context, uri, kind) }
+                runCatching {
+                    context.contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                }
+                val picked = withContext(Dispatchers.IO) { readPickedAttachmentMetadata(context, uri, kind) }
                 controller.sendAttachment(
                     body = body,
                     replyToId = replyId,
                     kind = picked.kind,
                     fileName = picked.fileName,
                     contentType = picked.contentType,
-                    bytes = picked.bytes,
+                    sizeBytes = picked.sizeBytes,
+                    uri = picked.uri,
                 )
-                if (controller.error == null) {
+                if (controller.error == null || controller.error?.contains("queued", ignoreCase = true) == true) {
                     messageText = ""
                     replyToId = null
                 }
             } catch (t: Throwable) {
-                attachmentError = t.message ?: "Could not read attachment"
+                attachmentError = t.message ?: "Could not queue attachment"
+            } finally {
+                attachmentBusy = false
+            }
+        }
+    }
+
+    fun openAttachment(attachment: ChatAttachment) {
+        if (attachment.downloadPath.isBlank() || attachment.status != "ready") return
+        attachmentBusy = true
+        attachmentError = null
+        scope.launch {
+            try {
+                val bytes = controller.downloadAttachment(attachment) ?: return@launch
+                withContext(Dispatchers.IO) {
+                    openDownloadedAttachment(context.applicationContext, attachment, bytes)
+                }
+            } catch (t: Throwable) {
+                attachmentError = t.message ?: "Could not open attachment"
             } finally {
                 attachmentBusy = false
             }
@@ -193,7 +231,11 @@ private fun ConversationScreen(controller: ChatController, me: MoshiUser, modifi
     }
 
     Column(modifier = modifier.fillMaxSize().padding(12.dp)) {
-        Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
             OutlinedButton(onClick = controller::closeConversation) { Text("Back") }
             Column {
                 Text(conversation.peer?.displayName ?: "Chat", fontWeight = FontWeight.Bold)
@@ -208,6 +250,7 @@ private fun ConversationScreen(controller: ChatController, me: MoshiUser, modifi
                     mine = item.senderId == me.id,
                     selected = selectedId == item.id,
                     onSelect = { selectedId = if (selectedId == item.id) null else item.id },
+                    onOpenAttachment = ::openAttachment,
                 )
             }
         }
@@ -240,7 +283,12 @@ private fun ConversationScreen(controller: ChatController, me: MoshiUser, modifi
 
         replyingTo?.let {
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                Text("Replying to: ${if (it.isDeleted) "Message deleted" else it.body}", maxLines = 1, modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodySmall)
+                Text(
+                    "Replying to: ${if (it.isDeleted) "Message deleted" else it.body}",
+                    maxLines = 1,
+                    modifier = Modifier.weight(1f),
+                    style = MaterialTheme.typography.bodySmall,
+                )
                 TextButton(onClick = { replyToId = null }) { Text("Cancel") }
             }
         }
@@ -255,13 +303,14 @@ private fun ConversationScreen(controller: ChatController, me: MoshiUser, modifi
         attachmentError?.let { Text(it, color = MaterialTheme.colorScheme.error) }
         if (hasQueued) {
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                Text("Queued messages are saved on this device.", style = MaterialTheme.typography.bodySmall)
-                TextButton(onClick = { scope.launch { controller.retryPending() } }, enabled = !controller.busy && !attachmentBusy) { Text("Retry now") }
+                Text("Queued messages/files are saved on this device.", style = MaterialTheme.typography.bodySmall)
+                TextButton(onClick = { scope.launch { controller.retryPending() } }, enabled = !controller.busy && !attachmentBusy) {
+                    Text("Retry now")
+                }
             }
         }
-        if (attachmentBusy) {
-            Text("Uploading attachment…", style = MaterialTheme.typography.bodySmall)
-        }
+        if (attachmentBusy) Text("Working with attachment…", style = MaterialTheme.typography.bodySmall)
+
         if (editing == null) {
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedButton(
@@ -289,20 +338,34 @@ private fun ConversationScreen(controller: ChatController, me: MoshiUser, modifi
                 Text("Max 20 MB", modifier = Modifier.align(Alignment.CenterVertically), style = MaterialTheme.typography.labelSmall)
             }
         }
-        Row(modifier = Modifier.fillMaxWidth().padding(top = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-            OutlinedTextField(value = messageText, onValueChange = { messageText = it }, modifier = Modifier.weight(1f), placeholder = { Text(if (editing != null) "Edit message" else "Message") }, maxLines = 4)
-            Button(onClick = {
-                val body = messageText
-                messageText = ""
-                if (editing != null) {
-                    editingId = null
-                    scope.launch { controller.edit(editing, body) }
-                } else {
-                    val replyId = replyToId
-                    replyToId = null
-                    scope.launch { controller.send(body, replyId) }
-                }
-            }, enabled = messageText.isNotBlank() && !controller.busy && !attachmentBusy) { Text(if (editing != null) "Save" else "Send") }
+
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            OutlinedTextField(
+                value = messageText,
+                onValueChange = { messageText = it },
+                modifier = Modifier.weight(1f),
+                placeholder = { Text(if (editing != null) "Edit message" else "Message") },
+                maxLines = 4,
+            )
+            Button(
+                onClick = {
+                    val body = messageText
+                    messageText = ""
+                    if (editing != null) {
+                        editingId = null
+                        scope.launch { controller.edit(editing, body) }
+                    } else {
+                        val replyId = replyToId
+                        replyToId = null
+                        scope.launch { controller.send(body, replyId) }
+                    }
+                },
+                enabled = messageText.isNotBlank() && !controller.busy && !attachmentBusy,
+            ) { Text(if (editing != null) "Save" else "Send") }
         }
     }
 }
@@ -337,17 +400,19 @@ private fun MessageActionBar(
 }
 
 @Composable
-private fun MessageBubble(message: ChatMessage, mine: Boolean, selected: Boolean, onSelect: () -> Unit) {
+private fun MessageBubble(
+    message: ChatMessage,
+    mine: Boolean,
+    selected: Boolean,
+    onSelect: () -> Unit,
+    onOpenAttachment: (ChatAttachment) -> Unit,
+) {
     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = if (mine) Arrangement.End else Arrangement.Start) {
         Card(onClick = onSelect, modifier = Modifier.fillMaxWidth(0.78f)) {
             Column(Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 if (selected) Text("Selected", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.SemiBold)
                 message.replyTo?.let { reply ->
-                    Text(
-                        "↪ ${if (reply.isDeleted) "Message deleted" else reply.body}",
-                        style = MaterialTheme.typography.bodySmall,
-                        maxLines = 2,
-                    )
+                    Text("↪ ${if (reply.isDeleted) "Message deleted" else reply.body}", style = MaterialTheme.typography.bodySmall, maxLines = 2)
                     HorizontalDivider()
                 }
                 if (message.isDeleted) {
@@ -356,10 +421,15 @@ private fun MessageBubble(message: ChatMessage, mine: Boolean, selected: Boolean
                     if (message.body.isNotBlank()) Text(message.body)
                     message.attachments.forEach { attachment ->
                         Card(modifier = Modifier.fillMaxWidth()) {
-                            Column(Modifier.padding(8.dp)) {
+                            Column(Modifier.padding(8.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                                 Text(if (attachment.kind == "image") "Photo" else "File", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.SemiBold)
                                 Text(attachment.fileName, fontWeight = FontWeight.Medium)
                                 Text(formatBytes(attachment.sizeBytes), style = MaterialTheme.typography.labelSmall)
+                                if (attachment.status == "ready" && attachment.downloadPath.isNotBlank()) {
+                                    TextButton(onClick = { onOpenAttachment(attachment) }) { Text("Open") }
+                                } else {
+                                    Text(attachment.status.replaceFirstChar { it.uppercase() }, style = MaterialTheme.typography.labelSmall)
+                                }
                             }
                         }
                     }
@@ -367,7 +437,11 @@ private fun MessageBubble(message: ChatMessage, mine: Boolean, selected: Boolean
                 if (message.reactions.isNotEmpty()) {
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         message.reactions.forEach { reaction ->
-                            Text("${reaction.emoji} ${reaction.count}", style = MaterialTheme.typography.labelMedium, fontWeight = if (reaction.reactedByMe) FontWeight.Bold else FontWeight.Normal)
+                            Text(
+                                "${reaction.emoji} ${reaction.count}",
+                                style = MaterialTheme.typography.labelMedium,
+                                fontWeight = if (reaction.reactedByMe) FontWeight.Bold else FontWeight.Normal,
+                            )
                         }
                     }
                 }
@@ -380,7 +454,7 @@ private fun MessageBubble(message: ChatMessage, mine: Boolean, selected: Boolean
     }
 }
 
-private fun readPickedAttachment(context: Context, uri: Uri, kind: String): PickedAttachmentData {
+private fun readPickedAttachmentMetadata(context: Context, uri: Uri, kind: String): PickedAttachmentData {
     val resolver = context.contentResolver
     var fileName = if (kind == "image") "photo" else "file"
     var declaredSize: Long? = null
@@ -392,34 +466,31 @@ private fun readPickedAttachment(context: Context, uri: Uri, kind: String): Pick
             if (sizeIndex >= 0 && !cursor.isNull(sizeIndex)) declaredSize = cursor.getLong(sizeIndex)
         }
     }
-    if (declaredSize != null && declaredSize!! > MAX_ATTACHMENT_BYTES) {
-        error("Attachment is larger than 20 MB")
-    }
     val contentType = resolver.getType(uri)?.lowercase() ?: error("Unknown attachment type")
-    val output = ByteArrayOutputStream()
-    resolver.openInputStream(uri)?.use { input ->
+    val actualSize = declaredSize?.takeIf { it > 0 } ?: resolver.openInputStream(uri)?.use { input ->
         val buffer = ByteArray(64 * 1024)
-        var total = 0
+        var total = 0L
         while (true) {
             val count = input.read(buffer)
             if (count < 0) break
             total += count
             if (total > MAX_ATTACHMENT_BYTES) error("Attachment is larger than 20 MB")
-            output.write(buffer, 0, count)
         }
-    } ?: error("Could not open attachment")
-    val bytes = output.toByteArray()
-    if (bytes.isEmpty()) error("Attachment is empty")
+        total
+    } ?: error("Could not inspect attachment")
+    if (actualSize <= 0) error("Attachment is empty")
+    if (actualSize > MAX_ATTACHMENT_BYTES) error("Attachment is larger than 20 MB")
     return PickedAttachmentData(
         kind = kind,
         fileName = fileName,
         contentType = contentType,
-        bytes = bytes,
+        sizeBytes = actualSize,
+        uri = uri.toString(),
     )
 }
 
 private fun formatBytes(size: Long): String = when {
-    size >= 1024L * 1024L -> "%.1f MB".format(size.toDouble() / (1024.0 * 1024.0))
-    size >= 1024L -> "%.1f KB".format(size.toDouble() / 1024.0)
+    size >= 1024L * 1024L -> String.format("%.1f MB", size / (1024.0 * 1024.0))
+    size >= 1024L -> String.format("%.1f KB", size / 1024.0)
     else -> "$size B"
 }
