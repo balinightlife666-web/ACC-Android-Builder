@@ -33,6 +33,8 @@ class ChatController(
         private set
     var activeConversation: ChatConversation? by mutableStateOf(null)
         private set
+    var groupMembers: List<GroupMember> by mutableStateOf(emptyList())
+        private set
     var messages: List<ChatMessage> by mutableStateOf(emptyList())
         private set
     var busy: Boolean by mutableStateOf(false)
@@ -61,6 +63,7 @@ class ChatController(
     suspend fun startDirect(user: ChatUser) {
         val conversation = runBusyResult { api.createDirect(session.accessToken, user.username) } ?: return
         activeConversation = conversation
+        groupMembers = emptyList()
         searchResults = emptyList()
         local.cacheConversations(listOf(conversation) + conversations.filterNot { it.id == conversation.id })
         runBusy {
@@ -70,10 +73,27 @@ class ChatController(
         }
     }
 
+    suspend fun createGroup(title: String, usernames: List<String>) {
+        val cleanTitle = title.trim()
+        if (cleanTitle.isBlank()) return
+        val normalized = usernames.map { it.trim().removePrefix("@") }.filter { it.isNotBlank() }.distinct()
+        val conversation = runBusyResult { api.createGroup(session.accessToken, cleanTitle, normalized) } ?: return
+        activeConversation = conversation
+        searchResults = emptyList()
+        local.cacheConversations(listOf(conversation) + conversations.filterNot { it.id == conversation.id })
+        runBusy {
+            loadGroupMembersInternal(conversation)
+            loadConversationMessages(conversation)
+            syncConversations()
+        }
+    }
+
     suspend fun openConversation(conversation: ChatConversation) {
         activeConversation = conversation
         messages = local.messages(conversation.id)
+        groupMembers = emptyList()
         runBusy {
+            if (conversation.kind == "group") loadGroupMembersInternal(conversation)
             loadConversationMessages(conversation)
             retryOutboxInternal()
             syncConversations()
@@ -82,8 +102,48 @@ class ChatController(
 
     fun closeConversation() {
         activeConversation = null
+        groupMembers = emptyList()
         messages = emptyList()
         scope.launch { runCatching { syncConversations() } }
+    }
+
+    suspend fun refreshGroupMembers() = runBusy {
+        val conversation = activeConversation ?: return@runBusy
+        if (conversation.kind == "group") loadGroupMembersInternal(conversation)
+    }
+
+    suspend fun addGroupMember(username: String) = runBusy {
+        val conversation = activeConversation ?: return@runBusy
+        if (conversation.kind != "group") return@runBusy
+        api.addGroupMember(session.accessToken, conversation.id, username)
+        loadGroupMembersInternal(conversation)
+        syncConversations()
+        activeConversation = conversations.firstOrNull { it.id == conversation.id } ?: conversation
+    }
+
+    suspend fun setGroupRole(member: GroupMember, role: String) = runBusy {
+        val conversation = activeConversation ?: return@runBusy
+        if (conversation.kind != "group") return@runBusy
+        api.updateGroupRole(session.accessToken, conversation.id, member.user.id, role)
+        loadGroupMembersInternal(conversation)
+        syncConversations()
+        activeConversation = conversations.firstOrNull { it.id == conversation.id } ?: conversation
+    }
+
+    suspend fun removeGroupMember(member: GroupMember) = runBusy {
+        val conversation = activeConversation ?: return@runBusy
+        if (conversation.kind != "group") return@runBusy
+        api.removeGroupMember(session.accessToken, conversation.id, member.user.id)
+        if (member.user.id == session.user.id) {
+            activeConversation = null
+            groupMembers = emptyList()
+            messages = emptyList()
+            syncConversations()
+        } else {
+            loadGroupMembersInternal(conversation)
+            syncConversations()
+            activeConversation = conversations.firstOrNull { it.id == conversation.id } ?: conversation
+        }
     }
 
     suspend fun send(body: String, replyToId: String? = null) {
@@ -233,6 +293,10 @@ class ChatController(
         markLastRead()
     }
 
+    private suspend fun loadGroupMembersInternal(conversation: ChatConversation) {
+        groupMembers = api.groupMembers(session.accessToken, conversation.id)
+    }
+
     private suspend fun syncConversations() {
         val remote = api.conversations(session.accessToken)
         conversations = remote
@@ -297,7 +361,10 @@ class ChatController(
                     error = null
                     retryOutboxInternal()
                     runCatching { syncConversations() }
-                    activeConversation?.let { conversation -> messages = local.messages(conversation.id) }
+                    activeConversation?.let { conversation ->
+                        messages = local.messages(conversation.id)
+                        if (conversation.kind == "group") runCatching { loadGroupMembersInternal(conversation) }
+                    }
                 }
             },
             onEvent = { event -> scope.launch { handleEvent(event) } },
