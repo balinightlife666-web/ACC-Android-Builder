@@ -1,6 +1,7 @@
 from fastapi import APIRouter
 
 from app.identity.routes import router as identity_router
+from app.chat.routes import router as chat_router
 
 from .models import (
     CatalogItemPreview,
@@ -11,13 +12,14 @@ from .models import (
 
 router = APIRouter()
 router.include_router(identity_router)
+router.include_router(chat_router)
 
 
 @router.get("/meta")
 def meta() -> dict[str, object]:
     return {
         "product": "MOSHI",
-        "phase": "identity-auth",
+        "phase": "chat-core",
         "capabilities": ["identity", "auth", "chat", "communities", "business", "ai-summary"],
     }
 
