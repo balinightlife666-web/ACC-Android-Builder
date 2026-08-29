@@ -1,0 +1,18 @@
+{
+  "status": "LIVE_PUBLISHED",
+  "project": "AFTER SCHOOL CITY",
+  "mode": "STUDENT_ROW_INTERIORS_ROAD_CLEANUP_V0_8_1",
+  "sourceRepo": "ardarawk-cloud/ACC-Roblox-maps",
+  "sourceCommit": "efa281ac26f847f683e002b6085b49d196c05421",
+  "baseLiveCommit": "c6f0f836d69ddbb8648765b6647709447c3ea8fa",
+  "qcRunId": "33267677266",
+  "universeId": "10745359869",
+  "placeId": "121603385909425",
+  "versionNumber": 28,
+  "rojoVersion": "7.7.0",
+  "placeBytes": 108466,
+  "placeSha256": "937a0b365d402e4ea2fa86a7f8601a3bb7891682d64cc65607d355a5920da5e2",
+  "runId": "33268641089",
+  "publishedAt": "2026-08-29T18:34:59Z",
+  "note": "Student Row + Shop Interiors v0.8.0 plus Road Concrete Strip Cleanup v0.8.1 exact QC-locked source; 8 walk-in target interiors; internal signage finalized inward; four legacy 280-stud concrete strips removed; compact sidewalk edge segments restored only around surviving cross street; protected LIVE v27 source unchanged."
+}
