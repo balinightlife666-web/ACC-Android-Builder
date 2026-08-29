@@ -1,13 +1,13 @@
 package com.ardacore.moshi.chat.local
 
 import android.content.Context
-import android.net.Uri
 import com.ardacore.moshi.chat.ChatAttachment
 import com.ardacore.moshi.chat.ChatConversation
 import com.ardacore.moshi.chat.ChatMessage
 import com.ardacore.moshi.chat.ChatUser
 import com.ardacore.moshi.chat.ReactionSummary
 import com.ardacore.moshi.chat.ReplyPreview
+import okhttp3.RequestBody
 import org.json.JSONArray
 import org.json.JSONObject
 
@@ -113,27 +113,12 @@ class ChatLocalStore(context: Context) {
         dao.markAttachmentUploaded(clientMessageId, attachmentId)
     }
 
-    fun readPendingAttachment(item: OutboxMessageEntity): ByteArray {
+    fun pendingAttachmentBody(item: OutboxMessageEntity): RequestBody {
         val uriText = item.attachmentUri ?: error("Attachment URI is missing")
+        val contentType = item.attachmentContentType ?: error("Attachment type is missing")
         val expectedSize = item.attachmentSizeBytes ?: error("Attachment size is missing")
         if (expectedSize <= 0 || expectedSize > MAX_ATTACHMENT_BYTES) error("Attachment size is invalid")
-        val uri = Uri.parse(uriText)
-        val bytes = appContext.contentResolver.openInputStream(uri)?.use { input ->
-            val output = java.io.ByteArrayOutputStream(expectedSize.coerceAtMost(Int.MAX_VALUE.toLong()).toInt())
-            val buffer = ByteArray(64 * 1024)
-            var total = 0
-            while (true) {
-                val count = input.read(buffer)
-                if (count < 0) break
-                total += count
-                if (total > MAX_ATTACHMENT_BYTES) error("Attachment is larger than 20 MB")
-                output.write(buffer, 0, count)
-            }
-            output.toByteArray()
-        } ?: error("Could not reopen queued attachment")
-        if (bytes.isEmpty()) error("Attachment is empty")
-        if (bytes.size.toLong() != expectedSize) error("Attachment changed after it was queued")
-        return bytes
+        return ContentUriRequestBody(appContext, uriText, contentType, expectedSize)
     }
 
     private fun messageEntity(item: ChatMessage) = CachedMessageEntity(
