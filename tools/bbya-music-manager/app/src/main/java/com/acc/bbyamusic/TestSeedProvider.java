@@ -10,16 +10,13 @@ import android.net.Uri;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
-import java.util.HashSet;
 import java.util.Locale;
-import java.util.Set;
 
 /**
- * Test-only bootstrap for the BBYA Music Manager pilot branch.
+ * Test-only bootstrap for the BBYA Music Manager ID pilot.
  *
- * It injects the Roblox audio IDs collected from the 2026-08-29 screenshot into
- * the Underground playlist without requiring local audio files. Existing tracks
- * are preserved and duplicate Asset IDs are skipped.
+ * The Underground zone is intentionally isolated to the 25 screenshot Asset IDs
+ * so this build cannot accidentally upload or sync older local test tracks.
  */
 public class TestSeedProvider extends ContentProvider {
     private static final String PREFS = "bbya_music_manager";
@@ -57,7 +54,6 @@ public class TestSeedProvider extends ContentProvider {
     public boolean onCreate() {
         Context context = getContext();
         if (context == null) return false;
-
         try {
             SharedPreferences prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE);
             String raw = prefs.getString(CATALOG_KEY, "");
@@ -74,58 +70,37 @@ public class TestSeedProvider extends ContentProvider {
                 zones.put(underground);
             }
 
-            JSONArray tracks = underground.optJSONArray("tracks");
-            if (tracks == null) {
-                tracks = new JSONArray();
-                underground.put("tracks", tracks);
-            }
-
-            Set<String> existingAssetIds = new HashSet<>();
-            int maxOrder = 0;
-            for (int i = 0; i < tracks.length(); i++) {
-                JSONObject track = tracks.optJSONObject(i);
-                if (track == null) continue;
-                String assetId = track.optString("robloxAssetId", "");
-                if (!assetId.isEmpty()) existingAssetIds.add(assetId);
-                maxOrder = Math.max(maxOrder, track.optInt("order", i + 1));
-            }
-
-            int added = 0;
+            JSONArray tracks = new JSONArray();
             for (int i = 0; i < TEST_TRACKS.length; i++) {
-                String assetId = TEST_TRACKS[i][0];
-                String title = TEST_TRACKS[i][1];
-                if (existingAssetIds.contains(assetId)) continue;
-
                 JSONObject track = new JSONObject();
                 track.put("id", String.format(Locale.US, "test-shot-20260829-%02d", i + 1));
-                track.put("title", title);
+                track.put("title", TEST_TRACKS[i][1]);
                 track.put("artist", "Screenshot Roblox ID Test");
                 track.put("enabled", true);
-                track.put("order", ++maxOrder);
+                track.put("order", i + 1);
                 track.put("sourceUri", "");
                 track.put("sourceName", "");
                 track.put("localPath", "");
                 track.put("mimeType", "");
                 track.put("sizeBytes", 0);
-                track.put("robloxAssetId", assetId);
+                track.put("robloxAssetId", TEST_TRACKS[i][0]);
                 track.put("coverImage", "");
                 track.put("uploadState", "READY");
                 track.put("syncState", "LOCAL_ONLY");
                 track.put("testSource", "screenshot-2026-08-29");
                 tracks.put(track);
-                existingAssetIds.add(assetId);
-                added++;
             }
+            underground.put("tracks", tracks);
+            underground.put("enabled", true);
+            underground.put("testMode", "SCREENSHOT_ID_ISOLATED");
 
-            if (added > 0) {
-                catalog.put("schemaVersion", 2);
-                catalog.put("revision", Math.max(1, catalog.optInt("revision", 1)) + 1);
-                prefs.edit()
-                        .putString(CATALOG_KEY, catalog.toString())
-                        .putInt("bbya_test_seed_20260829_added", added)
-                        .putString("oauth_last_status", "Test ID siap: " + added + " track disuntik ke Underground")
-                        .apply();
-            }
+            catalog.put("schemaVersion", 2);
+            catalog.put("revision", Math.max(1, catalog.optInt("revision", 1)) + 1);
+            prefs.edit()
+                    .putString(CATALOG_KEY, catalog.toString())
+                    .putInt("bbya_test_seed_20260829_added", TEST_TRACKS.length)
+                    .putString("oauth_last_status", "ID Test siap: 25 track Underground terisolasi")
+                    .apply();
             return true;
         } catch (Exception ignored) {
             return false;
