@@ -6,6 +6,7 @@ on:
     paths:
       - '.github/workflows/becak-e-bike-v3-rocket-racoon-publish.yml'
       - 'scripts/becak-v3-rocket-patch.js'
+      - 'scripts/becak-v31-road-clearance-patch.js'
   workflow_dispatch:
 
 permissions:
@@ -49,6 +50,7 @@ jobs:
           actual=$(git -C becak-source rev-parse HEAD)
           [[ "$actual" == "$SOURCE_SHA" ]] || { echo "Source SHA mismatch: $actual"; exit 11; }
           test -s scripts/becak-v3-rocket-patch.js
+          test -s scripts/becak-v31-road-clearance-patch.js
           test -s becak-source/maps/becak-e-bike/place.rbxlx
           grep -Fq 'ACC_BecakWorldV3' becak-source/maps/becak-e-bike/city.realism.architecture.server.lua
           grep -Fq 'BecakWorldV3VisualAuthority' becak-source/maps/becak-e-bike/city.realism.architecture.server.lua
@@ -62,7 +64,13 @@ jobs:
           set -euo pipefail
           node scripts/becak-v3-rocket-patch.js becak-source
 
-      - name: Validate patched Becak V3 place
+      - name: Apply V3.1 road-clearance hotfix
+        shell: bash
+        run: |
+          set -euo pipefail
+          node scripts/becak-v31-road-clearance-patch.js becak-source
+
+      - name: Validate patched Becak V3.1 place
         shell: bash
         run: |
           set -euo pipefail
@@ -79,13 +87,15 @@ jobs:
           grep -q 'BecakEBike_CityRealismArchitecture' "$place"
           grep -q 'BecakEBike_VehicleRealism' "$place"
           grep -q 'BecakEBike_VehicleGeometryRealism' "$place"
+          grep -q 'BecakEBike_V31RoadClearance' "$place"
+          grep -q "ACC_BecakRoadClearanceHotfix','v3.1" "$place"
           sha=$(sha256sum "$place" | awk '{print $1}')
           echo "PLACE_FILE=$place" >> "$GITHUB_ENV"
           echo "PLACE_BYTES=$bytes" >> "$GITHUB_ENV"
           echo "PLACE_SHA256=$sha" >> "$GITHUB_ENV"
-          echo "BECAK V3 PLACE PASS bytes=$bytes sha256=$sha"
+          echo "BECAK V3.1 PLACE PASS bytes=$bytes sha256=$sha"
 
-      - name: Publish Becak E-Bike V3 LIVE via Rocket Racoon
+      - name: Publish Becak E-Bike V3.1 LIVE via Rocket Racoon
         shell: bash
         run: |
           set -euo pipefail
@@ -104,7 +114,7 @@ jobs:
           echo "PUBLISHED_VERSION=$version" >> "$GITHUB_ENV"
           echo "ROBLOX PUBLISH PASS version=$version"
 
-      - name: Persist Becak V3 Rocket Racoon receipt
+      - name: Persist Becak V3.1 Rocket Racoon receipt
         shell: bash
         run: |
           set -euo pipefail
@@ -112,7 +122,7 @@ jobs:
           jq -n \
             --arg status 'LIVE_PUBLISHED' \
             --arg project 'BECAK E-BIKE' \
-            --arg mode 'NUSAKARYA_V3_ROCKET_RACOON' \
+            --arg mode 'NUSAKARYA_V3_1_ROAD_CLEARANCE_ROCKET_RACOON' \
             --arg sourceRepo "$SOURCE_REPO" \
             --arg sourceCommit "$SOURCE_SHA" \
             --arg universeId "$UNIVERSE_ID" \
@@ -122,13 +132,13 @@ jobs:
             --arg placeSha256 "$PLACE_SHA256" \
             --arg runId "$GITHUB_RUN_ID" \
             --arg publishedAt "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
-            '{status:$status,project:$project,mode:$mode,sourceRepo:$sourceRepo,sourceCommit:$sourceCommit,universeId:$universeId,placeId:$placeId,versionNumber:($versionNumber|tonumber),placeBytes:($placeBytes|tonumber),placeSha256:$placeSha256,runId:$runId,publishedAt:$publishedAt,note:"Becak E-Bike Nusakarya V3 published from Bali Night Life publisher using ROCKET_RACOON_PUBLISH."}' \
+            '{status:$status,project:$project,mode:$mode,sourceRepo:$sourceRepo,sourceCommit:$sourceCommit,universeId:$universeId,placeId:$placeId,versionNumber:($versionNumber|tonumber),placeBytes:($placeBytes|tonumber),placeSha256:$placeSha256,runId:$runId,publishedAt:$publishedAt,note:"Becak E-Bike Nusakarya V3.1 road-clearance hotfix published from Bali Night Life publisher using ROCKET_RACOON_PUBLISH."}' \
             > deploy-status/becak-e-bike-v3-rocket-racoon.json
           cat deploy-status/becak-e-bike-v3-rocket-racoon.json
 
           git config user.name 'Becak E-Bike Publish Bot'
           git config user.email 'actions@users.noreply.github.com'
           git add deploy-status/becak-e-bike-v3-rocket-racoon.json
-          git commit -m "Record Becak E-Bike V3 publish v${PUBLISHED_VERSION} [skip ci]"
+          git commit -m "Record Becak E-Bike V3.1 publish v${PUBLISHED_VERSION} [skip ci]"
           git pull --rebase origin main
           git push origin HEAD:main
