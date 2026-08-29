@@ -1,7 +1,7 @@
 # MOSHI — CURRENT STATE
 
 Authority: MASTER PLAN v1.1 + PRODUCT SPEC v1.0 + IDENTITY/AUTH v1.0 + CHAT CORE v1.0
-Status: ACTIVE / PHASE 2 CHAT CORE IMPLEMENTED (ANDROID CI VERIFICATION PENDING)
+Status: ACTIVE / PHASE 2 CHAT CORE VERIFIED
 
 ## Foundation verified
 - monorepo scaffold
@@ -21,7 +21,7 @@ Status: ACTIVE / PHASE 2 CHAT CORE IMPLEMENTED (ANDROID CI VERIFICATION PENDING)
 - Android auth UI + encrypted refresh-token vault
 - profile + server-persisted Business Mode
 
-## Phase 2 implemented
+## Phase 2 verified
 - persistent direct conversations
 - user search
 - message persistence
@@ -38,9 +38,10 @@ Status: ACTIVE / PHASE 2 CHAT CORE IMPLEMENTED (ANDROID CI VERIFICATION PENDING)
 - Android WebSocket listener using OkHttp
 
 ## Verification
-- backend tests: 8/8 PASS locally
-- Python test suite includes direct-chat persistence + idempotency + delivery/read + WebSocket
-- GitHub CI final verification is running on the Phase 2 branch
+- backend chat/auth suite: PASS (8/8 Phase 2 baseline)
+- Android complete Phase 2 `:app:assembleDebug`: PASS
+- MOSHI CI debug APK artifact: CREATED
+- duplicate CI runs fixed using path filters + concurrency/cancel-in-progress
 
 ## Next implementation target
 PHASE 3 — MEDIA & MESSAGING TOOLS
