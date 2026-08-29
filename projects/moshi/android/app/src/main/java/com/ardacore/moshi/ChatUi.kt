@@ -21,13 +21,14 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -37,11 +38,13 @@ import com.ardacore.moshi.chat.ChatController
 import com.ardacore.moshi.chat.ChatConversation
 import com.ardacore.moshi.chat.ChatMessage
 import com.ardacore.moshi.chat.ChatUser
+import com.ardacore.moshi.chat.local.ChatLocalStore
 import kotlinx.coroutines.launch
 
 @Composable
 fun ChatHubScreen(session: AuthSession, modifier: Modifier = Modifier) {
-    val controller = remember(session.accessToken) { ChatController(session) }
+    val context = LocalContext.current.applicationContext
+    val controller = remember(session.accessToken) { ChatController(session, ChatLocalStore(context)) }
     LaunchedEffect(controller) { controller.start() }
     DisposableEffect(controller) { onDispose { controller.stop() } }
     if (controller.activeConversation != null) {
@@ -64,7 +67,10 @@ private fun ConversationListScreen(controller: ChatController, modifier: Modifie
         }
         controller.error?.let {
             Text(it, color = MaterialTheme.colorScheme.error)
-            TextButton(onClick = controller::clearError) { Text("Dismiss") }
+            Row {
+                TextButton(onClick = { scope.launch { controller.loadConversations() } }) { Text("Retry") }
+                TextButton(onClick = controller::clearError) { Text("Dismiss") }
+            }
         }
         if (controller.searchResults.isNotEmpty()) {
             Text("People", fontWeight = FontWeight.SemiBold)
@@ -130,6 +136,7 @@ private fun ConversationScreen(controller: ChatController, me: MoshiUser, modifi
     val selected = controller.messages.firstOrNull { it.id == selectedId }
     val replyingTo = controller.messages.firstOrNull { it.id == replyToId }
     val editing = controller.messages.firstOrNull { it.id == editingId }
+    val hasQueued = controller.messages.any { it.state == "queued" }
 
     Column(modifier = modifier.fillMaxSize().padding(12.dp)) {
         Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -155,7 +162,7 @@ private fun ConversationScreen(controller: ChatController, me: MoshiUser, modifi
             MessageActionBar(
                 message = selected,
                 mine = selected.senderId == me.id,
-                enabled = !controller.busy,
+                enabled = !controller.busy && !selected.id.startsWith("local:"),
                 onReply = {
                     replyToId = selected.id
                     editingId = null
@@ -191,6 +198,12 @@ private fun ConversationScreen(controller: ChatController, me: MoshiUser, modifi
         }
 
         controller.error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
+        if (hasQueued) {
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                Text("Queued messages are saved on this device.", style = MaterialTheme.typography.bodySmall)
+                TextButton(onClick = { scope.launch { controller.retryPending() } }, enabled = !controller.busy) { Text("Retry now") }
+            }
+        }
         Row(modifier = Modifier.fillMaxWidth().padding(top = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
             OutlinedTextField(value = messageText, onValueChange = { messageText = it }, modifier = Modifier.weight(1f), placeholder = { Text(if (editing != null) "Edit message" else "Message") }, maxLines = 4)
             Button(onClick = {
