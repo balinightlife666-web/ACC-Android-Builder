@@ -1,11 +1,13 @@
 package com.ardacore.moshi.chat.local
 
 import android.content.Context
+import com.ardacore.moshi.chat.CatalogMessageCard
 import com.ardacore.moshi.chat.ChatAttachment
 import com.ardacore.moshi.chat.ChatConversation
 import com.ardacore.moshi.chat.ChatMessage
 import com.ardacore.moshi.chat.ChatUser
 import com.ardacore.moshi.chat.GroupPreview
+import com.ardacore.moshi.chat.OrderMessageCard
 import com.ardacore.moshi.chat.ReactionSummary
 import com.ardacore.moshi.chat.ReplyPreview
 import okhttp3.RequestBody
@@ -183,6 +185,8 @@ class ChatLocalStore(context: Context) {
             .put("reply_to", item.replyTo?.let(::replyToJson) ?: JSONObject.NULL)
             .put("reactions", reactions)
             .put("attachments", attachments)
+            .put("catalog_card", item.catalogCard?.let(::catalogCardToJson) ?: JSONObject.NULL)
+            .put("order_card", item.orderCard?.let(::orderCardToJson) ?: JSONObject.NULL)
     }
 
     private fun userToJson(item: ChatUser): JSONObject = JSONObject()
@@ -196,6 +200,29 @@ class ChatLocalStore(context: Context) {
         .put("sender_id", item.senderId)
         .put("body", item.body)
         .put("is_deleted", item.isDeleted)
+
+    private fun catalogCardToJson(item: CatalogMessageCard): JSONObject = JSONObject()
+        .put("catalog_item_id", item.catalogItemId ?: JSONObject.NULL)
+        .put("seller_id", item.sellerId)
+        .put("business_name", item.businessName)
+        .put("kind", item.kind)
+        .put("title", item.title)
+        .put("description", item.description)
+        .put("price_amount", item.priceAmount ?: JSONObject.NULL)
+        .put("currency", item.currency)
+        .put("availability", item.availability)
+        .put("stock_qty", item.stockQty ?: JSONObject.NULL)
+        .put("image_path", item.imagePath ?: JSONObject.NULL)
+
+    private fun orderCardToJson(item: OrderMessageCard): JSONObject = JSONObject()
+        .put("order_id", item.orderId)
+        .put("buyer_id", item.buyerId)
+        .put("seller_id", item.sellerId)
+        .put("status", item.status)
+        .put("item_title", item.itemTitle)
+        .put("quantity", item.quantity)
+        .put("total_amount", item.totalAmount ?: JSONObject.NULL)
+        .put("currency", item.currency)
 
     private fun parseConversation(json: JSONObject): ChatConversation {
         val groupJson = json.optJSONObject("group")
@@ -227,6 +254,8 @@ class ChatLocalStore(context: Context) {
         val replyJson = json.optJSONObject("reply_to")
         val reactionsJson = json.optJSONArray("reactions") ?: JSONArray()
         val attachmentsJson = json.optJSONArray("attachments") ?: JSONArray()
+        val catalogJson = json.optJSONObject("catalog_card")
+        val orderJson = json.optJSONObject("order_card")
         return ChatMessage(
             id = json.getString("id"),
             conversationId = json.getString("conversation_id"),
@@ -266,6 +295,33 @@ class ChatLocalStore(context: Context) {
                     downloadPath = attachment.optString("download_path"),
                 )
             },
+            catalogCard = catalogJson?.let(::parseCatalogCard),
+            orderCard = orderJson?.let(::parseOrderCard),
         )
     }
+
+    private fun parseCatalogCard(json: JSONObject) = CatalogMessageCard(
+        catalogItemId = json.optString("catalog_item_id").takeIf { it.isNotBlank() && it != "null" },
+        sellerId = json.getString("seller_id"),
+        businessName = json.getString("business_name"),
+        kind = json.getString("kind"),
+        title = json.getString("title"),
+        description = json.optString("description"),
+        priceAmount = if (json.isNull("price_amount")) null else json.getLong("price_amount"),
+        currency = json.optString("currency", "IDR"),
+        availability = json.optString("availability", "available"),
+        stockQty = if (json.isNull("stock_qty")) null else json.getInt("stock_qty"),
+        imagePath = json.optString("image_path").takeIf { it.isNotBlank() && it != "null" },
+    )
+
+    private fun parseOrderCard(json: JSONObject) = OrderMessageCard(
+        orderId = json.getString("order_id"),
+        buyerId = json.getString("buyer_id"),
+        sellerId = json.getString("seller_id"),
+        status = json.optString("status", "draft"),
+        itemTitle = json.getString("item_title"),
+        quantity = json.optInt("quantity", 1),
+        totalAmount = if (json.isNull("total_amount")) null else json.getLong("total_amount"),
+        currency = json.optString("currency", "IDR"),
+    )
 }
