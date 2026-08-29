@@ -5,6 +5,7 @@ __pycache__/
 .venv/
 backend/moshi.db
 backend/*.db
+backend/moshi_uploads/
 
 # Android
 .gradle/
@@ -12,10 +13,15 @@ backend/*.db
 local.properties
 *.apk
 
-# Secrets
+# Secrets / deployment credentials
 .env
+backend/.env
 *.jks
 *.keystore
+android/app/google-services.json
+backend/*service-account*.json
+backend/firebase-adminsdk*.json
+backend/google-credentials*.json
 
 # OS
 .DS_Store
