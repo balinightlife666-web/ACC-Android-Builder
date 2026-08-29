@@ -7,7 +7,8 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.chat.models import Conversation, ConversationMember, Message, MessageAttachment, MessageReaction, MessageReceipt
-from app.chat.schemas import AttachmentResponse, ConversationResponse, MessageResponse, ReactionSummary, ReplyPreview, UserPreview
+from app.chat.schemas import AttachmentResponse, ConversationResponse, GroupPreview, MessageResponse, ReactionSummary, ReplyPreview, UserPreview
+from app.groups.models import GroupMemberRole, GroupProfile
 from app.identity.models import User
 
 
@@ -101,6 +102,27 @@ def get_peer(db: Session, conversation_id: str, user_id: str) -> User | None:
     return db.get(User, peer_id) if peer_id else None
 
 
+def group_preview(db: Session, conversation_id: str, user_id: str) -> GroupPreview | None:
+    profile = db.get(GroupProfile, conversation_id)
+    if profile is None:
+        return None
+    role_row = db.get(GroupMemberRole, (conversation_id, user_id))
+    member_count = int(
+        db.scalar(
+            select(func.count(ConversationMember.user_id)).where(
+                ConversationMember.conversation_id == conversation_id
+            )
+        )
+        or 0
+    )
+    return GroupPreview(
+        title=profile.title,
+        description=profile.description,
+        my_role=role_row.role if role_row is not None else "member",
+        member_count=member_count,
+    )
+
+
 def serialize_conversation(db: Session, conversation: Conversation, user_id: str) -> ConversationResponse:
     member = db.get(ConversationMember, (conversation.id, user_id))
     latest = db.scalar(
@@ -114,10 +136,12 @@ def serialize_conversation(db: Session, conversation: Conversation, user_id: str
         unread_query = unread_query.where(Message.created_at > member.last_read_at)
     unread_count = int(db.scalar(unread_query) or 0)
     peer = get_peer(db, conversation.id, user_id) if conversation.kind == "direct" else None
+    group = group_preview(db, conversation.id, user_id) if conversation.kind == "group" else None
     return ConversationResponse(
         id=conversation.id,
         kind=conversation.kind,
         peer=UserPreview.model_validate(peer) if peer else None,
+        group=group,
         latest_message=serialize_message(latest, user_id) if latest else None,
         unread_count=unread_count,
         created_at=_aware(conversation.created_at),
