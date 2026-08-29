@@ -21,7 +21,7 @@ class ChatApi(
     private val baseUrl: String = BuildConfig.API_BASE_URL.trimEnd('/'),
     private val client: OkHttpClient = OkHttpClient.Builder()
         .connectTimeout(10, TimeUnit.SECONDS)
-        .readTimeout(20, TimeUnit.SECONDS)
+        .readTimeout(30, TimeUnit.SECONDS)
         .build(),
 ) {
     private val jsonMediaType = "application/json; charset=utf-8".toMediaType()
@@ -98,6 +98,25 @@ class ChatApi(
                 )
             )
         )
+    }
+
+    suspend fun downloadAttachment(accessToken: String, attachment: ChatAttachment): ByteArray = withContext(Dispatchers.IO) {
+        val request = Request.Builder()
+            .url(absoluteUrl(attachment.downloadPath))
+            .header("Accept", attachment.contentType)
+            .header("Authorization", "Bearer $accessToken")
+            .get()
+            .build()
+        client.newCall(request).execute().use { response ->
+            if (!response.isSuccessful) {
+                val text = response.body?.string().orEmpty()
+                val detail = runCatching { JSONObject(text).optString("detail") }.getOrNull()
+                throw ApiException(detail?.takeIf { it.isNotBlank() } ?: "Attachment download failed (${response.code})", response.code)
+            }
+            val bytes = response.body?.bytes() ?: error("Attachment response is empty")
+            if (bytes.isEmpty()) error("Attachment response is empty")
+            bytes
+        }
     }
 
     suspend fun sendMessage(
@@ -219,7 +238,7 @@ class ChatApi(
     ): String {
         val requestBody = body?.toString()?.toRequestBody(jsonMediaType)
         val builder = Request.Builder()
-            .url("$baseUrl$path")
+            .url(absoluteUrl(path))
             .header("Accept", "application/json")
         if (accessToken != null) builder.header("Authorization", "Bearer $accessToken")
         when (method) {
@@ -241,7 +260,7 @@ class ChatApi(
     ): String {
         val body = bytes.toRequestBody(contentType.toMediaType())
         val builder = Request.Builder()
-            .url("$baseUrl$path")
+            .url(absoluteUrl(path))
             .header("Accept", "application/json")
             .header("Authorization", "Bearer $accessToken")
         when (method) {
@@ -327,7 +346,7 @@ class ChatApi(
         contentType = json.getString("content_type"),
         sizeBytes = json.getLong("size_bytes"),
         status = json.getString("status"),
-        downloadPath = json.getString("download_path"),
+        downloadPath = json.optString("download_path"),
     )
 
     private fun parseUser(json: JSONObject): ChatUser = ChatUser(
