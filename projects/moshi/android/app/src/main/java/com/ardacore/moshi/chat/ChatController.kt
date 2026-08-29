@@ -44,9 +44,7 @@ class ChatController(
         stopped = false
         conversations = local.conversations()
         runCatching { syncConversations() }
-            .onFailure { failure ->
-                if (conversations.isEmpty()) error = failure.message ?: "MOSHI is offline"
-            }
+            .onFailure { failure -> if (conversations.isEmpty()) error = failure.message ?: "MOSHI is offline" }
         retryOutboxInternal()
         connectRealtime()
     }
@@ -85,42 +83,15 @@ class ChatController(
     fun closeConversation() {
         activeConversation = null
         messages = emptyList()
-        scope.launch {
-            runCatching { syncConversations() }
-        }
+        scope.launch { runCatching { syncConversations() } }
     }
 
     suspend fun send(body: String, replyToId: String? = null) {
         val conversation = activeConversation ?: return
         val cleanBody = body.trim()
         if (cleanBody.isBlank()) return
-
         val clientMessageId = UUID.randomUUID().toString()
-        val replyPreview = replyToId?.let { id ->
-            messages.firstOrNull { it.id == id }?.let { source ->
-                ReplyPreview(
-                    id = source.id,
-                    senderId = source.senderId,
-                    body = source.body,
-                    isDeleted = source.isDeleted,
-                )
-            }
-        }
-        val optimistic = ChatMessage(
-            id = "local:$clientMessageId",
-            conversationId = conversation.id,
-            senderId = session.user.id,
-            clientMessageId = clientMessageId,
-            body = cleanBody,
-            createdAt = Instant.now().toString(),
-            editedAt = null,
-            deletedAt = null,
-            isDeleted = false,
-            state = "queued",
-            replyTo = replyPreview,
-            reactions = emptyList(),
-            attachments = emptyList(),
-        )
+        val optimistic = optimisticMessage(conversation.id, clientMessageId, cleanBody, replyToId, emptyList())
         local.enqueue(
             conversationId = conversation.id,
             clientMessageId = clientMessageId,
@@ -129,12 +100,8 @@ class ChatController(
             localMessage = optimistic,
         )
         upsertMessage(optimistic)
-
         val pending = local.pending().firstOrNull { it.clientMessageId == clientMessageId }
-        if (pending != null) {
-            val sent = attemptPending(pending)
-            if (!sent) error = "Message queued. MOSHI will retry when connected."
-        }
+        if (pending != null && !attemptPending(pending)) error = "Message queued. MOSHI will retry when connected."
         runCatching { syncConversations() }
     }
 
@@ -144,35 +111,54 @@ class ChatController(
         kind: String,
         fileName: String,
         contentType: String,
-        bytes: ByteArray,
+        sizeBytes: Long,
+        uri: String,
     ) = runBusy {
         val conversation = activeConversation ?: return@runBusy
-        val ticket = api.initUpload(
-            accessToken = session.accessToken,
+        val clientMessageId = UUID.randomUUID().toString()
+        val localAttachment = ChatAttachment(
+            id = "local-attachment:$clientMessageId",
             kind = kind,
             fileName = fileName,
             contentType = contentType,
-            sizeBytes = bytes.size.toLong(),
+            sizeBytes = sizeBytes,
+            status = "queued",
+            downloadPath = "",
         )
-        val attachment = api.uploadContent(session.accessToken, ticket, bytes)
-        val sent = api.sendMessage(
-            accessToken = session.accessToken,
+        val optimistic = optimisticMessage(
             conversationId = conversation.id,
-            clientMessageId = UUID.randomUUID().toString(),
+            clientMessageId = clientMessageId,
             body = body.trim(),
             replyToId = replyToId,
-            attachmentIds = listOf(attachment.id),
+            attachments = listOf(localAttachment),
         )
-        local.cacheMessage(sent)
-        upsertMessage(sent)
-        syncConversations()
+        local.enqueueAttachment(
+            conversationId = conversation.id,
+            clientMessageId = clientMessageId,
+            body = body.trim(),
+            replyToId = replyToId,
+            attachmentUri = uri,
+            attachmentKind = kind,
+            attachmentFileName = fileName,
+            attachmentContentType = contentType,
+            attachmentSizeBytes = sizeBytes,
+            localMessage = optimistic,
+        )
+        upsertMessage(optimistic)
+        val pending = local.pending().firstOrNull { it.clientMessageId == clientMessageId }
+        if (pending != null && !attemptPending(pending)) {
+            error = "Attachment queued. MOSHI will retry when connected."
+        }
+        runCatching { syncConversations() }
+    }
+
+    suspend fun downloadAttachment(attachment: ChatAttachment): ByteArray? = runBusyResult {
+        api.downloadAttachment(session.accessToken, attachment)
     }
 
     suspend fun retryPending() = runBusy {
         retryOutboxInternal()
-        activeConversation?.let { conversation ->
-            messages = local.messages(conversation.id)
-        }
+        activeConversation?.let { conversation -> messages = local.messages(conversation.id) }
         syncConversations()
     }
 
@@ -211,6 +197,35 @@ class ChatController(
         error = null
     }
 
+    private fun optimisticMessage(
+        conversationId: String,
+        clientMessageId: String,
+        body: String,
+        replyToId: String?,
+        attachments: List<ChatAttachment>,
+    ): ChatMessage {
+        val replyPreview = replyToId?.let { id ->
+            messages.firstOrNull { it.id == id }?.let { source ->
+                ReplyPreview(source.id, source.senderId, source.body, source.isDeleted)
+            }
+        }
+        return ChatMessage(
+            id = "local:$clientMessageId",
+            conversationId = conversationId,
+            senderId = session.user.id,
+            clientMessageId = clientMessageId,
+            body = body,
+            createdAt = Instant.now().toString(),
+            editedAt = null,
+            deletedAt = null,
+            isDeleted = false,
+            state = "queued",
+            replyTo = replyPreview,
+            reactions = emptyList(),
+            attachments = attachments,
+        )
+    }
+
     private suspend fun loadConversationMessages(conversation: ChatConversation) {
         val remote = api.messages(session.accessToken, conversation.id)
         local.cacheMessages(remote)
@@ -225,18 +240,36 @@ class ChatController(
     }
 
     private suspend fun retryOutboxInternal() {
-        val pending = local.pending()
-        for (item in pending) attemptPending(item)
+        for (item in local.pending()) attemptPending(item)
     }
 
     private suspend fun attemptPending(item: OutboxMessageEntity): Boolean {
         return try {
+            var attachmentId = item.uploadedAttachmentId
+            if (item.attachmentUri != null && attachmentId == null) {
+                val kind = item.attachmentKind ?: error("Queued attachment kind is missing")
+                val fileName = item.attachmentFileName ?: error("Queued attachment name is missing")
+                val contentType = item.attachmentContentType ?: error("Queued attachment type is missing")
+                val sizeBytes = item.attachmentSizeBytes ?: error("Queued attachment size is missing")
+                val bytes = local.readPendingAttachment(item)
+                val ticket = api.initUpload(
+                    accessToken = session.accessToken,
+                    kind = kind,
+                    fileName = fileName,
+                    contentType = contentType,
+                    sizeBytes = sizeBytes,
+                )
+                val uploaded = api.uploadContent(session.accessToken, ticket, bytes)
+                attachmentId = uploaded.id
+                local.markAttachmentUploaded(item.clientMessageId, uploaded.id)
+            }
             val sent = api.sendMessage(
                 accessToken = session.accessToken,
                 conversationId = item.conversationId,
                 clientMessageId = item.clientMessageId,
                 body = item.body,
                 replyToId = item.replyToId,
+                attachmentIds = listOfNotNull(attachmentId),
             )
             local.acknowledge(item.clientMessageId, sent)
             if (activeConversation?.id == item.conversationId) upsertMessage(sent)
@@ -264,9 +297,7 @@ class ChatController(
                     error = null
                     retryOutboxInternal()
                     runCatching { syncConversations() }
-                    activeConversation?.let { conversation ->
-                        messages = local.messages(conversation.id)
-                    }
+                    activeConversation?.let { conversation -> messages = local.messages(conversation.id) }
                 }
             },
             onEvent = { event -> scope.launch { handleEvent(event) } },
@@ -313,9 +344,7 @@ class ChatController(
             "message.read" -> {
                 val idsJson = event.optJSONArray("message_ids")
                 val readIds = if (idsJson != null) {
-                    buildSet {
-                        for (index in 0 until idsJson.length()) add(idsJson.getString(index))
-                    }
+                    buildSet { for (index in 0 until idsJson.length()) add(idsJson.getString(index)) }
                 } else {
                     setOf(event.optString("message_id"))
                 }
