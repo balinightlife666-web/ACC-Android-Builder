@@ -6,7 +6,8 @@ on:
     paths:
       - '.github/workflows/lost-found-oxford-model-upload.yml'
       - '.lost-found-oxford-model-trigger'
-      - 'lost-and-found-night-shift/assets/oxford_binary_v4/**'
+      - 'lost-and-found-night-shift/assets/oxford_binary_v5/**'
+      - 'lost-and-found-night-shift/assets/oxford_binary_v4/part01.b64'
   workflow_dispatch:
 
 permissions:
@@ -38,12 +39,16 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          payload_dir="$PROJECT_DIR/assets/oxford_binary_v4"
+          a="$PROJECT_DIR/assets/oxford_binary_v5/part00a.b64"
+          b="$PROJECT_DIR/assets/oxford_binary_v5/part00b.b64"
+          c="$PROJECT_DIR/assets/oxford_binary_v4/part01.b64"
           joined="$RUNNER_TEMP/oxford-shoe.glb.gz.b64"
           out="$RUNNER_TEMP/oxford-shoe.glb"
-          test -s "$payload_dir/part00.b64"
-          test -s "$payload_dir/part01.b64"
-          cat "$payload_dir/part00.b64" "$payload_dir/part01.b64" > "$joined"
+          test -s "$a"; test -s "$b"; test -s "$c"
+          [[ "$(git hash-object "$a")" == '2c4f1745473dcba49758c62c65bfcfdceb7f65c0' ]] || { echo PART00A_GIT_BLOB_MISMATCH; exit 16; }
+          [[ "$(git hash-object "$b")" == '10ffd80d09bc0069e4e1e6daa317b05c3730910c' ]] || { echo PART00B_GIT_BLOB_MISMATCH; exit 17; }
+          [[ "$(git hash-object "$c")" == '2973b6d3477cbe6d6ed399aa3a4057f191936d31' ]] || { echo PART01_GIT_BLOB_MISMATCH; exit 18; }
+          cat "$a" "$b" "$c" > "$joined"
           joined_bytes="$(stat -c%s "$joined")"
           [[ "$joined_bytes" == '19560' ]] || { echo "PAYLOAD_LENGTH_MISMATCH $joined_bytes"; exit 19; }
           base64 -d "$joined" | gunzip > "$out"
