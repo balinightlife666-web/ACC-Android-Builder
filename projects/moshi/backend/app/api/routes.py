@@ -2,6 +2,7 @@ from fastapi import APIRouter
 
 from app.identity.routes import router as identity_router
 from app.chat.routes import ALLOWED_FILE_TYPES, router as chat_router
+from app.push.routes import router as push_router
 
 from .models import (
     CatalogItemPreview,
@@ -16,6 +17,7 @@ ALLOWED_FILE_TYPES.update(VOICE_NOTE_CONTENT_TYPES)
 router = APIRouter()
 router.include_router(identity_router)
 router.include_router(chat_router)
+router.include_router(push_router)
 
 
 @router.get("/meta")
@@ -23,7 +25,7 @@ def meta() -> dict[str, object]:
     return {
         "product": "MOSHI",
         "phase": "chat-core",
-        "capabilities": ["identity", "auth", "chat", "communities", "business", "ai-summary"],
+        "capabilities": ["identity", "auth", "chat", "push", "communities", "business", "ai-summary"],
     }
 
 
