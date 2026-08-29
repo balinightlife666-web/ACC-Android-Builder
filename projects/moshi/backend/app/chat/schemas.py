@@ -101,10 +101,18 @@ class MessageResponse(BaseModel):
     attachments: list[AttachmentResponse] = Field(default_factory=list)
 
 
+class GroupPreview(BaseModel):
+    title: str
+    description: str
+    my_role: Literal["admin", "moderator", "member"]
+    member_count: int
+
+
 class ConversationResponse(BaseModel):
     id: str
     kind: str
     peer: UserPreview | None
+    group: GroupPreview | None = None
     latest_message: MessageResponse | None
     unread_count: int
     created_at: datetime
