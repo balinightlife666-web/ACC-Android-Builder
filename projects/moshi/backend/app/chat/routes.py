@@ -1,14 +1,18 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime
+from pathlib import Path
+import uuid
 
-from fastapi import APIRouter, Depends, HTTPException, Query, WebSocket, WebSocketDisconnect, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, WebSocket, WebSocketDisconnect, status
+from fastapi.responses import FileResponse
 from sqlalchemy import or_, select
 from sqlalchemy.orm import Session
 
-from app.chat.models import Conversation, ConversationMember, Message, MessageReaction, MessageReceipt
+from app.chat.models import Conversation, ConversationMember, Message, MessageAttachment, MessageReaction, MessageReceipt
 from app.chat.realtime import manager
 from app.chat.schemas import (
+    AttachmentResponse,
     ConversationResponse,
     DirectConversationRequest,
     EditMessageRequest,
@@ -16,13 +20,29 @@ from app.chat.schemas import (
     ReactionRequest,
     ReadRequest,
     SendMessageRequest,
+    UploadInitRequest,
+    UploadInitResponse,
     UserPreview,
 )
 from app.chat.service import create_message, ensure_member, serialize_conversation, serialize_message
+from app.core.config import settings
 from app.identity.deps import authenticate_access_token, get_current_user, get_db
 from app.identity.models import User
 
 router = APIRouter()
+
+ALLOWED_IMAGE_TYPES = {"image/jpeg", "image/png", "image/webp", "image/gif"}
+ALLOWED_FILE_TYPES = {
+    "application/pdf",
+    "text/plain",
+    "application/zip",
+    "application/msword",
+    "application/vnd.ms-excel",
+    "application/vnd.ms-powerpoint",
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+}
 
 
 async def broadcast_message(db: Session, message: Message, event_type: str, exclude_user_id: str | None = None) -> None:
@@ -36,6 +56,103 @@ async def broadcast_message(db: Session, message: Message, event_type: str, excl
             member_id,
             {"type": event_type, "message": serialize_message(message, member_id).model_dump(mode="json")},
         )
+
+
+def attachment_response(item: MessageAttachment) -> AttachmentResponse:
+    return AttachmentResponse(
+        id=item.id,
+        kind=item.kind,
+        file_name=item.file_name,
+        content_type=item.content_type,
+        size_bytes=item.size_bytes,
+        status=item.status,
+        download_path=f"/v1/attachments/{item.id}",
+    )
+
+
+@router.post("/uploads", response_model=UploadInitResponse, status_code=201)
+def init_upload(payload: UploadInitRequest, user: User = Depends(get_current_user), db: Session = Depends(get_db)) -> UploadInitResponse:
+    if payload.size_bytes > settings.max_upload_bytes:
+        raise HTTPException(status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE, detail="file too large")
+    file_name = Path(payload.file_name).name.strip()
+    if not file_name or file_name in {".", ".."}:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="invalid file name")
+    content_type = payload.content_type.strip().lower()
+    allowed = ALLOWED_IMAGE_TYPES if payload.kind == "image" else ALLOWED_FILE_TYPES
+    if content_type not in allowed:
+        raise HTTPException(status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE, detail="unsupported content type")
+    attachment = MessageAttachment(
+        owner_id=user.id,
+        kind=payload.kind,
+        file_name=file_name,
+        content_type=content_type,
+        size_bytes=payload.size_bytes,
+        storage_key=uuid.uuid4().hex,
+        status="pending",
+    )
+    db.add(attachment)
+    db.commit()
+    db.refresh(attachment)
+    return UploadInitResponse(
+        id=attachment.id,
+        kind=attachment.kind,
+        file_name=attachment.file_name,
+        content_type=attachment.content_type,
+        size_bytes=attachment.size_bytes,
+        status=attachment.status,
+        upload_path=f"/v1/uploads/{attachment.id}/content",
+        created_at=attachment.created_at,
+    )
+
+
+@router.put("/uploads/{upload_id}/content", response_model=AttachmentResponse)
+async def upload_content(upload_id: str, request: Request, user: User = Depends(get_current_user), db: Session = Depends(get_db)) -> AttachmentResponse:
+    attachment = db.get(MessageAttachment, upload_id)
+    if attachment is None or attachment.owner_id != user.id:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="upload not found")
+    if attachment.message_id is not None or attachment.status == "attached":
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="upload already attached")
+    request_type = request.headers.get("content-type", "").split(";", 1)[0].strip().lower()
+    if request_type != attachment.content_type:
+        raise HTTPException(status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE, detail="content type mismatch")
+    content = await request.body()
+    if len(content) > settings.max_upload_bytes:
+        raise HTTPException(status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE, detail="file too large")
+    if len(content) != attachment.size_bytes:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="file size mismatch")
+    upload_root = Path(settings.uploads_dir)
+    upload_root.mkdir(parents=True, exist_ok=True)
+    (upload_root / attachment.storage_key).write_bytes(content)
+    attachment.status = "ready"
+    db.add(attachment)
+    db.commit()
+    db.refresh(attachment)
+    return attachment_response(attachment)
+
+
+@router.get("/attachments/{attachment_id}")
+def download_attachment(attachment_id: str, user: User = Depends(get_current_user), db: Session = Depends(get_db)) -> FileResponse:
+    attachment = db.get(MessageAttachment, attachment_id)
+    if attachment is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="attachment not found")
+    if attachment.message_id is None:
+        if attachment.owner_id != user.id:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="attachment not found")
+    else:
+        message = db.get(Message, attachment.message_id)
+        if message is None or message.deleted_at is not None or ensure_member(db, message.conversation_id, user.id) is None:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="attachment not found")
+    if attachment.status not in {"ready", "attached"}:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="attachment not ready")
+    file_path = Path(settings.uploads_dir) / attachment.storage_key
+    if not file_path.is_file():
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="attachment content missing")
+    return FileResponse(
+        path=file_path,
+        media_type=attachment.content_type,
+        filename=attachment.file_name,
+        headers={"X-Content-Type-Options": "nosniff", "Cache-Control": "private, max-age=300"},
+    )
 
 
 @router.get("/users/search", response_model=list[UserPreview])
@@ -106,7 +223,15 @@ async def send_message(conversation_id: str, payload: SendMessageRequest, user: 
     if conversation is None or ensure_member(db, conversation_id, user.id) is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="conversation not found")
     try:
-        message, created = create_message(db, conversation, user.id, payload.client_message_id, payload.body, payload.reply_to_id)
+        message, created = create_message(
+            db,
+            conversation,
+            user.id,
+            payload.client_message_id,
+            payload.body,
+            payload.reply_to_id,
+            payload.attachment_ids,
+        )
     except ValueError as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
     if created:
