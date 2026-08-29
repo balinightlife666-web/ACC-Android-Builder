@@ -5,6 +5,7 @@ from app.chat.routes import ALLOWED_FILE_TYPES, router as chat_router
 from app.push.routes import router as push_router
 from app.groups.routes import router as groups_router
 from app.business.routes import router as business_router
+from app.commerce.routes import router as commerce_router
 
 from .models import SummaryRequest, SummaryResponse
 
@@ -17,13 +18,14 @@ router.include_router(chat_router)
 router.include_router(push_router)
 router.include_router(groups_router)
 router.include_router(business_router)
+router.include_router(commerce_router)
 
 
 @router.get("/meta")
 def meta() -> dict[str, object]:
     return {
         "product": "MOSHI",
-        "phase": "business-catalog-core",
+        "phase": "catalog-chat-orders",
         "capabilities": [
             "identity",
             "auth",
@@ -33,6 +35,8 @@ def meta() -> dict[str, object]:
             "business",
             "business-profile",
             "business-catalog",
+            "catalog-chat-card",
+            "order-draft",
             "communities",
             "ai-summary",
         ],
