@@ -1,6 +1,7 @@
 package com.ardacore.moshi.chat.local
 
 import android.content.Context
+import android.net.Uri
 import com.ardacore.moshi.chat.ChatAttachment
 import com.ardacore.moshi.chat.ChatConversation
 import com.ardacore.moshi.chat.ChatMessage
@@ -10,8 +11,11 @@ import com.ardacore.moshi.chat.ReplyPreview
 import org.json.JSONArray
 import org.json.JSONObject
 
+private const val MAX_ATTACHMENT_BYTES = 20 * 1024 * 1024
+
 class ChatLocalStore(context: Context) {
-    private val dao = MoshiChatDatabase.get(context).chatDao()
+    private val appContext = context.applicationContext
+    private val dao = MoshiChatDatabase.get(appContext).chatDao()
 
     suspend fun conversations(): List<ChatConversation> = dao.conversations().mapNotNull { entity ->
         runCatching { parseConversation(JSONObject(entity.payloadJson)) }.getOrNull()
@@ -37,9 +41,7 @@ class ChatLocalStore(context: Context) {
     }
 
     suspend fun cacheMessages(items: List<ChatMessage>) {
-        if (items.isNotEmpty()) {
-            dao.upsertMessages(items.map(::messageEntity))
-        }
+        if (items.isNotEmpty()) dao.upsertMessages(items.map(::messageEntity))
     }
 
     suspend fun cacheMessage(item: ChatMessage) {
@@ -66,6 +68,35 @@ class ChatLocalStore(context: Context) {
         dao.upsertMessage(messageEntity(localMessage))
     }
 
+    suspend fun enqueueAttachment(
+        conversationId: String,
+        clientMessageId: String,
+        body: String,
+        replyToId: String?,
+        attachmentUri: String,
+        attachmentKind: String,
+        attachmentFileName: String,
+        attachmentContentType: String,
+        attachmentSizeBytes: Long,
+        localMessage: ChatMessage,
+    ) {
+        dao.enqueue(
+            OutboxMessageEntity(
+                clientMessageId = clientMessageId,
+                conversationId = conversationId,
+                body = body,
+                replyToId = replyToId,
+                createdAtEpochMs = System.currentTimeMillis(),
+                attachmentUri = attachmentUri,
+                attachmentKind = attachmentKind,
+                attachmentFileName = attachmentFileName,
+                attachmentContentType = attachmentContentType,
+                attachmentSizeBytes = attachmentSizeBytes,
+            )
+        )
+        dao.upsertMessage(messageEntity(localMessage))
+    }
+
     suspend fun pending(): List<OutboxMessageEntity> = dao.outbox()
 
     suspend fun acknowledge(clientMessageId: String, serverMessage: ChatMessage) {
@@ -76,6 +107,33 @@ class ChatLocalStore(context: Context) {
 
     suspend fun markAttempt(clientMessageId: String, error: String) {
         dao.markAttempt(clientMessageId, error.take(500))
+    }
+
+    suspend fun markAttachmentUploaded(clientMessageId: String, attachmentId: String) {
+        dao.markAttachmentUploaded(clientMessageId, attachmentId)
+    }
+
+    fun readPendingAttachment(item: OutboxMessageEntity): ByteArray {
+        val uriText = item.attachmentUri ?: error("Attachment URI is missing")
+        val expectedSize = item.attachmentSizeBytes ?: error("Attachment size is missing")
+        if (expectedSize <= 0 || expectedSize > MAX_ATTACHMENT_BYTES) error("Attachment size is invalid")
+        val uri = Uri.parse(uriText)
+        val bytes = appContext.contentResolver.openInputStream(uri)?.use { input ->
+            val output = java.io.ByteArrayOutputStream(expectedSize.coerceAtMost(Int.MAX_VALUE.toLong()).toInt())
+            val buffer = ByteArray(64 * 1024)
+            var total = 0
+            while (true) {
+                val count = input.read(buffer)
+                if (count < 0) break
+                total += count
+                if (total > MAX_ATTACHMENT_BYTES) error("Attachment is larger than 20 MB")
+                output.write(buffer, 0, count)
+            }
+            output.toByteArray()
+        } ?: error("Could not reopen queued attachment")
+        if (bytes.isEmpty()) error("Attachment is empty")
+        if (bytes.size.toLong() != expectedSize) error("Attachment changed after it was queued")
+        return bytes
     }
 
     private fun messageEntity(item: ChatMessage) = CachedMessageEntity(
@@ -199,7 +257,7 @@ class ChatLocalStore(context: Context) {
                     contentType = attachment.getString("content_type"),
                     sizeBytes = attachment.getLong("size_bytes"),
                     status = attachment.getString("status"),
-                    downloadPath = attachment.getString("download_path"),
+                    downloadPath = attachment.optString("download_path"),
                 )
             },
         )
