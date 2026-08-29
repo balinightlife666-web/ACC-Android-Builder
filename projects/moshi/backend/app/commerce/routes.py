@@ -54,6 +54,19 @@ def require_conversation(db: Session, conversation_id: str, user_id: str) -> Con
     return conversation
 
 
+def catalog_display_body(item: CatalogItem, requested_body: str) -> str:
+    if requested_body.strip():
+        return requested_body.strip()
+    price = f"{item.currency} {item.price_amount:,}" if item.price_amount is not None else "Ask price"
+    return f"🛍️ {item.title}\n{price}\nReply to ask a question, or reply PESAN to create an order draft."
+
+
+def order_display_body(item: CatalogItem, quantity: int) -> str:
+    total = item.price_amount * quantity if item.price_amount is not None else None
+    total_text = f" · {item.currency} {total:,}" if total is not None else ""
+    return f"🧾 Order draft · {item.title} ×{quantity}{total_text}"
+
+
 @router.post(
     "/conversations/{conversation_id}/catalog-cards",
     response_model=MessageResponse,
@@ -76,7 +89,7 @@ async def share_catalog_card(
         conversation,
         user.id,
         payload.client_message_id,
-        payload.body,
+        catalog_display_body(item, payload.body),
         commit=False,
     )
     if created:
@@ -187,7 +200,7 @@ async def create_order_draft_from_card(
         conversation,
         user.id,
         payload.client_message_id,
-        "",
+        order_display_body(item, payload.quantity),
         reply_to_id=source_message.id,
         commit=False,
     )
