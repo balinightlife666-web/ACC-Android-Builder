@@ -2,7 +2,7 @@
 
 MOSHI is an Android-first communication platform combining personal chat, communities, built-in Business Mode, and privacy-aware AI assistance in one app.
 
-Current stage: **Phase 1 — Identity/Auth implemented; Android CI build pending repository push.**
+Current stage: **Phase 2 — Direct realtime chat core implemented; Android CI verification in progress.**
 
 ## Product locks
 
@@ -16,7 +16,11 @@ Current stage: **Phase 1 — Identity/Auth implemented; Android CI build pending
 - `android/` — Kotlin + Jetpack Compose Android app
 - `backend/` — FastAPI API
 - `docs/` — product/architecture/security authority
-- `.github/workflows/ci.yml` — backend tests + Android debug APK build
+- hosted repo uses dedicated `.github/workflows/moshi-ci.yml` for backend tests + Android debug APK build
+
+## Chat core
+
+Phase 2 adds persistent 1:1 conversations, idempotent message send, authenticated WebSocket realtime events, delivery/read receipts, catch-up history, and an Android direct-chat UI.
 
 ## Backend local start
 
