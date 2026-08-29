@@ -6,7 +6,7 @@ return {
     version = "M5C3_EXTERNAL_ASSETS_V1",
     Models = {
         daniel_formal_shoe = {
-            assetId = 91598094761025, -- ROBLOX_ASSET_ID
+            assetId = 118204524698844, -- ROBLOX_ASSET_ID
             sourceTitle = "Oxford style leather shoe for men",
             sourceCreator = "assetfactory",
             sourcePlatform = "Sketchfab",
