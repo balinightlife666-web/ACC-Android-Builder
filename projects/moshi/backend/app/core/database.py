@@ -19,5 +19,6 @@ def init_db() -> None:
     from app.chat import models as chat_models  # noqa: F401
     from app.push import models as push_models  # noqa: F401
     from app.groups import models as group_models  # noqa: F401
+    from app.business import models as business_models  # noqa: F401
 
     Base.metadata.create_all(bind=engine)
