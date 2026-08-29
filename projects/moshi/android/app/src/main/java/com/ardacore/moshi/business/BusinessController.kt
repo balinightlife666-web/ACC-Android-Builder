@@ -7,6 +7,7 @@ import androidx.compose.runtime.setValue
 import com.ardacore.moshi.auth.AuthSession
 import com.ardacore.moshi.chat.ChatApi
 import com.ardacore.moshi.chat.local.ContentUriRequestBody
+import java.util.UUID
 
 class BusinessController(
     private val session: AuthSession,
@@ -19,6 +20,8 @@ class BusinessController(
     var profile: BusinessProfile? by mutableStateOf(null)
         private set
     var catalog: List<CatalogItem> by mutableStateOf(emptyList())
+        private set
+    var lastShareMessage: String? by mutableStateOf(null)
         private set
     var busy: Boolean by mutableStateOf(false)
         private set
@@ -117,9 +120,27 @@ class BusinessController(
         true
     } ?: false
 
+    suspend fun shareCatalogItem(item: CatalogItem, username: String): Boolean = runBusyResult {
+        val cleanUsername = username.trim().removePrefix("@")
+        require(cleanUsername.isNotBlank()) { "Enter a MOSHI username" }
+        val conversation = chatApi.createDirect(session.accessToken, cleanUsername)
+        chatApi.shareCatalogCard(
+            accessToken = session.accessToken,
+            conversationId = conversation.id,
+            clientMessageId = UUID.randomUUID().toString(),
+            catalogItemId = item.id,
+        )
+        lastShareMessage = "${item.title} shared to @$cleanUsername"
+        true
+    } ?: false
+
     suspend fun loadCatalogImage(item: CatalogItem): ByteArray? {
         val path = item.imagePath ?: return null
         return runCatching { api.catalogImage(session.accessToken, path) }.getOrNull()
+    }
+
+    fun clearShareMessage() {
+        lastShareMessage = null
     }
 
     fun clearError() {
