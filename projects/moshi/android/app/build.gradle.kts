@@ -54,5 +54,12 @@ dependencies {
     implementation("androidx.room:room-runtime:2.8.4")
     implementation("androidx.room:room-ktx:2.8.4")
     kapt("androidx.room:room-compiler:2.8.4")
+
+    // Main Firebase modules are used (not the retired KTX artifacts). The
+    // google-services plugin/config is activated only when a MOSHI Firebase
+    // project is provisioned; keeping it optional preserves credential-free CI.
+    implementation(platform("com.google.firebase:firebase-bom:34.18.0"))
+    implementation("com.google.firebase:firebase-messaging")
+
     debugImplementation("androidx.compose.ui:ui-tooling")
 }
