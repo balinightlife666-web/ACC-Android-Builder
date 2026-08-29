@@ -1,4 +1,4 @@
--- LOST & FOUND: NIGHT SHIFT — M5-C.3 External Collectible Asset Bridge
+-- LOST & FOUND: NIGHT SHIFT — M5-C.3.1 External Oxford Runtime Color Pass
 -- Replaces only Daniel's Formal Shoe showcase geometry with an approved Roblox model asset.
 -- The stable M5-C.1.3 showcase Model instance remains intact, so this does not reintroduce
 -- destructive refresh/flicker behavior. If the external asset cannot load, the existing
@@ -11,19 +11,37 @@ local ServerStorage = game:GetService("ServerStorage")
 local shared = ReplicatedStorage:WaitForChild("LostAndFoundShared")
 local ExternalAssets = require(shared:WaitForChild("ExternalCollectibleAssets"))
 
-local VERSION = "M5C3_EXTERNAL_OXFORD_V1"
+local VERSION = "M5C31_EXTERNAL_OXFORD_COLOR_V1"
 local COLLECTION_ID = "daniel_formal_shoe"
 local assetInfo = ExternalAssets.Models and ExternalAssets.Models[COLLECTION_ID]
 local ASSET_ID = math.floor(tonumber(assetInfo and assetInfo.assetId) or 0)
 
 if ASSET_ID <= 0 then
-    warn("[LOST FOUND] M5-C.3 Oxford external asset not assigned; procedural fallback remains active")
+    warn("[LOST FOUND] M5-C.3.1 Oxford external asset not assigned; procedural fallback remains active")
     return
 end
 
 local template
 local boundFolders = setmetatable({}, {__mode = "k"})
 local replacementBusy = setmetatable({}, {__mode = "k"})
+
+local LEATHER_COLOR = Color3.fromRGB(58, 34, 25)
+local SOLE_COLOR = Color3.fromRGB(24, 21, 20)
+local CORD_COLOR = Color3.fromRGB(150, 124, 91)
+
+local function applyOxfordColor(part)
+    local lowerName = string.lower(part.Name)
+    part.Material = Enum.Material.SmoothPlastic
+    part.Reflectance = 0
+
+    if string.find(lowerName, "cord", 1, true) then
+        part.Color = CORD_COLOR
+    elseif string.find(lowerName, "plane.001", 1, true) then
+        part.Color = SOLE_COLOR
+    else
+        part.Color = LEATHER_COLOR
+    end
+end
 
 local function sanitizeTree(root)
     for _, descendant in ipairs(root:GetDescendants()) do
@@ -36,6 +54,7 @@ local function sanitizeTree(root)
             descendant.CanQuery = false
             descendant.Massless = true
             descendant.CastShadow = true
+            applyOxfordColor(descendant)
         end
     end
 end
@@ -55,12 +74,12 @@ local function loadTemplateOnce()
         return InsertService:LoadAsset(ASSET_ID)
     end)
     if not ok or not container then
-        warn("[LOST FOUND] M5-C.3 InsertService load failed", ASSET_ID, container)
+        warn("[LOST FOUND] M5-C.3.1 InsertService load failed", ASSET_ID, container)
         return nil
     end
 
     local model = Instance.new("Model")
-    model.Name = "M5C3_OxfordTemplate"
+    model.Name = "M5C31_OxfordTemplate"
     for _, child in ipairs(container:GetChildren()) do
         child.Parent = model
     end
@@ -69,7 +88,7 @@ local function loadTemplateOnce()
 
     if countParts(model) < 1 then
         model:Destroy()
-        warn("[LOST FOUND] M5-C.3 Oxford asset contained no BaseParts", ASSET_ID)
+        warn("[LOST FOUND] M5-C.3.1 Oxford asset contained no BaseParts", ASSET_ID)
         return nil
     end
 
@@ -100,7 +119,7 @@ local function fitOxfordOffWorld(model, anchor, plinth)
     end)
     if not ok or not size or size.X <= 0 or size.Y <= 0 or size.Z <= 0 then return false end
 
-    -- Oxford silhouette target: long and low, clearly reading as one formal shoe.
+    -- Oxford silhouette target stays locked from M5-C.3; color-only pass does not change fit.
     local targetW, targetH, targetD = 2.72, 1.48, 1.42
     local scale = math.min(targetW / size.X, targetH / size.Y, targetD / size.Z)
     scale = math.clamp(scale, 0.08, 4.0)
@@ -134,7 +153,10 @@ local function replaceGeometry(slotModel)
     if replacementBusy[slotModel] then return end
     if not slotModel:IsA("Model") then return end
     if tostring(slotModel:GetAttribute("CollectionId") or "") ~= COLLECTION_ID then return end
-    if tonumber(slotModel:GetAttribute("ExternalAssetId")) == ASSET_ID then return end
+    if tonumber(slotModel:GetAttribute("ExternalAssetId")) == ASSET_ID
+        and tostring(slotModel:GetAttribute("ExternalAssetVersion") or "") == VERSION then
+        return
+    end
 
     local slot, anchor, plinth = findSlotContext(slotModel)
     if not slot then return end
@@ -143,7 +165,7 @@ local function replaceGeometry(slotModel)
 
     replacementBusy[slotModel] = true
     local staging = source:Clone()
-    staging.Name = "M5C3_StagingOxford"
+    staging.Name = "M5C31_StagingOxford"
     staging.Parent = ServerStorage
     sanitizeTree(staging)
 
@@ -153,8 +175,7 @@ local function replaceGeometry(slotModel)
         return
     end
 
-    -- Hide the procedural geometry first, then swap children while preserving the stable
-    -- M5C13 slot Model instance and all immutable instance/serial attributes.
+    -- Preserve the stable M5C13 slot Model and immutable instance/serial attributes.
     hideProcedural(slotModel)
     local oldChildren = slotModel:GetChildren()
     for _, child in ipairs(staging:GetChildren()) do
@@ -170,6 +191,7 @@ local function replaceGeometry(slotModel)
     slotModel:SetAttribute("ExternalAssetVersion", VERSION)
     slotModel:SetAttribute("ExternalSource", "Sketchfab/assetfactory")
     slotModel:SetAttribute("ExternalCollectionId", COLLECTION_ID)
+    slotModel:SetAttribute("ExternalColorProfile", "ESPRESSO_BLACK_TAN_V1")
     replacementBusy[slotModel] = nil
 end
 
@@ -200,8 +222,7 @@ local function processDescendant(descendant)
     end
 end
 
--- Warm the template before visible shoes are likely to spawn. Retry is bounded so a
--- transient moderation/CDN delay does not disable the procedural fallback.
+-- Warm once; bounded retry only. No periodic visual mutation loop.
 task.spawn(function()
     for attempt = 1, 12 do
         if loadTemplateOnce() then break end
@@ -216,4 +237,4 @@ end)
 
 workspace.DescendantAdded:Connect(processDescendant)
 
-print("[LOST FOUND] M5-C.3 external Oxford bridge ready", ASSET_ID, VERSION)
+print("[LOST FOUND] M5-C.3.1 Oxford runtime colors ready", ASSET_ID, VERSION)
