@@ -56,6 +56,8 @@ class Message(Base):
     receipts: Mapped[list["MessageReceipt"]] = relationship(back_populates="message", cascade="all, delete-orphan")
     reactions: Mapped[list["MessageReaction"]] = relationship(back_populates="message", cascade="all, delete-orphan")
     attachments: Mapped[list["MessageAttachment"]] = relationship(back_populates="message")
+    catalog_card = relationship("MessageCatalogCard", back_populates="message", uselist=False, cascade="all, delete-orphan")
+    order_card = relationship("MessageOrderCard", back_populates="message", uselist=False, cascade="all, delete-orphan")
 
 
 class MessageReceipt(Base):
