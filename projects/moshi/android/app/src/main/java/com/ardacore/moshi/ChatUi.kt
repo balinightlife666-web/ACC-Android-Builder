@@ -45,6 +45,7 @@ import com.ardacore.moshi.chat.ChatController
 import com.ardacore.moshi.chat.ChatConversation
 import com.ardacore.moshi.chat.ChatMessage
 import com.ardacore.moshi.chat.ChatUser
+import com.ardacore.moshi.chat.GroupMember
 import com.ardacore.moshi.chat.local.ChatLocalStore
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -77,9 +78,62 @@ fun ChatHubScreen(session: AuthSession, modifier: Modifier = Modifier) {
 private fun ConversationListScreen(controller: ChatController, modifier: Modifier = Modifier) {
     val scope = rememberCoroutineScope()
     var query by remember { mutableStateOf("") }
+    var creatingGroup by remember { mutableStateOf(false) }
+    var groupTitle by remember { mutableStateOf("") }
+    var groupMembersText by remember { mutableStateOf("") }
     Column(modifier = modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
         Text("MOSHI", style = MaterialTheme.typography.headlineLarge, fontWeight = FontWeight.Bold)
-        Text("Chats", style = MaterialTheme.typography.titleLarge)
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text("Chats", style = MaterialTheme.typography.titleLarge)
+            OutlinedButton(onClick = { creatingGroup = !creatingGroup }, enabled = !controller.busy) {
+                Text(if (creatingGroup) "Close" else "New group")
+            }
+        }
+        if (creatingGroup) {
+            Card(modifier = Modifier.fillMaxWidth()) {
+                Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text("Create group", fontWeight = FontWeight.SemiBold)
+                    OutlinedTextField(
+                        value = groupTitle,
+                        onValueChange = { groupTitle = it },
+                        label = { Text("Group name") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                    OutlinedTextField(
+                        value = groupMembersText,
+                        onValueChange = { groupMembersText = it },
+                        label = { Text("Members: @user1, @user2") },
+                        modifier = Modifier.fillMaxWidth(),
+                        maxLines = 3,
+                    )
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Button(
+                            onClick = {
+                                val members = groupMembersText
+                                    .split(',', '\n', ' ')
+                                    .map { it.trim() }
+                                    .filter { it.isNotBlank() }
+                                scope.launch {
+                                    controller.createGroup(groupTitle, members)
+                                    if (controller.error == null) {
+                                        groupTitle = ""
+                                        groupMembersText = ""
+                                        creatingGroup = false
+                                    }
+                                }
+                            },
+                            enabled = groupTitle.isNotBlank() && !controller.busy,
+                        ) { Text("Create") }
+                        TextButton(onClick = { creatingGroup = false; groupTitle = ""; groupMembersText = "" }) { Text("Cancel") }
+                    }
+                }
+            }
+        }
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             OutlinedTextField(
                 value = query,
@@ -107,7 +161,7 @@ private fun ConversationListScreen(controller: ChatController, modifier: Modifie
             HorizontalDivider()
         }
         if (controller.conversations.isEmpty()) {
-            Text("No conversations yet. Find someone by username to start a MOSHI chat.")
+            Text("No conversations yet. Find someone by username or create a group.")
         } else {
             LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 items(controller.conversations, key = { it.id }) { conversation ->
@@ -134,6 +188,7 @@ private fun ConversationCard(conversation: ChatConversation, onClick: () -> Unit
     val latest = conversation.latestMessage
     val firstAttachment = latest?.attachments?.firstOrNull()
     val latestText = when {
+        latest == null && conversation.group != null -> "${conversation.group.memberCount} members"
         latest == null -> "Start talking"
         latest.isDeleted -> "Message deleted"
         latest.body.isNotBlank() -> latest.body
@@ -141,6 +196,7 @@ private fun ConversationCard(conversation: ChatConversation, onClick: () -> Unit
         firstAttachment != null -> "📎 ${firstAttachment.fileName}"
         else -> "Message"
     }
+    val title = conversation.group?.title ?: conversation.peer?.displayName ?: "MOSHI chat"
     Card(onClick = onClick, modifier = Modifier.fillMaxWidth()) {
         Row(
             modifier = Modifier.fillMaxWidth().padding(14.dp),
@@ -148,7 +204,7 @@ private fun ConversationCard(conversation: ChatConversation, onClick: () -> Unit
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Column(modifier = Modifier.weight(1f)) {
-                Text(conversation.peer?.displayName ?: "MOSHI chat", fontWeight = FontWeight.SemiBold)
+                Text(title, fontWeight = FontWeight.SemiBold)
                 Text(latestText, maxLines = 1, style = MaterialTheme.typography.bodyMedium)
             }
             if (conversation.unreadCount > 0) {
@@ -170,6 +226,7 @@ private fun ConversationScreen(controller: ChatController, me: MoshiUser, modifi
     var editingId by remember(conversation.id) { mutableStateOf<String?>(null) }
     var attachmentBusy by remember(conversation.id) { mutableStateOf(false) }
     var attachmentError by remember(conversation.id) { mutableStateOf<String?>(null) }
+    var showMembers by remember(conversation.id) { mutableStateOf(false) }
     val selected = controller.messages.firstOrNull { it.id == selectedId }
     val replyingTo = controller.messages.firstOrNull { it.id == replyToId }
     val editing = controller.messages.firstOrNull { it.id == editingId }
@@ -271,17 +328,40 @@ private fun ConversationScreen(controller: ChatController, me: MoshiUser, modifi
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             OutlinedButton(onClick = controller::closeConversation) { Text("Back") }
-            Column {
-                Text(conversation.peer?.displayName ?: "Chat", fontWeight = FontWeight.Bold)
-                conversation.peer?.let { Text("@${it.username}", style = MaterialTheme.typography.bodySmall) }
+            Column(modifier = Modifier.weight(1f)) {
+                Text(conversation.group?.title ?: conversation.peer?.displayName ?: "Chat", fontWeight = FontWeight.Bold)
+                if (conversation.group != null) {
+                    Text(
+                        "${conversation.group.memberCount} members · ${conversation.group.myRole}",
+                        style = MaterialTheme.typography.bodySmall,
+                    )
+                } else {
+                    conversation.peer?.let { Text("@${it.username}", style = MaterialTheme.typography.bodySmall) }
+                }
+            }
+            if (conversation.group != null) {
+                OutlinedButton(onClick = { showMembers = !showMembers }) {
+                    Text(if (showMembers) "Chat" else "Members")
+                }
             }
         }
         HorizontalDivider(Modifier.padding(vertical = 8.dp))
+
+        if (conversation.group != null && showMembers) {
+            GroupMembersPanel(controller = controller, me = me)
+            HorizontalDivider(Modifier.padding(vertical = 8.dp))
+        }
+
         LazyColumn(modifier = Modifier.weight(1f).fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             items(controller.messages, key = { it.id }) { item ->
+                val mine = item.senderId == me.id
+                val senderLabel = if (conversation.group != null && !mine) {
+                    controller.groupMembers.firstOrNull { it.user.id == item.senderId }?.user?.displayName
+                } else null
                 MessageBubble(
                     message = item,
-                    mine = item.senderId == me.id,
+                    mine = mine,
+                    senderLabel = senderLabel,
                     selected = selectedId == item.id,
                     onSelect = { selectedId = if (selectedId == item.id) null else item.id },
                     onOpenAttachment = ::openAttachment,
@@ -410,6 +490,88 @@ private fun ConversationScreen(controller: ChatController, me: MoshiUser, modifi
 }
 
 @Composable
+private fun GroupMembersPanel(controller: ChatController, me: MoshiUser) {
+    val scope = rememberCoroutineScope()
+    val group = controller.activeConversation?.group ?: return
+    var username by remember(controller.activeConversation?.id) { mutableStateOf("") }
+    val canAdd = group.myRole == "admin" || group.myRole == "moderator"
+
+    Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        Text("Group members", fontWeight = FontWeight.SemiBold)
+        if (canAdd) {
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                OutlinedTextField(
+                    value = username,
+                    onValueChange = { username = it },
+                    label = { Text("Add @username") },
+                    singleLine = true,
+                    modifier = Modifier.weight(1f),
+                )
+                Button(
+                    onClick = {
+                        val value = username
+                        scope.launch {
+                            controller.addGroupMember(value)
+                            if (controller.error == null) username = ""
+                        }
+                    },
+                    enabled = username.isNotBlank() && !controller.busy,
+                ) { Text("Add") }
+            }
+        }
+        controller.groupMembers.forEach { member ->
+            GroupMemberRow(
+                member = member,
+                me = me,
+                actorRole = group.myRole,
+                busy = controller.busy,
+                onRole = { role -> scope.launch { controller.setGroupRole(member, role) } },
+                onRemove = { scope.launch { controller.removeGroupMember(member) } },
+            )
+        }
+    }
+}
+
+@Composable
+private fun GroupMemberRow(
+    member: GroupMember,
+    me: MoshiUser,
+    actorRole: String,
+    busy: Boolean,
+    onRole: (String) -> Unit,
+    onRemove: () -> Unit,
+) {
+    val isMe = member.user.id == me.id
+    val canRemoveOther = when (actorRole) {
+        "admin" -> member.role != "admin"
+        "moderator" -> member.role == "member"
+        else -> false
+    }
+    Card(modifier = Modifier.fillMaxWidth()) {
+        Column(Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(member.user.displayName, fontWeight = FontWeight.SemiBold)
+                    Text("@${member.user.username} · ${member.role}", style = MaterialTheme.typography.bodySmall)
+                }
+                if (isMe) {
+                    TextButton(onClick = onRemove, enabled = !busy) { Text("Leave") }
+                } else if (canRemoveOther) {
+                    TextButton(onClick = onRemove, enabled = !busy) { Text("Remove") }
+                }
+            }
+            if (actorRole == "admin") {
+                Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                    TextButton(onClick = { onRole("member") }, enabled = !busy && member.role != "member") { Text("Member") }
+                    TextButton(onClick = { onRole("moderator") }, enabled = !busy && member.role != "moderator") { Text("Moderator") }
+                    TextButton(onClick = { onRole("admin") }, enabled = !busy && member.role != "admin") { Text("Admin") }
+                }
+            }
+        }
+    }
+}
+
+@Composable
 private fun MessageActionBar(
     message: ChatMessage,
     mine: Boolean,
@@ -442,6 +604,7 @@ private fun MessageActionBar(
 private fun MessageBubble(
     message: ChatMessage,
     mine: Boolean,
+    senderLabel: String?,
     selected: Boolean,
     onSelect: () -> Unit,
     onOpenAttachment: (ChatAttachment) -> Unit,
@@ -449,6 +612,7 @@ private fun MessageBubble(
     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = if (mine) Arrangement.End else Arrangement.Start) {
         Card(onClick = onSelect, modifier = Modifier.fillMaxWidth(0.78f)) {
             Column(Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                if (senderLabel != null) Text(senderLabel, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold)
                 if (selected) Text("Selected", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.SemiBold)
                 message.replyTo?.let { reply ->
                     Text("↪ ${if (reply.isDeleted) "Message deleted" else reply.body}", style = MaterialTheme.typography.bodySmall, maxLines = 2)
