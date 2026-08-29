@@ -90,16 +90,19 @@ jobs:
             'V074_SchoolArchitecturalCleanup',
             '0.7.4-school-architectural-cleanup-1',
             'ASC_SignageOrientationPass',
+            'MAX_CLEANUP_PARTS = 58',
+            'compactSignWidth',
             'ASC_V074CompactArchitecturalSign',
             'ClassroomAFrame',
             'ClassroomBFrame',
+            'LeftWingConnectorFrame',
+            'RightWingConnectorFrame',
             'LibraryCanteenPassageFrame',
             'AdminClubPassageFrame',
-            'AdminDeskLeg',
-            'TeacherTableLeg',
-            'LibraryStudyLeg',
             'CanteenCounterToeKick',
             'WarmCoveStrip',
+            'light.Brightness = math.min(0.20, 0.22)',
+            'light.Range = math.min(9.0, 10)',
             'ASC_SchoolArchitecturalCleanupPass'
           )){Need $arch $token $token}
           foreach($forbidden in @('MarketplaceService','PromptProductPurchase','ProcessReceipt','DataStoreService','BillboardGui','NorthSouthRoad')){
@@ -123,7 +126,7 @@ jobs:
           $i73=$project.IndexOf('ASC_SignageOrientationHotfix',[StringComparison]::Ordinal)
           $i74=$project.IndexOf('ASC_SchoolArchitecturalCleanup',[StringComparison]::Ordinal)
           if($i73 -lt 0 -or $i74 -lt 0 -or $i74 -le $i73){throw 'Rojo ordering invalid: V0.7.4 must follow V0.7.3'}
-          Write-Host 'V0.7.4 ARCHITECTURAL CLEANUP AUDIT PASS gameplayAuthority=OFF'
+          Write-Host 'V0.7.4 ARCHITECTURAL CLEANUP AUDIT PASS gameplayAuthority=OFF partBudget=58'
 
       - name: Verify v23 protected source unchanged
         shell: bash
@@ -144,7 +147,7 @@ jobs:
           grep -Fq 'PUTU AZYA PUTRI' maps/after-school-city/after-school-city.intro.client.lua
           grep -Fq 'BINTANG HARDAJAYA' maps/after-school-city/after-school-city.intro.client.lua
           grep -Fq 'WITH LOVE, DAD' maps/after-school-city/after-school-city.intro.client.lua
-          echo 'PROTECTED SOURCE PASS v23=UNCHANGED dedication=UNCHANGED road=UNCHANGED orientation=UNCHANGED signageOrientation=UNCHANGED'
+          echo 'PROTECTED SOURCE PASS v23=UNCHANGED dedication=UNCHANGED road=UNCHANGED orientation=UNCHANGED V0.7-V0.7.3=UNCHANGED'
 
       - name: Prepare Rojo 7.7.0
         shell: bash
