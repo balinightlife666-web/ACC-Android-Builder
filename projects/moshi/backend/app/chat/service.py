@@ -87,7 +87,7 @@ def serialize_message(message: Message, viewer_id: str) -> MessageResponse:
             else None
         ),
         reactions=reaction_summary(message, viewer_id),
-        attachments=attachment_summary(message),
+        attachments=[] if deleted else attachment_summary(message),
     )
 
 
