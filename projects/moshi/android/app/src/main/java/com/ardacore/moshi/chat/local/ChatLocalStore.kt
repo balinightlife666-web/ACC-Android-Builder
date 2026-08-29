@@ -1,6 +1,7 @@
 package com.ardacore.moshi.chat.local
 
 import android.content.Context
+import com.ardacore.moshi.chat.ChatAttachment
 import com.ardacore.moshi.chat.ChatConversation
 import com.ardacore.moshi.chat.ChatMessage
 import com.ardacore.moshi.chat.ChatUser
@@ -102,6 +103,19 @@ class ChatLocalStore(context: Context) {
                     .put("reacted_by_me", reaction.reactedByMe)
             )
         }
+        val attachments = JSONArray()
+        item.attachments.forEach { attachment ->
+            attachments.put(
+                JSONObject()
+                    .put("id", attachment.id)
+                    .put("kind", attachment.kind)
+                    .put("file_name", attachment.fileName)
+                    .put("content_type", attachment.contentType)
+                    .put("size_bytes", attachment.sizeBytes)
+                    .put("status", attachment.status)
+                    .put("download_path", attachment.downloadPath)
+            )
+        }
         return JSONObject()
             .put("id", item.id)
             .put("conversation_id", item.conversationId)
@@ -115,6 +129,7 @@ class ChatLocalStore(context: Context) {
             .put("state", item.state)
             .put("reply_to", item.replyTo?.let(::replyToJson) ?: JSONObject.NULL)
             .put("reactions", reactions)
+            .put("attachments", attachments)
     }
 
     private fun userToJson(item: ChatUser): JSONObject = JSONObject()
@@ -147,6 +162,7 @@ class ChatLocalStore(context: Context) {
     private fun parseMessage(json: JSONObject): ChatMessage {
         val replyJson = json.optJSONObject("reply_to")
         val reactionsJson = json.optJSONArray("reactions") ?: JSONArray()
+        val attachmentsJson = json.optJSONArray("attachments") ?: JSONArray()
         return ChatMessage(
             id = json.getString("id"),
             conversationId = json.getString("conversation_id"),
@@ -172,6 +188,18 @@ class ChatLocalStore(context: Context) {
                     emoji = reaction.getString("emoji"),
                     count = reaction.getInt("count"),
                     reactedByMe = reaction.optBoolean("reacted_by_me", false),
+                )
+            },
+            attachments = List(attachmentsJson.length()) { index ->
+                val attachment = attachmentsJson.getJSONObject(index)
+                ChatAttachment(
+                    id = attachment.getString("id"),
+                    kind = attachment.getString("kind"),
+                    fileName = attachment.getString("file_name"),
+                    contentType = attachment.getString("content_type"),
+                    sizeBytes = attachment.getLong("size_bytes"),
+                    status = attachment.getString("status"),
+                    downloadPath = attachment.getString("download_path"),
                 )
             },
         )
