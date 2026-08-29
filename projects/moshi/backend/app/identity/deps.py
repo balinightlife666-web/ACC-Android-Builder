@@ -22,12 +22,16 @@ def get_db() -> Generator[Session, None, None]:
         db.close()
 
 
-def authenticate_access_token(token: str, db: Session) -> User:
-    unauthorized = HTTPException(
+def _unauthorized() -> HTTPException:
+    return HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="invalid or expired access token",
         headers={"WWW-Authenticate": "Bearer"},
     )
+
+
+def authenticate_access_session(token: str, db: Session) -> DeviceSession:
+    unauthorized = _unauthorized()
     try:
         payload = decode_access_token(token)
         user_id = str(payload["sub"])
@@ -38,10 +42,26 @@ def authenticate_access_token(token: str, db: Session) -> User:
     session = db.get(DeviceSession, session_id)
     if session is None or session.user_id != user_id or session.revoked_at is not None:
         raise unauthorized
-    user = db.get(User, user_id)
-    if user is None:
+    if db.get(User, user_id) is None:
         raise unauthorized
+    return session
+
+
+def authenticate_access_token(token: str, db: Session) -> User:
+    session = authenticate_access_session(token, db)
+    user = db.get(User, session.user_id)
+    if user is None:
+        raise _unauthorized()
     return user
+
+
+def get_current_session(
+    credentials: HTTPAuthorizationCredentials | None = Depends(bearer),
+    db: Session = Depends(get_db),
+) -> DeviceSession:
+    if credentials is None:
+        raise _unauthorized()
+    return authenticate_access_session(credentials.credentials, db)
 
 
 def get_current_user(
@@ -49,9 +69,5 @@ def get_current_user(
     db: Session = Depends(get_db),
 ) -> User:
     if credentials is None:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="invalid or expired access token",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
+        raise _unauthorized()
     return authenticate_access_token(credentials.credentials, db)
