@@ -24,16 +24,21 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Mark ID test build
+      - name: Mark ID test build and isolate test map
         shell: bash
         run: |
           set -euo pipefail
           GRADLE="tools/bbya-music-manager/app/build.gradle"
-          sed -i 's/versionCode 11/versionCode 14/' "$GRADLE"
-          sed -i "s/versionName '0.3.10-underground-sync-pilot'/versionName '0.3.13-id-test'/" "$GRADLE"
+          SYNC="tools/bbya-music-manager/app/src/main/java/com/acc/bbyamusic/OAuthSyncActivity.java"
+          sed -i 's/versionCode 11/versionCode 15/' "$GRADLE"
+          sed -i "s/versionName '0.3.10-underground-sync-pilot'/versionName '0.3.14-id-test-ui-map'/" "$GRADLE"
+          sed -i 's/private static final String UNIVERSE_ID = "8116636513";/private static final String UNIVERSE_ID = "10762005984";/' "$SYNC"
+          sed -i 's/ke BBYA Social Hub/ke BBYA Music UI Test/' "$SYNC"
           grep -q 'TestSeedProvider' tools/bbya-music-manager/app/src/main/AndroidManifest.xml
           grep -q '125820152354579' tools/bbya-music-manager/app/src/main/java/com/acc/bbyamusic/TestSeedProvider.java
-          grep -q "versionCode 14" "$GRADLE"
+          grep -q 'private static final String UNIVERSE_ID = "10762005984";' "$SYNC"
+          grep -q "versionCode 15" "$GRADLE"
+          echo "BBYA Music ID Test target: universe 10762005984 / place 124607344716828"
 
       - name: Setup Java
         uses: actions/setup-java@v5
@@ -96,12 +101,12 @@ jobs:
       - name: Prepare APK
         run: |
           mkdir -p dist
-          cp tools/bbya-music-manager/app/build/outputs/apk/debug/app-debug.apk dist/BBYA-Music-Manager-v0.3.13-ID-Test.apk
+          cp tools/bbya-music-manager/app/build/outputs/apk/debug/app-debug.apk dist/BBYA-Music-Manager-v0.3.14-ID-Test-UIMap.apk
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: BBYA-Music-Manager-v0.3.13-ID-Test
-          path: dist/BBYA-Music-Manager-v0.3.13-ID-Test.apk
+          name: BBYA-Music-Manager-v0.3.14-ID-Test-UIMap
+          path: dist/BBYA-Music-Manager-v0.3.14-ID-Test-UIMap.apk
           if-no-files-found: error
           retention-days: 7
