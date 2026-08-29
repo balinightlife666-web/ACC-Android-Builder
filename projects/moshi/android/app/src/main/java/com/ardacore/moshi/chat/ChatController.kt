@@ -4,16 +4,20 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import com.ardacore.moshi.auth.AuthSession
+import com.ardacore.moshi.chat.local.ChatLocalStore
+import com.ardacore.moshi.chat.local.OutboxMessageEntity
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 import okhttp3.WebSocket
 import org.json.JSONObject
+import java.time.Instant
 import java.util.UUID
 
 class ChatController(
     private val session: AuthSession,
+    private val local: ChatLocalStore,
     private val api: ChatApi = ChatApi(),
 ) {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
@@ -33,7 +37,12 @@ class ChatController(
         private set
 
     suspend fun start() {
-        loadConversations()
+        conversations = local.conversations()
+        runCatching { syncConversations() }
+            .onFailure { failure ->
+                if (conversations.isEmpty()) error = failure.message ?: "MOSHI is offline"
+            }
+        retryOutboxInternal()
         if (socket == null) {
             socket = api.openRealtime(
                 accessToken = session.accessToken,
@@ -44,62 +53,116 @@ class ChatController(
     }
 
     suspend fun loadConversations() = runBusy {
-        conversations = api.conversations(session.accessToken)
+        syncConversations()
+        retryOutboxInternal()
     }
 
     suspend fun search(query: String) = runBusy {
         searchResults = if (query.isBlank()) emptyList() else api.searchUsers(session.accessToken, query.trim())
     }
 
-    suspend fun startDirect(user: ChatUser) = runBusy {
-        val conversation = api.createDirect(session.accessToken, user.username)
+    suspend fun startDirect(user: ChatUser) {
+        val conversation = runBusyResult { api.createDirect(session.accessToken, user.username) } ?: return
         activeConversation = conversation
         searchResults = emptyList()
-        messages = api.messages(session.accessToken, conversation.id)
-        markLastRead()
-        conversations = api.conversations(session.accessToken)
+        local.cacheConversations(listOf(conversation) + conversations.filterNot { it.id == conversation.id })
+        loadConversationMessages(conversation)
+        runCatching { syncConversations() }
     }
 
-    suspend fun openConversation(conversation: ChatConversation) = runBusy {
+    suspend fun openConversation(conversation: ChatConversation) {
         activeConversation = conversation
-        messages = api.messages(session.accessToken, conversation.id)
-        markLastRead()
-        conversations = api.conversations(session.accessToken)
+        messages = local.messages(conversation.id)
+        runBusy {
+            loadConversationMessages(conversation)
+            retryOutboxInternal()
+            syncConversations()
+        }
     }
 
     fun closeConversation() {
         activeConversation = null
         messages = emptyList()
-        scope.launch { loadConversations() }
+        scope.launch {
+            runCatching { syncConversations() }
+        }
     }
 
-    suspend fun send(body: String, replyToId: String? = null) = runBusy {
-        val conversation = activeConversation ?: return@runBusy
-        val sent = api.sendMessage(
-            accessToken = session.accessToken,
+    suspend fun send(body: String, replyToId: String? = null) {
+        val conversation = activeConversation ?: return
+        val cleanBody = body.trim()
+        if (cleanBody.isBlank()) return
+
+        val clientMessageId = UUID.randomUUID().toString()
+        val replyPreview = replyToId?.let { id ->
+            messages.firstOrNull { it.id == id }?.let { source ->
+                ReplyPreview(
+                    id = source.id,
+                    senderId = source.senderId,
+                    body = source.body,
+                    isDeleted = source.isDeleted,
+                )
+            }
+        }
+        val optimistic = ChatMessage(
+            id = "local:$clientMessageId",
             conversationId = conversation.id,
-            clientMessageId = UUID.randomUUID().toString(),
-            body = body.trim(),
-            replyToId = replyToId,
+            senderId = session.user.id,
+            clientMessageId = clientMessageId,
+            body = cleanBody,
+            createdAt = Instant.now().toString(),
+            editedAt = null,
+            deletedAt = null,
+            isDeleted = false,
+            state = "queued",
+            replyTo = replyPreview,
+            reactions = emptyList(),
         )
-        upsertMessage(sent)
-        conversations = api.conversations(session.accessToken)
+        local.enqueue(
+            conversationId = conversation.id,
+            clientMessageId = clientMessageId,
+            body = cleanBody,
+            replyToId = replyToId,
+            localMessage = optimistic,
+        )
+        upsertMessage(optimistic)
+
+        val pending = local.pending().firstOrNull { it.clientMessageId == clientMessageId }
+        if (pending != null) {
+            val sent = attemptPending(pending)
+            if (!sent) error = "Message queued. MOSHI will retry when connected."
+        }
+        runCatching { syncConversations() }
+    }
+
+    suspend fun retryPending() = runBusy {
+        retryOutboxInternal()
+        activeConversation?.let { conversation ->
+            messages = local.messages(conversation.id)
+        }
+        syncConversations()
     }
 
     suspend fun edit(message: ChatMessage, body: String) = runBusy {
+        if (message.id.startsWith("local:")) return@runBusy
         val updated = api.editMessage(session.accessToken, message.conversationId, message.id, body.trim())
+        local.cacheMessage(updated)
         upsertMessage(updated)
-        conversations = api.conversations(session.accessToken)
+        syncConversations()
     }
 
     suspend fun delete(message: ChatMessage) = runBusy {
+        if (message.id.startsWith("local:")) return@runBusy
         val updated = api.deleteMessage(session.accessToken, message.conversationId, message.id)
+        local.cacheMessage(updated)
         upsertMessage(updated)
-        conversations = api.conversations(session.accessToken)
+        syncConversations()
     }
 
     suspend fun toggleReaction(message: ChatMessage, emoji: String) = runBusy {
+        if (message.id.startsWith("local:")) return@runBusy
         val updated = api.toggleReaction(session.accessToken, message.conversationId, message.id, emoji)
+        local.cacheMessage(updated)
         upsertMessage(updated)
     }
 
@@ -112,9 +175,45 @@ class ChatController(
         error = null
     }
 
+    private suspend fun loadConversationMessages(conversation: ChatConversation) {
+        val remote = api.messages(session.accessToken, conversation.id)
+        local.cacheMessages(remote)
+        messages = local.messages(conversation.id)
+        markLastRead()
+    }
+
+    private suspend fun syncConversations() {
+        val remote = api.conversations(session.accessToken)
+        conversations = remote
+        local.cacheConversations(remote)
+    }
+
+    private suspend fun retryOutboxInternal() {
+        val pending = local.pending()
+        for (item in pending) attemptPending(item)
+    }
+
+    private suspend fun attemptPending(item: OutboxMessageEntity): Boolean {
+        return try {
+            val sent = api.sendMessage(
+                accessToken = session.accessToken,
+                conversationId = item.conversationId,
+                clientMessageId = item.clientMessageId,
+                body = item.body,
+                replyToId = item.replyToId,
+            )
+            local.acknowledge(item.clientMessageId, sent)
+            if (activeConversation?.id == item.conversationId) upsertMessage(sent)
+            true
+        } catch (t: Throwable) {
+            local.markAttempt(item.clientMessageId, t.message ?: "send failed")
+            false
+        }
+    }
+
     private suspend fun markLastRead() {
         val conversation = activeConversation ?: return
-        val latestIncoming = messages.lastOrNull { it.senderId != session.user.id } ?: return
+        val latestIncoming = messages.lastOrNull { it.senderId != session.user.id && !it.id.startsWith("local:") } ?: return
         api.markRead(session.accessToken, conversation.id, latestIncoming.id)
     }
 
@@ -123,13 +222,14 @@ class ChatController(
             "message.created", "message.updated" -> {
                 val messageJson = event.optJSONObject("message") ?: return
                 val message = api.parseMessage(messageJson)
+                local.cacheMessage(message)
                 if (activeConversation?.id == message.conversationId) {
                     upsertMessage(message)
                     if (event.optString("type") == "message.created" && message.senderId != session.user.id) {
-                        api.markRead(session.accessToken, message.conversationId, message.id)
+                        runCatching { api.markRead(session.accessToken, message.conversationId, message.id) }
                     }
                 }
-                conversations = api.conversations(session.accessToken)
+                runCatching { syncConversations() }
             }
             "message.read" -> {
                 val idsJson = event.optJSONArray("message_ids")
@@ -140,9 +240,11 @@ class ChatController(
                 } else {
                     setOf(event.optString("message_id"))
                 }
-                messages = messages.map { item ->
+                val updated = messages.map { item ->
                     if (item.id in readIds && item.senderId == session.user.id) item.copy(state = "read") else item
                 }
+                messages = updated
+                updated.filter { it.id in readIds }.forEach { local.cacheMessage(it) }
             }
         }
     }
@@ -160,6 +262,20 @@ class ChatController(
             block()
         } catch (t: Throwable) {
             error = t.message ?: "MOSHI chat request failed"
+        } finally {
+            busy = false
+        }
+    }
+
+    private suspend fun <T> runBusyResult(block: suspend () -> T): T? {
+        if (busy) return null
+        busy = true
+        error = null
+        return try {
+            block()
+        } catch (t: Throwable) {
+            error = t.message ?: "MOSHI chat request failed"
+            null
         } finally {
             busy = false
         }
