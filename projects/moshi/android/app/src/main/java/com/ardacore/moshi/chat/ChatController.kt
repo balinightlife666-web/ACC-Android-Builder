@@ -73,16 +73,34 @@ class ChatController(
         scope.launch { loadConversations() }
     }
 
-    suspend fun send(body: String) = runBusy {
+    suspend fun send(body: String, replyToId: String? = null) = runBusy {
         val conversation = activeConversation ?: return@runBusy
         val sent = api.sendMessage(
             accessToken = session.accessToken,
             conversationId = conversation.id,
             clientMessageId = UUID.randomUUID().toString(),
             body = body.trim(),
+            replyToId = replyToId,
         )
         upsertMessage(sent)
         conversations = api.conversations(session.accessToken)
+    }
+
+    suspend fun edit(message: ChatMessage, body: String) = runBusy {
+        val updated = api.editMessage(session.accessToken, message.conversationId, message.id, body.trim())
+        upsertMessage(updated)
+        conversations = api.conversations(session.accessToken)
+    }
+
+    suspend fun delete(message: ChatMessage) = runBusy {
+        val updated = api.deleteMessage(session.accessToken, message.conversationId, message.id)
+        upsertMessage(updated)
+        conversations = api.conversations(session.accessToken)
+    }
+
+    suspend fun toggleReaction(message: ChatMessage, emoji: String) = runBusy {
+        val updated = api.toggleReaction(session.accessToken, message.conversationId, message.id, emoji)
+        upsertMessage(updated)
     }
 
     fun stop() {
@@ -102,21 +120,28 @@ class ChatController(
 
     private suspend fun handleEvent(event: JSONObject) {
         when (event.optString("type")) {
-            "message.created" -> {
+            "message.created", "message.updated" -> {
                 val messageJson = event.optJSONObject("message") ?: return
                 val message = api.parseMessage(messageJson)
                 if (activeConversation?.id == message.conversationId) {
                     upsertMessage(message)
-                    if (message.senderId != session.user.id) {
+                    if (event.optString("type") == "message.created" && message.senderId != session.user.id) {
                         api.markRead(session.accessToken, message.conversationId, message.id)
                     }
                 }
                 conversations = api.conversations(session.accessToken)
             }
             "message.read" -> {
-                val messageId = event.optString("message_id")
+                val idsJson = event.optJSONArray("message_ids")
+                val readIds = if (idsJson != null) {
+                    buildSet {
+                        for (index in 0 until idsJson.length()) add(idsJson.getString(index))
+                    }
+                } else {
+                    setOf(event.optString("message_id"))
+                }
                 messages = messages.map { item ->
-                    if (item.id == messageId && item.senderId == session.user.id) item.copy(state = "read") else item
+                    if (item.id in readIds && item.senderId == session.user.id) item.copy(state = "read") else item
                 }
             }
         }
