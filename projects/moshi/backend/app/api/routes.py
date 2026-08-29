@@ -30,6 +30,7 @@ def meta() -> dict[str, object]:
             "chat",
             "groups",
             "push",
+            "business",
             "business-profile",
             "business-catalog",
             "communities",
