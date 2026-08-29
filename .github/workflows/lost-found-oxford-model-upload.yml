@@ -6,7 +6,7 @@ on:
     paths:
       - '.github/workflows/lost-found-oxford-model-upload.yml'
       - '.lost-found-oxford-model-trigger'
-      - 'lost-and-found-night-shift/assets/oxford_shoe_meshonly.glb.gz.b64'
+      - 'lost-and-found-night-shift/assets/oxford_payload_v2/**'
   workflow_dispatch:
 
 permissions:
@@ -24,8 +24,8 @@ jobs:
       ASSET_KEY: ${{ secrets.AM_STUDIO_AUDIO_CADANGAN_02 || secrets.ROBLOX_PUBLISH_CADANGAN_AUDII_01 }}
       UNIVERSE_ID: '10745354451'
       PROJECT_DIR: lost-and-found-night-shift
-      EXPECTED_SHA256: '82ed5b004820e77f95599e7da1254f322b0ebe446eeafab2083cc519dcbd83ef'
-      EXPECTED_BYTES: '449448'
+      EXPECTED_SHA256: '9e21437bf5cef46a65784334fea4e2d4bd86a33a21b8adbd6a7fbfd4f7f1a958'
+      EXPECTED_BYTES: '95196'
 
     steps:
       - name: Checkout exact source
@@ -38,10 +38,15 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          payload="$PROJECT_DIR/assets/oxford_shoe_meshonly.glb.gz.b64"
+          payload_dir="$PROJECT_DIR/assets/oxford_payload_v2"
+          joined="$RUNNER_TEMP/oxford-shoe.glb.gz.b64"
           out="$RUNNER_TEMP/oxford-shoe.glb"
-          test -s "$payload"
-          base64 -d "$payload" | gunzip > "$out"
+          test -s "$payload_dir/part01.b64"
+          test -s "$payload_dir/part02.b64"
+          test -s "$payload_dir/part03.b64"
+          test -s "$payload_dir/part04.b64"
+          cat "$payload_dir/part01.b64" "$payload_dir/part02.b64" "$payload_dir/part03.b64" "$payload_dir/part04.b64" > "$joined"
+          base64 -d "$joined" | gunzip > "$out"
           test -s "$out"
           bytes="$(stat -c%s "$out")"
           sha="$(sha256sum "$out" | awk '{print $1}')"
@@ -120,6 +125,7 @@ jobs:
           [[ -n "$path" ]] || { echo MODEL_OPERATION_PATH_MISSING; exit 41; }
           echo "operation_path=$path" >> "$GITHUB_OUTPUT"
           echo "upload_http=$code" >> "$GITHUB_OUTPUT"
+          rm -f "$tmp"
 
       - name: Resolve created Roblox asset ID
         id: created
@@ -183,6 +189,7 @@ jobs:
           echo
           [[ "$code" =~ ^20[0-4]$ ]] || { echo "PERMISSION_HTTP_$code"; exit 70; }
           echo "http=$code" >> "$GITHUB_OUTPUT"
+          rm -f "$tmp"
 
       - name: Probe model moderation state
         id: moderation
@@ -257,6 +264,6 @@ jobs:
           git config user.email 'actions@users.noreply.github.com'
           git add lost-and-found-night-shift/src/shared/ExternalCollectibleAssets.lua deploy-status/lost-found-oxford-model.json .lost-found-m0-trigger
           if git diff --cached --quiet; then echo 'NO_REGISTRY_CHANGE'; exit 0; fi
-          git commit -m "Register LOST FOUND Oxford model asset ${ASSET_ID} [skip ci]"
+          git commit -m "Register LOST FOUND Oxford model asset ${ASSET_ID}"
           git pull --rebase origin main
           git push origin HEAD:main
