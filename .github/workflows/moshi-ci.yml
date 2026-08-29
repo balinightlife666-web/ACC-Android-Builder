@@ -2,8 +2,18 @@ name: MOSHI CI
 
 on:
   push:
-    branches: [main, 'feat/moshi-foundation']
+    branches: [main]
+    paths:
+      - 'projects/moshi/**'
+      - '.github/workflows/moshi-ci.yml'
   pull_request:
+    paths:
+      - 'projects/moshi/**'
+      - '.github/workflows/moshi-ci.yml'
+
+concurrency:
+  group: moshi-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 jobs:
   backend:
