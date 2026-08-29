@@ -6,8 +6,8 @@ from datetime import UTC, datetime
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from app.chat.models import Conversation, ConversationMember, Message, MessageReaction, MessageReceipt
-from app.chat.schemas import ConversationResponse, MessageResponse, ReactionSummary, ReplyPreview, UserPreview
+from app.chat.models import Conversation, ConversationMember, Message, MessageAttachment, MessageReaction, MessageReceipt
+from app.chat.schemas import AttachmentResponse, ConversationResponse, MessageResponse, ReactionSummary, ReplyPreview, UserPreview
 from app.identity.models import User
 
 
@@ -46,6 +46,22 @@ def reaction_summary(message: Message, viewer_id: str) -> list[ReactionSummary]:
     ]
 
 
+def attachment_summary(message: Message) -> list[AttachmentResponse]:
+    return [
+        AttachmentResponse(
+            id=item.id,
+            kind=item.kind,
+            file_name=item.file_name,
+            content_type=item.content_type,
+            size_bytes=item.size_bytes,
+            status=item.status,
+            download_path=f"/v1/attachments/{item.id}",
+        )
+        for item in message.attachments
+        if item.status == "attached"
+    ]
+
+
 def serialize_message(message: Message, viewer_id: str) -> MessageResponse:
     reply = message.reply_to
     deleted = message.deleted_at is not None
@@ -71,6 +87,7 @@ def serialize_message(message: Message, viewer_id: str) -> MessageResponse:
             else None
         ),
         reactions=reaction_summary(message, viewer_id),
+        attachments=attachment_summary(message),
     )
 
 
@@ -115,6 +132,7 @@ def create_message(
     client_message_id: str,
     body: str,
     reply_to_id: str | None = None,
+    attachment_ids: list[str] | None = None,
 ) -> tuple[Message, bool]:
     existing = db.scalar(
         select(Message).where(
@@ -131,6 +149,26 @@ def create_message(
         if reply_to is None or reply_to.conversation_id != conversation.id:
             raise ValueError("reply target not found")
 
+    requested_attachment_ids = list(attachment_ids or [])
+    if len(requested_attachment_ids) != len(set(requested_attachment_ids)):
+        raise ValueError("duplicate attachment id")
+    attachments: list[MessageAttachment] = []
+    if requested_attachment_ids:
+        attachments = list(
+            db.scalars(
+                select(MessageAttachment).where(MessageAttachment.id.in_(requested_attachment_ids))
+            ).all()
+        )
+        if len(attachments) != len(requested_attachment_ids):
+            raise ValueError("attachment not found")
+        by_id = {item.id: item for item in attachments}
+        attachments = [by_id[item_id] for item_id in requested_attachment_ids]
+        for item in attachments:
+            if item.owner_id != sender_id:
+                raise ValueError("attachment not owned by sender")
+            if item.status != "ready" or item.message_id is not None:
+                raise ValueError("attachment is not ready")
+
     message = Message(
         conversation_id=conversation.id,
         sender_id=sender_id,
@@ -142,6 +180,11 @@ def create_message(
     db.add(message)
     db.add(conversation)
     db.flush()
+
+    for attachment in attachments:
+        attachment.message_id = message.id
+        attachment.status = "attached"
+        db.add(attachment)
 
     member_ids = db.scalars(
         select(ConversationMember.user_id).where(ConversationMember.conversation_id == conversation.id)
