@@ -1,7 +1,7 @@
 from fastapi import APIRouter
 
 from app.identity.routes import router as identity_router
-from app.chat.routes import router as chat_router
+from app.chat.routes import ALLOWED_FILE_TYPES, router as chat_router
 
 from .models import (
     CatalogItemPreview,
@@ -9,6 +9,9 @@ from .models import (
     SummaryRequest,
     SummaryResponse,
 )
+
+VOICE_NOTE_CONTENT_TYPES = {"audio/mp4", "audio/aac", "audio/mpeg"}
+ALLOWED_FILE_TYPES.update(VOICE_NOTE_CONTENT_TYPES)
 
 router = APIRouter()
 router.include_router(identity_router)
