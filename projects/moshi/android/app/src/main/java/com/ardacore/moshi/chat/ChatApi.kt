@@ -57,16 +57,57 @@ class ChatApi(
         conversationId: String,
         clientMessageId: String,
         body: String,
+        replyToId: String? = null,
     ): ChatMessage = withContext(Dispatchers.IO) {
+        val payload = JSONObject()
+            .put("client_message_id", clientMessageId)
+            .put("body", body)
+        if (replyToId != null) payload.put("reply_to_id", replyToId)
         parseMessage(
             JSONObject(
                 request(
                     method = "POST",
                     path = "/v1/conversations/$conversationId/messages",
                     accessToken = accessToken,
-                    body = JSONObject()
-                        .put("client_message_id", clientMessageId)
-                        .put("body", body),
+                    body = payload,
+                )
+            )
+        )
+    }
+
+    suspend fun editMessage(accessToken: String, conversationId: String, messageId: String, body: String): ChatMessage = withContext(Dispatchers.IO) {
+        parseMessage(
+            JSONObject(
+                request(
+                    method = "PATCH",
+                    path = "/v1/conversations/$conversationId/messages/$messageId",
+                    accessToken = accessToken,
+                    body = JSONObject().put("body", body),
+                )
+            )
+        )
+    }
+
+    suspend fun deleteMessage(accessToken: String, conversationId: String, messageId: String): ChatMessage = withContext(Dispatchers.IO) {
+        parseMessage(
+            JSONObject(
+                request(
+                    method = "DELETE",
+                    path = "/v1/conversations/$conversationId/messages/$messageId",
+                    accessToken = accessToken,
+                )
+            )
+        )
+    }
+
+    suspend fun toggleReaction(accessToken: String, conversationId: String, messageId: String, emoji: String): ChatMessage = withContext(Dispatchers.IO) {
+        parseMessage(
+            JSONObject(
+                request(
+                    method = "POST",
+                    path = "/v1/conversations/$conversationId/messages/$messageId/reactions",
+                    accessToken = accessToken,
+                    body = JSONObject().put("emoji", emoji),
                 )
             )
         )
@@ -122,6 +163,8 @@ class ChatApi(
         when (method) {
             "GET" -> builder.get()
             "POST" -> builder.post(requestBody ?: ByteArray(0).toRequestBody(null))
+            "PATCH" -> builder.patch(requestBody ?: ByteArray(0).toRequestBody(null))
+            "DELETE" -> builder.delete()
             else -> error("Unsupported method $method")
         }
         client.newCall(builder.build()).execute().use { response ->
@@ -157,15 +200,38 @@ class ChatApi(
         unreadCount = json.optInt("unread_count", 0),
     )
 
-    fun parseMessage(json: JSONObject): ChatMessage = ChatMessage(
-        id = json.getString("id"),
-        conversationId = json.getString("conversation_id"),
-        senderId = json.getString("sender_id"),
-        clientMessageId = json.getString("client_message_id"),
-        body = json.getString("body"),
-        createdAt = json.getString("created_at"),
-        state = json.optString("state", "sent"),
-    )
+    fun parseMessage(json: JSONObject): ChatMessage {
+        val replyJson = json.optJSONObject("reply_to")
+        val reactionsJson = json.optJSONArray("reactions") ?: JSONArray()
+        return ChatMessage(
+            id = json.getString("id"),
+            conversationId = json.getString("conversation_id"),
+            senderId = json.getString("sender_id"),
+            clientMessageId = json.getString("client_message_id"),
+            body = json.optString("body"),
+            createdAt = json.getString("created_at"),
+            editedAt = json.optString("edited_at").takeIf { it.isNotBlank() && it != "null" },
+            deletedAt = json.optString("deleted_at").takeIf { it.isNotBlank() && it != "null" },
+            isDeleted = json.optBoolean("is_deleted", false),
+            state = json.optString("state", "sent"),
+            replyTo = replyJson?.let {
+                ReplyPreview(
+                    id = it.getString("id"),
+                    senderId = it.getString("sender_id"),
+                    body = it.optString("body"),
+                    isDeleted = it.optBoolean("is_deleted", false),
+                )
+            },
+            reactions = List(reactionsJson.length()) { index ->
+                val item = reactionsJson.getJSONObject(index)
+                ReactionSummary(
+                    emoji = item.getString("emoji"),
+                    count = item.getInt("count"),
+                    reactedByMe = item.optBoolean("reacted_by_me", false),
+                )
+            },
+        )
+    }
 
     private fun parseUser(json: JSONObject): ChatUser = ChatUser(
         id = json.getString("id"),
