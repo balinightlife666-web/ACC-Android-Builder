@@ -15,7 +15,7 @@ class VoiceNoteRecorder(context: Context) {
 
     fun start(): File {
         check(recorder == null) { "Voice recording is already active" }
-        val directory = File(appContext.cacheDir, "moshi-voice").apply { mkdirs() }
+        val directory = File(appContext.filesDir, "moshi-voice-outbox").apply { mkdirs() }
         val file = File(directory, "voice-${System.currentTimeMillis()}.m4a")
         val mediaRecorder = newRecorder().apply {
             setAudioSource(MediaRecorder.AudioSource.MIC)
@@ -42,8 +42,8 @@ class VoiceNoteRecorder(context: Context) {
             file.delete()
             throw IllegalStateException("Voice note was too short to save", error)
         } finally {
-            active.reset()
-            active.release()
+            runCatching { active.reset() }
+            runCatching { active.release() }
             recorder = null
             outputFile = null
         }
