@@ -1,6 +1,6 @@
 # MOSHI — MASTER PLAN v1.1
 
-Status: ACTIVE / FOUNDATION
+Status: ACTIVE / PHASE 2 CHAT CORE
 
 ## Vision
 MOSHI is a single all-in-one communication app for personal chat, groups, communities, business selling, and AI-assisted communication.
