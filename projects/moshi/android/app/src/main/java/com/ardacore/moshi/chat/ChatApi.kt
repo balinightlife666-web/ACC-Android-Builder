@@ -125,8 +125,10 @@ class ChatApi(
 
     fun openRealtime(
         accessToken: String,
+        onOpen: () -> Unit,
         onEvent: (JSONObject) -> Unit,
         onFailure: (Throwable) -> Unit,
+        onClosed: () -> Unit,
     ): WebSocket {
         val wsBase = when {
             baseUrl.startsWith("https://") -> "wss://${baseUrl.removePrefix("https://")}" 
@@ -138,12 +140,20 @@ class ChatApi(
         return client.newWebSocket(
             request,
             object : WebSocketListener() {
+                override fun onOpen(webSocket: WebSocket, response: Response) {
+                    onOpen()
+                }
+
                 override fun onMessage(webSocket: WebSocket, text: String) {
                     runCatching { JSONObject(text) }.onSuccess(onEvent)
                 }
 
                 override fun onFailure(webSocket: WebSocket, t: Throwable, response: Response?) {
                     onFailure(t)
+                }
+
+                override fun onClosed(webSocket: WebSocket, code: Int, reason: String) {
+                    onClosed()
                 }
             }
         )
