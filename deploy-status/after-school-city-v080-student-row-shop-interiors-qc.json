@@ -1,0 +1,14 @@
+{
+  "status": "QC_PASS",
+  "project": "AFTER SCHOOL CITY",
+  "mode": "STUDENT_ROW_SHOP_INTERIORS_V0_8_0",
+  "sourceRepo": "ardarawk-cloud/ACC-Roblox-maps",
+  "sourceCommit": "c4536d4c76ab086ea20622b45adda1c1f417c1d0",
+  "baseLiveCommit": "c6f0f836d69ddbb8648765b6647709447c3ea8fa",
+  "rojoVersion": "7.7.0",
+  "placeBytes": 106956,
+  "placeSha256": "47cb7bdf0b0e7ade49fa805e169bc4f59970c09d68fd127eef156a850390686c",
+  "runId": "33267061084",
+  "checkedAt": "2026-08-29T17:59:58Z",
+  "note": "Hosted QC only; NOT PUBLISHED. V0.8 converts Mini Mart, Study Lounge and Community Library into orientation-derived walk-in interiors; preserves and upgrades ARCADE/CAFE/STYLE/MUSIC/HOBBY downtown shells; internal back-wall signage finalized inward; economy/purchases/gameplay authority remain off; protected LIVE v27 source unchanged."
+}
