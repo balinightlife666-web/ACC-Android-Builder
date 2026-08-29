@@ -1,0 +1,220 @@
+# Owner-approved AFTER SCHOOL CITY Locker Clearance Hotfix v0.7.5 LIVE publish
+name: After School City Publish Locker Clearance V0.7.5
+
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/after-school-city-publish-v075-locker-clearance.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: after-school-city-live-publish
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      SOURCE_REPO: ardarawk-cloud/ACC-Roblox-maps
+      SOURCE_SHA: 7c439b4c3a74bc3574dc6f1781c012a8f34946b7
+      BASE_LIVE_SHA: db0fe8df0b18daac792e4893492633086a692e85
+      QC_RUN_ID: '33233775486'
+      UNIVERSE_ID: '10745359869'
+      PLACE_ID: '121603385909425'
+      EXPECTED_BYTES: '95148'
+      EXPECTED_SHA256: 'b5a54fe149a70bf071ecd36d94f721b198a6ee80bcabbfed2bdec0c9a3691f97'
+      ROBLOX_API_KEY: ${{ secrets.ROCKET_RACOON_PUBLISH }}
+    steps:
+      - name: Checkout publisher repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Verify canonical V0.7.5 QC receipt
+        shell: bash
+        run: |
+          set -euo pipefail
+          receipt='deploy-status/after-school-city-v075-locker-clearance-qc.json'
+          test -f "$receipt"
+          [[ "$(jq -r '.status' "$receipt")" == 'QC_PASS' ]] || { echo 'Canonical QC is not PASS'; exit 9; }
+          [[ "$(jq -r '.sourceCommit' "$receipt")" == "$SOURCE_SHA" ]] || { echo 'QC source mismatch'; exit 10; }
+          [[ "$(jq -r '.baseLiveCommit' "$receipt")" == "$BASE_LIVE_SHA" ]] || { echo 'QC base LIVE mismatch'; exit 11; }
+          [[ "$(jq -r '.runId' "$receipt")" == "$QC_RUN_ID" ]] || { echo 'QC run mismatch'; exit 12; }
+          [[ "$(jq -r '.placeBytes' "$receipt")" == "$EXPECTED_BYTES" ]] || { echo 'QC byte mismatch'; exit 13; }
+          [[ "$(jq -r '.placeSha256' "$receipt")" == "$EXPECTED_SHA256" ]] || { echo 'QC SHA mismatch'; exit 14; }
+          echo "QC AUTHORITY PASS run=$QC_RUN_ID source=$SOURCE_SHA"
+
+      - name: Checkout locked After School City source
+        uses: actions/checkout@v4
+        with:
+          repository: ardarawk-cloud/ACC-Roblox-maps
+          ref: 7c439b4c3a74bc3574dc6f1781c012a8f34946b7
+          token: ${{ secrets.ACC_ROBLOX_MAPS_WRITE_TOKEN }}
+          path: asc-source
+          fetch-depth: 0
+
+      - name: Verify exact V0.7.5 source and narrow delta
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ -n "${ROBLOX_API_KEY:-}" ]] || { echo 'ROCKET_RACOON_PUBLISH missing'; exit 20; }
+          actual=$(git -C asc-source rev-parse HEAD)
+          [[ "$actual" == "$SOURCE_SHA" ]] || { echo "Source SHA mismatch: $actual"; exit 21; }
+          git -C asc-source cat-file -e "${BASE_LIVE_SHA}^{commit}"
+          mapfile -t files < <(git -C asc-source diff --name-only "$BASE_LIVE_SHA" "$SOURCE_SHA")
+          [[ ${#files[@]} -eq 3 ]] || { printf '%s\n' "${files[@]}"; echo "Unexpected delta count ${#files[@]}"; exit 22; }
+          expected=(
+            'maps/after-school-city/after-school-city.config.lua'
+            'maps/after-school-city/after-school-city.locker-clearance-hotfix.server.lua'
+            'maps/after-school-city/default.project.json'
+          )
+          for f in "${expected[@]}"; do printf '%s\n' "${files[@]}" | grep -Fxq "$f" || { echo "Missing expected delta $f"; exit 23; }; done
+          echo "SOURCE LOCK PASS source=$actual delta=3-files"
+
+      - name: Audit V0.7.5 locker clearance contract
+        shell: pwsh
+        working-directory: asc-source
+        run: |
+          $ErrorActionPreference='Stop'
+          $map='maps/after-school-city'
+          $hotfix=Get-Content "$map/after-school-city.locker-clearance-hotfix.server.lua" -Raw
+          $config=Get-Content "$map/after-school-city.config.lua" -Raw
+          $project=Get-Content "$map/default.project.json" -Raw
+          $null=$project|ConvertFrom-Json
+          function Need([string]$text,[string]$token,[string]$label){if($text.IndexOf($token,[StringComparison]::Ordinal)-lt 0){throw "V0.7.5 missing contract: $label"}}
+          foreach($token in @(
+            'V075_LockerClearanceHotfix',
+            '0.7.5-locker-clearance-hotfix-1',
+            'ASC_SchoolArchitecturalCleanupPass',
+            'SAFE_Z_SLOTS = {-16.7, -13.3, 0.0, 3.3}',
+            'DOOR_ZONES',
+            '{-10.0, -4.0}',
+            '{5.0, 10.5}',
+            'WALL_X = 7.58',
+            'LOCKER_SIZE = Vector3.new(0.82, 5.65, 2.25)',
+            'ASC_V075LockerWallMounted',
+            'ASC_V075FailClosedDoorClearance',
+            'ASC_LockerClearancePass'
+          )){Need $hotfix $token $token}
+          foreach($forbidden in @('MarketplaceService','PromptProductPurchase','ProcessReceipt','DataStoreService','BillboardGui','NorthSouthRoad')){
+            if($hotfix -match [regex]::Escape($forbidden)){throw "Forbidden V0.7.5 scope token: $forbidden"}
+          }
+          foreach($token in @(
+            'Version = "0.7.5-locker-clearance-hotfix-1"',
+            'SchoolArchitecturalCleanupVersion = "0.7.4-school-architectural-cleanup-1"',
+            'LockerClearanceHotfixVersion = "0.7.5-locker-clearance-hotfix-1"',
+            'EnableSchoolArchitecturalCleanupPass = true',
+            'EnableLockerClearanceHotfixPass = true',
+            'EnableActivities = false',
+            'EnableEconomy = false',
+            'EnablePersistence = false',
+            'EnablePersonalRoom = false',
+            'EnableClubs = false'
+          )){Need $config $token $token}
+          Need $project 'ASC_SchoolArchitecturalCleanup' 'Rojo V0.7.4 node'
+          Need $project 'ASC_LockerClearanceHotfix' 'Rojo V0.7.5 node'
+          Need $project 'after-school-city.locker-clearance-hotfix.server.lua' 'Rojo V0.7.5 source'
+          $i74=$project.IndexOf('ASC_SchoolArchitecturalCleanup',[StringComparison]::Ordinal)
+          $i75=$project.IndexOf('ASC_LockerClearanceHotfix',[StringComparison]::Ordinal)
+          if($i74 -lt 0 -or $i75 -lt 0 -or $i75 -le $i74){throw 'Rojo ordering invalid: V0.7.5 must follow V0.7.4'}
+          Write-Host 'V0.7.5 LOCKER CLEARANCE AUDIT PASS gameplayAuthority=OFF'
+
+      - name: Verify v24 protected source unchanged
+        shell: bash
+        working-directory: asc-source
+        run: |
+          set -euo pipefail
+          for f in \
+            maps/after-school-city/after-school-city.intro.client.lua \
+            maps/after-school-city/after-school-city.orientation-correction.server.lua \
+            maps/after-school-city/after-school-city.road-centerline-clearance.server.lua \
+            maps/after-school-city/after-school-city.premium-exterior.server.lua \
+            maps/after-school-city/after-school-city.school-interior.server.lua \
+            maps/after-school-city/after-school-city.school-interior-polish.server.lua \
+            maps/after-school-city/after-school-city.school-visual-depth.server.lua \
+            maps/after-school-city/after-school-city.signage-orientation-hotfix.server.lua \
+            maps/after-school-city/after-school-city.school-architectural-cleanup.server.lua; do
+            git diff --quiet "$BASE_LIVE_SHA" "$SOURCE_SHA" -- "$f" || { echo "Protected source changed: $f"; exit 30; }
+          done
+          grep -Fq 'PUTU AZYA PUTRI' maps/after-school-city/after-school-city.intro.client.lua
+          grep -Fq 'BINTANG HARDAJAYA' maps/after-school-city/after-school-city.intro.client.lua
+          grep -Fq 'WITH LOVE, DAD' maps/after-school-city/after-school-city.intro.client.lua
+          echo 'PROTECTED SOURCE PASS v24=UNCHANGED dedication=UNCHANGED road=UNCHANGED orientation=UNCHANGED V0.7-V0.7.4=UNCHANGED'
+
+      - name: Prepare Rojo 7.7.0
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/asc-rojo"
+          curl -fsSL 'https://github.com/rojo-rbx/rojo/releases/download/v7.7.0/rojo-7.7.0-linux-x86_64.zip' -o "$RUNNER_TEMP/rojo.zip"
+          unzip -q -o "$RUNNER_TEMP/rojo.zip" -d "$RUNNER_TEMP/asc-rojo"
+          rojo=$(find "$RUNNER_TEMP/asc-rojo" -type f -name rojo | head -n1)
+          [[ -n "$rojo" ]] || exit 40
+          chmod +x "$rojo"
+          version=$("$rojo" --version)
+          [[ "$version" == *'7.7.0'* ]] || { echo "Wrong Rojo: $version"; exit 41; }
+          echo "ROJO_EXE=$rojo" >> "$GITHUB_ENV"
+
+      - name: Build and verify exact V0.7.5 place
+        shell: bash
+        run: |
+          set -euo pipefail
+          place="$RUNNER_TEMP/after-school-city-v075.rbxl"
+          "$ROJO_EXE" build 'asc-source/maps/after-school-city/default.project.json' -o "$place"
+          test -f "$place"
+          bytes=$(stat -c%s "$place")
+          sha=$(sha256sum "$place" | awk '{print $1}')
+          [[ "$bytes" == "$EXPECTED_BYTES" ]] || { echo "Byte mismatch: $bytes expected=$EXPECTED_BYTES"; exit 42; }
+          [[ "$sha" == "$EXPECTED_SHA256" ]] || { echo "SHA256 mismatch: $sha expected=$EXPECTED_SHA256"; exit 43; }
+          echo "PLACE_FILE=$place" >> "$GITHUB_ENV"
+          echo "PLACE_BYTES=$bytes" >> "$GITHUB_ENV"
+          echo "PLACE_SHA256=$sha" >> "$GITHUB_ENV"
+          echo "BUILD EXACT PASS bytes=$bytes sha256=$sha"
+
+      - name: Publish Locker Clearance v0.7.5 LIVE to Roblox
+        shell: bash
+        run: |
+          set -euo pipefail
+          url="https://apis.roblox.com/universes/v1/${UNIVERSE_ID}/places/${PLACE_ID}/versions?versionType=Published"
+          http=$(curl -sS --location -o "$RUNNER_TEMP/asc-publish-response.json" -w '%{http_code}' -X POST "$url" -H "x-api-key: $ROBLOX_API_KEY" -H 'Content-Type: application/octet-stream' --data-binary "@$PLACE_FILE")
+          body=$(cat "$RUNNER_TEMP/asc-publish-response.json")
+          [[ "$http" =~ ^2[0-9][0-9]$ ]] || { echo "HTTP $http: $body"; exit 50; }
+          version=$(jq -r '.versionNumber // empty' "$RUNNER_TEMP/asc-publish-response.json")
+          [[ -n "$version" ]] || { echo "Missing versionNumber: $body"; exit 51; }
+          echo "PUBLISHED_VERSION=$version" >> "$GITHUB_ENV"
+          echo "ROBLOX PUBLISH PASS version=$version"
+
+      - name: Persist LIVE receipt
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p deploy-status
+          jq -n \
+            --arg status 'LIVE_PUBLISHED' \
+            --arg project 'AFTER SCHOOL CITY' \
+            --arg mode 'LOCKER_CLEARANCE_HOTFIX_V0_7_5' \
+            --arg sourceRepo "$SOURCE_REPO" \
+            --arg sourceCommit "$SOURCE_SHA" \
+            --arg baseLiveCommit "$BASE_LIVE_SHA" \
+            --arg qcRunId "$QC_RUN_ID" \
+            --arg universeId "$UNIVERSE_ID" \
+            --arg placeId "$PLACE_ID" \
+            --arg versionNumber "$PUBLISHED_VERSION" \
+            --arg rojoVersion '7.7.0' \
+            --arg placeBytes "$PLACE_BYTES" \
+            --arg placeSha256 "$PLACE_SHA256" \
+            --arg runId "$GITHUB_RUN_ID" \
+            --arg publishedAt "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+            '{status:$status,project:$project,mode:$mode,sourceRepo:$sourceRepo,sourceCommit:$sourceCommit,baseLiveCommit:$baseLiveCommit,qcRunId:$qcRunId,universeId:$universeId,placeId:$placeId,versionNumber:($versionNumber|tonumber),rojoVersion:$rojoVersion,placeBytes:($placeBytes|tonumber),placeSha256:$placeSha256,runId:$runId,publishedAt:$publishedAt,note:"Locker Clearance Hotfix v0.7.5 exact QC-locked source; hall lockers relocated to solid wall slots outside classroom door clear zones; fail-closed door-clearance guard included; protected v24 source unchanged."}' \
+            > deploy-status/after-school-city-publish-locker-clearance-v0-7-5.json
+          cat deploy-status/after-school-city-publish-locker-clearance-v0-7-5.json
+          git config user.name 'After School City Publish Bot'
+          git config user.email 'actions@users.noreply.github.com'
+          git add deploy-status/after-school-city-publish-locker-clearance-v0-7-5.json
+          git commit -m "Record After School City V0.7.5 locker clearance publish v${PUBLISHED_VERSION} [skip ci]"
+          git pull --rebase origin main
+          git push origin HEAD:main
