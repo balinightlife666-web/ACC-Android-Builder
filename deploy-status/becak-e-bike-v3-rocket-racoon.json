@@ -1,15 +1,15 @@
 {
   "status": "LIVE_PUBLISHED",
   "project": "BECAK E-BIKE",
-  "mode": "NUSAKARYA_V3_ROCKET_RACOON",
+  "mode": "NUSAKARYA_V3_1_ROAD_CLEARANCE_ROCKET_RACOON",
   "sourceRepo": "ardarawk-cloud/ACC-Roblox-maps",
   "sourceCommit": "fb9667f9d1ff144e31d4e17a2e5adc05b9ee1e89",
   "universeId": "10745325613",
   "placeId": "80994730522893",
-  "versionNumber": 37,
-  "placeBytes": 293467,
-  "placeSha256": "93c90dbeb4106e29b0edd6d741f89c7629139996423270e9a7d7fd4079bad714",
-  "runId": "33239926553",
-  "publishedAt": "2026-08-29T07:03:23Z",
-  "note": "Becak E-Bike Nusakarya V3 published from Bali Night Life publisher using ROCKET_RACOON_PUBLISH."
+  "versionNumber": 38,
+  "placeBytes": 295528,
+  "placeSha256": "ab3ad8f300b0e64518445fd4b33b76b51b1b9d8e1a96b34883fab43990f1a55d",
+  "runId": "33243544083",
+  "publishedAt": "2026-08-29T08:36:19Z",
+  "note": "Becak E-Bike Nusakarya V3.1 road-clearance hotfix published from Bali Night Life publisher using ROCKET_RACOON_PUBLISH."
 }
