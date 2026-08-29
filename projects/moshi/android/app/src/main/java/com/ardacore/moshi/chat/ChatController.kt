@@ -8,7 +8,9 @@ import com.ardacore.moshi.chat.local.ChatLocalStore
 import com.ardacore.moshi.chat.local.OutboxMessageEntity
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import okhttp3.WebSocket
 import org.json.JSONObject
@@ -22,6 +24,8 @@ class ChatController(
 ) {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
     private var socket: WebSocket? = null
+    private var reconnectJob: Job? = null
+    private var stopped = false
 
     var conversations: List<ChatConversation> by mutableStateOf(emptyList())
         private set
@@ -37,19 +41,14 @@ class ChatController(
         private set
 
     suspend fun start() {
+        stopped = false
         conversations = local.conversations()
         runCatching { syncConversations() }
             .onFailure { failure ->
                 if (conversations.isEmpty()) error = failure.message ?: "MOSHI is offline"
             }
         retryOutboxInternal()
-        if (socket == null) {
-            socket = api.openRealtime(
-                accessToken = session.accessToken,
-                onEvent = { event -> scope.launch { handleEvent(event) } },
-                onFailure = { failure -> scope.launch { error = failure.message ?: "Realtime disconnected" } },
-            )
-        }
+        connectRealtime()
     }
 
     suspend fun loadConversations() = runBusy {
@@ -66,8 +65,11 @@ class ChatController(
         activeConversation = conversation
         searchResults = emptyList()
         local.cacheConversations(listOf(conversation) + conversations.filterNot { it.id == conversation.id })
-        loadConversationMessages(conversation)
-        runCatching { syncConversations() }
+        runBusy {
+            loadConversationMessages(conversation)
+            retryOutboxInternal()
+            syncConversations()
+        }
     }
 
     suspend fun openConversation(conversation: ChatConversation) {
@@ -167,6 +169,9 @@ class ChatController(
     }
 
     fun stop() {
+        stopped = true
+        reconnectJob?.cancel()
+        reconnectJob = null
         socket?.close(1000, "MOSHI screen closed")
         socket = null
     }
@@ -215,6 +220,49 @@ class ChatController(
         val conversation = activeConversation ?: return
         val latestIncoming = messages.lastOrNull { it.senderId != session.user.id && !it.id.startsWith("local:") } ?: return
         api.markRead(session.accessToken, conversation.id, latestIncoming.id)
+    }
+
+    private fun connectRealtime() {
+        if (stopped || socket != null) return
+        socket = api.openRealtime(
+            accessToken = session.accessToken,
+            onOpen = {
+                scope.launch {
+                    reconnectJob?.cancel()
+                    reconnectJob = null
+                    error = null
+                    retryOutboxInternal()
+                    runCatching { syncConversations() }
+                    activeConversation?.let { conversation ->
+                        messages = local.messages(conversation.id)
+                    }
+                }
+            },
+            onEvent = { event -> scope.launch { handleEvent(event) } },
+            onFailure = { failure ->
+                scope.launch {
+                    socket = null
+                    if (!stopped) {
+                        error = failure.message ?: "Realtime disconnected"
+                        scheduleReconnect()
+                    }
+                }
+            },
+            onClosed = {
+                scope.launch {
+                    socket = null
+                    if (!stopped) scheduleReconnect()
+                }
+            },
+        )
+    }
+
+    private fun scheduleReconnect() {
+        if (stopped || reconnectJob?.isActive == true) return
+        reconnectJob = scope.launch {
+            delay(5_000)
+            connectRealtime()
+        }
     }
 
     private suspend fun handleEvent(event: JSONObject) {
