@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - '.github/workflows/becak-e-bike-v3-rocket-racoon-publish.yml'
+      - 'scripts/becak-v3-rocket-patch.js'
   workflow_dispatch:
 
 permissions:
@@ -47,20 +48,19 @@ jobs:
           [[ -n "${ROBLOX_API_KEY:-}" ]] || { echo 'ROCKET_RACOON_PUBLISH missing'; exit 10; }
           actual=$(git -C becak-source rev-parse HEAD)
           [[ "$actual" == "$SOURCE_SHA" ]] || { echo "Source SHA mismatch: $actual"; exit 11; }
+          test -s scripts/becak-v3-rocket-patch.js
           test -s becak-source/maps/becak-e-bike/place.rbxlx
-          test -s becak-source/scripts/patch-becak-v3-place.js
           grep -Fq 'ACC_BecakWorldV3' becak-source/maps/becak-e-bike/city.realism.architecture.server.lua
           grep -Fq 'BecakWorldV3VisualAuthority' becak-source/maps/becak-e-bike/city.realism.architecture.server.lua
           grep -Fq 'ACC_BecakVehicleRealism' becak-source/maps/becak-e-bike/vehicle.realism.server.lua
           grep -Fq 'ACC_BecakVehicleGeometryRealism' becak-source/maps/becak-e-bike/vehicle.geometry.realism.server.lua
           echo "BECAK V3 SOURCE LOCK PASS source=$actual"
 
-      - name: Patch proven place with Nusakarya V3
+      - name: Migrate proven v36 place to Nusakarya V3
         shell: bash
         run: |
           set -euo pipefail
-          cd becak-source
-          node scripts/patch-becak-v3-place.js
+          node scripts/becak-v3-rocket-patch.js becak-source
 
       - name: Validate patched Becak V3 place
         shell: bash
@@ -76,6 +76,7 @@ jobs:
           grep -q 'ACC_BecakWorldV3' "$place"
           grep -q 'BecakWorldV3VisualAuthority' "$place"
           grep -q 'BecakWorldV3LegacyVisibleShells' "$place"
+          grep -q 'BecakEBike_CityRealismArchitecture' "$place"
           grep -q 'BecakEBike_VehicleRealism' "$place"
           grep -q 'BecakEBike_VehicleGeometryRealism' "$place"
           sha=$(sha256sum "$place" | awk '{print $1}')
