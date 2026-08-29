@@ -1,7 +1,7 @@
 # MOSHI — CURRENT STATE
 
-Authority: MASTER PLAN v1.1 + PRODUCT SPEC v1.0 + IDENTITY/AUTH v1.0
-Status: ACTIVE / PHASE 1 IDENTITY-AUTH IMPLEMENTED (BUILD VERIFICATION PENDING)
+Authority: MASTER PLAN v1.1 + PRODUCT SPEC v1.0 + IDENTITY/AUTH v1.0 + CHAT CORE v1.0
+Status: ACTIVE / PHASE 2 CHAT CORE IMPLEMENTED (ANDROID CI VERIFICATION PENDING)
 
 ## Foundation verified
 - monorepo scaffold
@@ -9,40 +9,47 @@ Status: ACTIVE / PHASE 1 IDENTITY-AUTH IMPLEMENTED (BUILD VERIFICATION PENDING)
 - FastAPI backend
 - Business Mode in the same MOSHI app
 - AI Summary contract placeholder
-- CI workflow
+- GitHub CI workflow
+- source hosted inside `balinightlife666-web/ACC-Android-Builder` under `projects/moshi/`
 
 ## Phase 1 implemented
-- persistent `users` and `device_sessions` models
-- username registration
-- password login
+- persistent users + device sessions
+- username registration/login
 - Argon2 password hashing
-- short-lived JWT access token
-- rotating opaque refresh token
-- refresh-token hash storage
-- logout/session revoke
-- authenticated `GET /v1/me`
-- editable display name
-- server-persisted Business Mode toggle
-- Android Login/Create Account UI
-- Android startup session restore
-- Android refresh token encrypted with Android Keystore AES/GCM
-- debug-only cleartext networking; release expects HTTPS
+- JWT access token + rotating refresh token
+- session revoke/logout
+- Android auth UI + encrypted refresh-token vault
+- profile + server-persisted Business Mode
+
+## Phase 2 implemented
+- persistent direct conversations
+- user search
+- message persistence
+- sender-side idempotency via `client_message_id`
+- authenticated realtime WebSocket
+- realtime `message.created`
+- realtime `message.read`
+- sent/delivered/read receipt contract
+- message history/catch-up endpoint
+- conversation unread counts
+- Android conversation list
+- Android user search + start direct chat
+- Android text chat screen
+- Android WebSocket listener using OkHttp
 
 ## Verification
-- backend tests: 6/6 PASS
-- Python compile: PASS
-- `git diff --check`: PASS
-- Android build: PENDING because the current local execution environment has no Android SDK/Gradle installation. GitHub Actions remains the authoritative Android build path once the repository is created/pushed.
+- backend tests: 8/8 PASS locally
+- Python test suite includes direct-chat persistence + idempotency + delivery/read + WebSocket
+- Android source is queued for GitHub CI build verification after Phase 2 commit
 
 ## Next implementation target
-PHASE 2 — CHAT CORE
+PHASE 3 — MEDIA & MESSAGING TOOLS
 
-Acceptance slice:
-1. conversation persistence
-2. direct-conversation creation
-3. message persistence
-4. authenticated WebSocket session
-5. realtime send/receive between two accounts
-6. reconnect + message catch-up contract
-7. delivered/read state contract
-8. Android conversation list + chat screen
+Priority slice:
+1. local Room cache + reliable outbox/retry
+2. reply
+3. reactions
+4. edit/delete
+5. image/file upload contract
+6. voice-note contract
+7. FCM background notification contract
