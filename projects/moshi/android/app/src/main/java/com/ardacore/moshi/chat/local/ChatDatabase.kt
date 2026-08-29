@@ -11,6 +11,8 @@ import androidx.room.PrimaryKey
 import androidx.room.Query
 import androidx.room.Room
 import androidx.room.RoomDatabase
+import androidx.room.migration.Migration
+import androidx.sqlite.db.SupportSQLiteDatabase
 
 @Entity(tableName = "cached_conversations")
 data class CachedConversationEntity(
@@ -46,6 +48,12 @@ data class OutboxMessageEntity(
     val createdAtEpochMs: Long,
     val attemptCount: Int = 0,
     val lastError: String? = null,
+    val attachmentUri: String? = null,
+    val attachmentKind: String? = null,
+    val attachmentFileName: String? = null,
+    val attachmentContentType: String? = null,
+    val attachmentSizeBytes: Long? = null,
+    val uploadedAttachmentId: String? = null,
 )
 
 @Dao
@@ -82,11 +90,14 @@ interface ChatDao {
 
     @Query("UPDATE outbox_messages SET attemptCount = attemptCount + 1, lastError = :error WHERE clientMessageId = :clientMessageId")
     suspend fun markAttempt(clientMessageId: String, error: String)
+
+    @Query("UPDATE outbox_messages SET uploadedAttachmentId = :attachmentId, lastError = NULL WHERE clientMessageId = :clientMessageId")
+    suspend fun markAttachmentUploaded(clientMessageId: String, attachmentId: String)
 }
 
 @Database(
     entities = [CachedConversationEntity::class, CachedMessageEntity::class, OutboxMessageEntity::class],
-    version = 1,
+    version = 2,
     exportSchema = false,
 )
 abstract class MoshiChatDatabase : RoomDatabase() {
@@ -95,12 +106,23 @@ abstract class MoshiChatDatabase : RoomDatabase() {
     companion object {
         @Volatile private var instance: MoshiChatDatabase? = null
 
+        private val MIGRATION_1_2 = object : Migration(1, 2) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE outbox_messages ADD COLUMN attachmentUri TEXT")
+                db.execSQL("ALTER TABLE outbox_messages ADD COLUMN attachmentKind TEXT")
+                db.execSQL("ALTER TABLE outbox_messages ADD COLUMN attachmentFileName TEXT")
+                db.execSQL("ALTER TABLE outbox_messages ADD COLUMN attachmentContentType TEXT")
+                db.execSQL("ALTER TABLE outbox_messages ADD COLUMN attachmentSizeBytes INTEGER")
+                db.execSQL("ALTER TABLE outbox_messages ADD COLUMN uploadedAttachmentId TEXT")
+            }
+        }
+
         fun get(context: Context): MoshiChatDatabase = instance ?: synchronized(this) {
             instance ?: Room.databaseBuilder(
                 context.applicationContext,
                 MoshiChatDatabase::class.java,
                 "moshi-chat.db",
-            ).build().also { instance = it }
+            ).addMigrations(MIGRATION_1_2).build().also { instance = it }
         }
     }
 }
