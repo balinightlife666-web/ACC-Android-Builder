@@ -6,7 +6,7 @@ on:
     paths:
       - '.github/workflows/lost-found-oxford-model-upload.yml'
       - '.lost-found-oxford-model-trigger'
-      - 'lost-and-found-night-shift/assets/oxford_payload_v2/**'
+      - 'lost-and-found-night-shift/assets/oxford_binary_v4/**'
   workflow_dispatch:
 
 permissions:
@@ -24,8 +24,8 @@ jobs:
       ASSET_KEY: ${{ secrets.AM_STUDIO_AUDIO_CADANGAN_02 || secrets.ROBLOX_PUBLISH_CADANGAN_AUDII_01 }}
       UNIVERSE_ID: '10745354451'
       PROJECT_DIR: lost-and-found-night-shift
-      EXPECTED_SHA256: '9e21437bf5cef46a65784334fea4e2d4bd86a33a21b8adbd6a7fbfd4f7f1a958'
-      EXPECTED_BYTES: '95196'
+      EXPECTED_SHA256: '14d9d148dac7ba464d0a8c2b7abbb2796be77feb4cf304182a5e98a277e59747'
+      EXPECTED_BYTES: '28608'
 
     steps:
       - name: Checkout exact source
@@ -38,14 +38,14 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          payload_dir="$PROJECT_DIR/assets/oxford_payload_v2"
+          payload_dir="$PROJECT_DIR/assets/oxford_binary_v4"
           joined="$RUNNER_TEMP/oxford-shoe.glb.gz.b64"
           out="$RUNNER_TEMP/oxford-shoe.glb"
+          test -s "$payload_dir/part00.b64"
           test -s "$payload_dir/part01.b64"
-          test -s "$payload_dir/part02.b64"
-          test -s "$payload_dir/part03.b64"
-          test -s "$payload_dir/part04.b64"
-          cat "$payload_dir/part01.b64" "$payload_dir/part02.b64" "$payload_dir/part03.b64" "$payload_dir/part04.b64" > "$joined"
+          cat "$payload_dir/part00.b64" "$payload_dir/part01.b64" > "$joined"
+          joined_bytes="$(stat -c%s "$joined")"
+          [[ "$joined_bytes" == '19560' ]] || { echo "PAYLOAD_LENGTH_MISMATCH $joined_bytes"; exit 19; }
           base64 -d "$joined" | gunzip > "$out"
           test -s "$out"
           bytes="$(stat -c%s "$out")"
