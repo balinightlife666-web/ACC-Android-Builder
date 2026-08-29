@@ -33,12 +33,13 @@ jobs:
           SYNC="tools/bbya-music-manager/app/src/main/java/com/acc/bbyamusic/OAuthSyncActivity.java"
           CLIENT="tools/bbya-music-manager/app/src/main/java/com/acc/bbyamusic/RobloxSyncClient.java"
           SEED="tools/bbya-music-manager/app/src/main/java/com/acc/bbyamusic/TestSeedProvider.java"
-          sed -i 's/versionCode 11/versionCode 18/' "$GRADLE"
-          sed -i "s/versionName '0.3.10-underground-sync-pilot'/versionName '0.3.17-id-test-ui-map'/" "$GRADLE"
+          sed -i 's/versionCode 11/versionCode 19/' "$GRADLE"
+          sed -i "s/versionName '0.3.10-underground-sync-pilot'/versionName '0.3.18-id-test-ui-map'/" "$GRADLE"
           sed -i 's/openid profile asset:read asset:write universe-messaging-service:publish/openid universe-messaging-service:publish/g' "$SYNC" "$CLIENT"
           sed -i 's/private static final String UNIVERSE_ID = "8116636513";/private static final String UNIVERSE_ID = "10762005984";/' "$SYNC"
           sed -i 's/ke BBYA Social Hub/ke BBYA Music UI Test/' "$SYNC"
           sed -i 's/UNDERGROUND PILOT/ID TEST - BBYA MUSIC UI TEST/' "$SYNC"
+          sed -i 's/appendQueryParameter("prompt", "login consent")/appendQueryParameter("prompt", "login consent select_account")/' "$SYNC"
           grep -q 'TestSeedProvider' tools/bbya-music-manager/app/src/main/AndroidManifest.xml
           grep -q '125820152354579' "$SEED"
           grep -q 'SCREENSHOT_ID_ISOLATED' "$SEED"
@@ -48,9 +49,11 @@ jobs:
           grep -q 'private static final String UNIVERSE_ID = "10762005984";' "$SYNC"
           grep -q 'openid universe-messaging-service:publish' "$SYNC"
           ! grep -q 'openid profile' "$SYNC"
-          grep -q "versionCode 18" "$GRADLE"
+          grep -q 'appendQueryParameter("prompt", "login consent select_account")' "$SYNC"
+          grep -q "versionCode 19" "$GRADLE"
           echo "BBYA Music ID Test target: universe 10762005984 / place 124607344716828"
           echo "OAuth scope: openid + universe-messaging-service:publish only"
+          echo "OAuth prompt: login + consent + select_account"
           echo "Metadata audit: 25 valid Audio IDs; 24 Approved; 1 Rejected disabled"
 
       - name: Setup Java
@@ -114,12 +117,12 @@ jobs:
       - name: Prepare APK
         run: |
           mkdir -p dist
-          cp tools/bbya-music-manager/app/build/outputs/apk/debug/app-debug.apk dist/BBYA-Music-Manager-v0.3.17-ID-Test-UIMap.apk
+          cp tools/bbya-music-manager/app/build/outputs/apk/debug/app-debug.apk dist/BBYA-Music-Manager-v0.3.18-ID-Test-UIMap.apk
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: BBYA-Music-Manager-v0.3.17-ID-Test-UIMap
-          path: dist/BBYA-Music-Manager-v0.3.17-ID-Test-UIMap.apk
+          name: BBYA-Music-Manager-v0.3.18-ID-Test-UIMap
+          path: dist/BBYA-Music-Manager-v0.3.18-ID-Test-UIMap.apk
           if-no-files-found: error
           retention-days: 7
