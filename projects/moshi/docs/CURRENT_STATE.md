@@ -40,7 +40,7 @@ Status: ACTIVE / PHASE 2 CHAT CORE IMPLEMENTED (ANDROID CI VERIFICATION PENDING)
 ## Verification
 - backend tests: 8/8 PASS locally
 - Python test suite includes direct-chat persistence + idempotency + delivery/read + WebSocket
-- Android source is queued for GitHub CI build verification after Phase 2 commit
+- GitHub CI final verification is running on the Phase 2 branch
 
 ## Next implementation target
 PHASE 3 — MEDIA & MESSAGING TOOLS
