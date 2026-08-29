@@ -1,6 +1,6 @@
-LOST FOUND M5-C.1 SHOWCASE PRESENTATION PASS
+LOST FOUND M5-C.1.1 SHOWCASE FLICKER HOTFIX
 Triggered: 2026-08-29
-Retry: 52
+Retry: 53
 Universe: 10745354451
 Place: 93699016600671
-Reason: Runtime QC after M5-C confirms collectible geometry improved but the five-slot rack still needs stronger display hierarchy and normalization. Add presentation-only per-family scale/pose fitting, grounded plinth placement, Cream Memory Bear proportion correction, clearer fixed physical name/rarity/immutable-serial plates, and restrained rarity hierarchy via plinth tint/slot glow/thin rarity bar with small EPIC+ local light accents. Roblox in-engine geometry/UI only; no generated images, decals, external textures or external assets. Preserve five-slot layout/selection/persistence/trade cleanup, Credits/XP, Station Shop, case logic/difficulty/answers, Season 1 mystery canon, collectible drop chances, Collection Index history, inventory ownership, mint counters, immutable instanceId/serial/provenance, TradeService rules, station isolation, SCAN/TAG/OPEN/DECIDE validation, EN/ID foundation and hard-locked decision colors.
+Reason: Runtime QC on v53 shows five-slot collectibles visibly alternating between two scales/poses because legacy M5-B/M5-B.2 inventory reconciliation still writes ScaleTo/PivotTo while M5-C.1 applies fitted presentation. Add event-driven M5-C.1.1 presentation authority so legacy persistence/trade reconciliation remains intact but visible collectible pose is immediately restored and stable. No generated images, decals, external textures or external assets. Preserve five-slot selection/persistence/trade cleanup, Credits/XP, Station Shop, case logic/difficulty/answers, Season 1 mystery canon, collectible drop chances, Collection Index history, inventory ownership, mint counters, immutable instanceId/serial/provenance, TradeService rules, station isolation, SCAN/TAG/OPEN/DECIDE validation, EN/ID foundation and hard-locked decision colors.
