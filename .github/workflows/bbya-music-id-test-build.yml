@@ -6,6 +6,7 @@ on:
       - feat/bbya-music-manager-mvp
     paths:
       - '.github/workflows/bbya-music-id-test-build.yml'
+      - 'tools/bbya-music-manager/app/src/main/java/com/acc/bbyamusic/TestSeedProvider.java'
   workflow_dispatch:
 
 permissions:
@@ -31,59 +32,23 @@ jobs:
           GRADLE="tools/bbya-music-manager/app/build.gradle"
           SYNC="tools/bbya-music-manager/app/src/main/java/com/acc/bbyamusic/OAuthSyncActivity.java"
           CLIENT="tools/bbya-music-manager/app/src/main/java/com/acc/bbyamusic/RobloxSyncClient.java"
+          SEED="tools/bbya-music-manager/app/src/main/java/com/acc/bbyamusic/TestSeedProvider.java"
           sed -i 's/versionCode 11/versionCode 17/' "$GRADLE"
           sed -i "s/versionName '0.3.10-underground-sync-pilot'/versionName '0.3.16-id-test-ui-map'/" "$GRADLE"
           sed -i 's/openid profile asset:read asset:write universe-messaging-service:publish/openid universe-messaging-service:publish/g' "$SYNC" "$CLIENT"
           sed -i 's/private static final String UNIVERSE_ID = "8116636513";/private static final String UNIVERSE_ID = "10762005984";/' "$SYNC"
           sed -i 's/ke BBYA Social Hub/ke BBYA Music UI Test/' "$SYNC"
-          python3 - <<'PY'
-          from pathlib import Path
-          p = Path("tools/bbya-music-manager/app/src/main/java/com/acc/bbyamusic/OAuthSyncActivity.java")
-          s = p.read_text()
-          old = '''                    String assetId = track.optString("robloxAssetId", "");
-                    if (assetId.isEmpty()) {
-                        UploadResult upload = uploadAudio(access, userId, track);
-                        if (!upload.approved || upload.assetId.isEmpty()) {
-                            track.put("uploadState", upload.moderation.isEmpty() ? "UPLOAD_FAILED" : upload.moderation);
-                            track.put("syncState", "WAITING_ROBLOX");
-                            pending++;
-                            persistCatalog(catalog);
-                            continue;
-                        }
-                        assetId = upload.assetId;
-                        track.put("robloxAssetId", assetId);
-                        track.put("uploadState", "READY");
-                        persistCatalog(catalog);
-                    }
-'''
-          new = '''                    String assetId = track.optString("robloxAssetId", "");
-                    if (assetId.isEmpty()) {
-                        track.put("uploadState", "ID_TEST_SKIP_NO_ASSET_ID");
-                        track.put("syncState", "SKIPPED_ID_TEST");
-                        pending++;
-                        persistCatalog(catalog);
-                        continue;
-                    }
-'''
-          if old not in s:
-              raise SystemExit("ID-test upload block patch anchor not found")
-          s = s.replace(old, new, 1)
-          s = s.replace('page.addView(label("UNDERGROUND PILOT", 13, Color.rgb(214, 174, 93)));',
-                        'page.addView(label("ID TEST • BBYA MUSIC UI TEST", 13, Color.rgb(214, 174, 93)));', 1)
-          s = s.replace('Login Roblox dipakai untuk meng-upload lagu dan mengirim perubahan playlist Underground ke BBYA Music UI Test.',
-                        'Login Roblox dipakai hanya untuk mengirim Asset ID playlist Underground ke BBYA Music UI Test. Build test ini tidak upload audio.', 1)
-          p.write_text(s)
-          PY
+          sed -i 's/UNDERGROUND PILOT/ID TEST - BBYA MUSIC UI TEST/' "$SYNC"
           grep -q 'TestSeedProvider' tools/bbya-music-manager/app/src/main/AndroidManifest.xml
-          grep -q '125820152354579' tools/bbya-music-manager/app/src/main/java/com/acc/bbyamusic/TestSeedProvider.java
+          grep -q '125820152354579' "$SEED"
+          grep -q 'SCREENSHOT_ID_ISOLATED' "$SEED"
           grep -q 'private static final String UNIVERSE_ID = "10762005984";' "$SYNC"
           grep -q 'openid universe-messaging-service:publish' "$SYNC"
-          ! grep -q 'asset:write' "$SYNC"
-          grep -q 'ID_TEST_SKIP_NO_ASSET_ID' "$SYNC"
+          ! grep -q 'openid profile' "$SYNC"
           grep -q "versionCode 17" "$GRADLE"
           echo "BBYA Music ID Test target: universe 10762005984 / place 124607344716828"
           echo "OAuth scope: openid + universe-messaging-service:publish only"
-          echo "Audio upload: disabled for this ID-only test build"
+          echo "Underground catalog: exactly 25 pre-existing Roblox Asset IDs"
 
       - name: Setup Java
         uses: actions/setup-java@v5
