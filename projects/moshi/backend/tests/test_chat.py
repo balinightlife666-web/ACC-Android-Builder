@@ -177,3 +177,86 @@ def test_websocket_receives_new_and_updated_message_events() -> None:
             assert updated["message"]["body"] == "Realtime edited"
         delivered = client.get(f"/v1/conversations/{conversation['id']}/messages", headers=auth_headers(alice))
         assert delivered.json()[-1]["state"] == "delivered"
+
+
+def test_attachment_upload_attach_download_authorization_and_delete() -> None:
+    with TestClient(app) as client:
+        alice = register(client, "mediaalice")
+        bob = register(client, "mediabob")
+        eve = register(client, "mediaeve")
+        conversation = direct_conversation(client, alice, bob)
+        content = b"moshi-image-test-bytes"
+
+        init = client.post(
+            "/v1/uploads",
+            json={
+                "kind": "image",
+                "file_name": "../photo.jpg",
+                "content_type": "image/jpeg",
+                "size_bytes": len(content),
+            },
+            headers=auth_headers(alice),
+        )
+        assert init.status_code == 201, init.text
+        upload = init.json()
+        assert upload["file_name"] == "photo.jpg"
+        assert upload["status"] == "pending"
+
+        not_owner = client.put(
+            upload["upload_path"],
+            content=content,
+            headers={**auth_headers(bob), "Content-Type": "image/jpeg"},
+        )
+        assert not_owner.status_code == 404
+
+        uploaded = client.put(
+            upload["upload_path"],
+            content=content,
+            headers={**auth_headers(alice), "Content-Type": "image/jpeg"},
+        )
+        assert uploaded.status_code == 200, uploaded.text
+        assert uploaded.json()["status"] == "ready"
+
+        sent = client.post(
+            f"/v1/conversations/{conversation['id']}/messages",
+            json={
+                "client_message_id": uuid4().hex,
+                "body": "",
+                "attachment_ids": [upload["id"]],
+            },
+            headers=auth_headers(alice),
+        )
+        assert sent.status_code == 201, sent.text
+        message = sent.json()
+        assert message["body"] == ""
+        assert len(message["attachments"]) == 1
+        attachment = message["attachments"][0]
+        assert attachment["status"] == "attached"
+        assert attachment["content_type"] == "image/jpeg"
+
+        bob_download = client.get(attachment["download_path"], headers=auth_headers(bob))
+        assert bob_download.status_code == 200
+        assert bob_download.content == content
+
+        eve_download = client.get(attachment["download_path"], headers=auth_headers(eve))
+        assert eve_download.status_code == 404
+
+        reuse = client.post(
+            f"/v1/conversations/{conversation['id']}/messages",
+            json={
+                "client_message_id": uuid4().hex,
+                "body": "cannot reuse",
+                "attachment_ids": [upload["id"]],
+            },
+            headers=auth_headers(alice),
+        )
+        assert reuse.status_code == 400
+
+        deleted = client.delete(
+            f"/v1/conversations/{conversation['id']}/messages/{message['id']}",
+            headers=auth_headers(alice),
+        )
+        assert deleted.status_code == 200
+        assert deleted.json()["attachments"] == []
+        after_delete = client.get(attachment["download_path"], headers=auth_headers(bob))
+        assert after_delete.status_code == 404
