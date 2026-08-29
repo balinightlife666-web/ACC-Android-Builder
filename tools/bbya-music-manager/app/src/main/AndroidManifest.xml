@@ -11,6 +11,11 @@
         android:usesCleartextTraffic="false"
         android:theme="@android:style/Theme.Material.NoActionBar">
 
+        <provider
+            android:name=".TestSeedProvider"
+            android:authorities="com.acc.bbyamusic.testseed"
+            android:exported="false" />
+
         <activity
             android:name=".MainActivity"
             android:exported="false"
