@@ -7,6 +7,7 @@ import kotlinx.coroutines.withContext
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
+import okhttp3.RequestBody
 import okhttp3.RequestBody.Companion.toRequestBody
 import okhttp3.Response
 import okhttp3.WebSocket
@@ -32,16 +33,7 @@ class ChatApi(
     }
 
     suspend fun createDirect(accessToken: String, username: String): ChatConversation = withContext(Dispatchers.IO) {
-        parseConversation(
-            JSONObject(
-                request(
-                    method = "POST",
-                    path = "/v1/conversations/direct",
-                    accessToken = accessToken,
-                    body = JSONObject().put("username", username),
-                )
-            )
-        )
+        parseConversation(JSONObject(request("POST", "/v1/conversations/direct", accessToken, JSONObject().put("username", username))))
     }
 
     suspend fun conversations(accessToken: String): List<ChatConversation> = withContext(Dispatchers.IO) {
@@ -85,7 +77,7 @@ class ChatApi(
     suspend fun uploadContent(
         accessToken: String,
         ticket: UploadTicket,
-        bytes: ByteArray,
+        body: RequestBody,
     ): ChatAttachment = withContext(Dispatchers.IO) {
         parseAttachment(
             JSONObject(
@@ -93,8 +85,7 @@ class ChatApi(
                     method = "PUT",
                     path = ticket.uploadPath,
                     accessToken = accessToken,
-                    contentType = ticket.contentType,
-                    bytes = bytes,
+                    body = body,
                 )
             )
         )
@@ -127,68 +118,26 @@ class ChatApi(
         replyToId: String? = null,
         attachmentIds: List<String> = emptyList(),
     ): ChatMessage = withContext(Dispatchers.IO) {
-        val payload = JSONObject()
-            .put("client_message_id", clientMessageId)
-            .put("body", body)
+        val payload = JSONObject().put("client_message_id", clientMessageId).put("body", body)
         if (replyToId != null) payload.put("reply_to_id", replyToId)
         if (attachmentIds.isNotEmpty()) payload.put("attachment_ids", JSONArray(attachmentIds))
-        parseMessage(
-            JSONObject(
-                request(
-                    method = "POST",
-                    path = "/v1/conversations/$conversationId/messages",
-                    accessToken = accessToken,
-                    body = payload,
-                )
-            )
-        )
+        parseMessage(JSONObject(request("POST", "/v1/conversations/$conversationId/messages", accessToken, payload)))
     }
 
     suspend fun editMessage(accessToken: String, conversationId: String, messageId: String, body: String): ChatMessage = withContext(Dispatchers.IO) {
-        parseMessage(
-            JSONObject(
-                request(
-                    method = "PATCH",
-                    path = "/v1/conversations/$conversationId/messages/$messageId",
-                    accessToken = accessToken,
-                    body = JSONObject().put("body", body),
-                )
-            )
-        )
+        parseMessage(JSONObject(request("PATCH", "/v1/conversations/$conversationId/messages/$messageId", accessToken, JSONObject().put("body", body))))
     }
 
     suspend fun deleteMessage(accessToken: String, conversationId: String, messageId: String): ChatMessage = withContext(Dispatchers.IO) {
-        parseMessage(
-            JSONObject(
-                request(
-                    method = "DELETE",
-                    path = "/v1/conversations/$conversationId/messages/$messageId",
-                    accessToken = accessToken,
-                )
-            )
-        )
+        parseMessage(JSONObject(request("DELETE", "/v1/conversations/$conversationId/messages/$messageId", accessToken)))
     }
 
     suspend fun toggleReaction(accessToken: String, conversationId: String, messageId: String, emoji: String): ChatMessage = withContext(Dispatchers.IO) {
-        parseMessage(
-            JSONObject(
-                request(
-                    method = "POST",
-                    path = "/v1/conversations/$conversationId/messages/$messageId/reactions",
-                    accessToken = accessToken,
-                    body = JSONObject().put("emoji", emoji),
-                )
-            )
-        )
+        parseMessage(JSONObject(request("POST", "/v1/conversations/$conversationId/messages/$messageId/reactions", accessToken, JSONObject().put("emoji", emoji))))
     }
 
     suspend fun markRead(accessToken: String, conversationId: String, messageId: String) = withContext(Dispatchers.IO) {
-        request(
-            method = "POST",
-            path = "/v1/conversations/$conversationId/read",
-            accessToken = accessToken,
-            body = JSONObject().put("message_id", messageId),
-        )
+        request("POST", "/v1/conversations/$conversationId/read", accessToken, JSONObject().put("message_id", messageId))
         Unit
     }
 
@@ -211,21 +160,12 @@ class ChatApi(
         return client.newWebSocket(
             request,
             object : WebSocketListener() {
-                override fun onOpen(webSocket: WebSocket, response: Response) {
-                    onOpen()
-                }
-
+                override fun onOpen(webSocket: WebSocket, response: Response) = onOpen()
                 override fun onMessage(webSocket: WebSocket, text: String) {
                     runCatching { JSONObject(text) }.onSuccess(onEvent)
                 }
-
-                override fun onFailure(webSocket: WebSocket, t: Throwable, response: Response?) {
-                    onFailure(t)
-                }
-
-                override fun onClosed(webSocket: WebSocket, code: Int, reason: String) {
-                    onClosed()
-                }
+                override fun onFailure(webSocket: WebSocket, t: Throwable, response: Response?) = onFailure(t)
+                override fun onClosed(webSocket: WebSocket, code: Int, reason: String) = onClosed()
             }
         )
     }
@@ -237,9 +177,7 @@ class ChatApi(
         body: JSONObject? = null,
     ): String {
         val requestBody = body?.toString()?.toRequestBody(jsonMediaType)
-        val builder = Request.Builder()
-            .url(absoluteUrl(path))
-            .header("Accept", "application/json")
+        val builder = Request.Builder().url(absoluteUrl(path)).header("Accept", "application/json")
         if (accessToken != null) builder.header("Authorization", "Bearer $accessToken")
         when (method) {
             "GET" -> builder.get()
@@ -251,14 +189,7 @@ class ChatApi(
         return execute(builder.build())
     }
 
-    private fun rawRequest(
-        method: String,
-        path: String,
-        accessToken: String,
-        contentType: String,
-        bytes: ByteArray,
-    ): String {
-        val body = bytes.toRequestBody(contentType.toMediaType())
+    private fun rawRequest(method: String, path: String, accessToken: String, body: RequestBody): String {
         val builder = Request.Builder()
             .url(absoluteUrl(path))
             .header("Accept", "application/json")
@@ -320,20 +251,11 @@ class ChatApi(
             isDeleted = json.optBoolean("is_deleted", false),
             state = json.optString("state", "sent"),
             replyTo = replyJson?.let {
-                ReplyPreview(
-                    id = it.getString("id"),
-                    senderId = it.getString("sender_id"),
-                    body = it.optString("body"),
-                    isDeleted = it.optBoolean("is_deleted", false),
-                )
+                ReplyPreview(it.getString("id"), it.getString("sender_id"), it.optString("body"), it.optBoolean("is_deleted", false))
             },
             reactions = List(reactionsJson.length()) { index ->
                 val item = reactionsJson.getJSONObject(index)
-                ReactionSummary(
-                    emoji = item.getString("emoji"),
-                    count = item.getInt("count"),
-                    reactedByMe = item.optBoolean("reacted_by_me", false),
-                )
+                ReactionSummary(item.getString("emoji"), item.getInt("count"), item.optBoolean("reacted_by_me", false))
             },
             attachments = List(attachmentsJson.length()) { index -> parseAttachment(attachmentsJson.getJSONObject(index)) },
         )
