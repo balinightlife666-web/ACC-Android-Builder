@@ -103,6 +103,7 @@ fun BusinessCommerceHubScreen(authController: AuthController, modifier: Modifier
                     }
                 }
             }
+            BusinessOpsPanel(session)
         }
         BusinessHubScreen(authController, Modifier.weight(1f))
     }
