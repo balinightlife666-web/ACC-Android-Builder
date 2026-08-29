@@ -1,0 +1,18 @@
+{
+  "status": "LIVE_PUBLISHED",
+  "project": "AFTER SCHOOL CITY",
+  "mode": "SCHOOL_ARCHITECTURAL_CLEANUP_V0_7_4",
+  "sourceRepo": "ardarawk-cloud/ACC-Roblox-maps",
+  "sourceCommit": "db0fe8df0b18daac792e4893492633086a692e85",
+  "baseLiveCommit": "29530dd451bb35d9d6d9e801435aca14f9ba7b5a",
+  "qcRunId": "33202297546",
+  "universeId": "10745359869",
+  "placeId": "121603385909425",
+  "versionNumber": 24,
+  "rojoVersion": "7.7.0",
+  "placeBytes": 93220,
+  "placeSha256": "edc5751bf59b860dda079f684d8a693a0ef4ca8008ade4d299903645ecc33ecd",
+  "runId": "33231102585",
+  "publishedAt": "2026-08-29T03:19:47Z",
+  "note": "School Architectural Cleanup v0.7.4 exact QC-locked source; compact signage, doorway framing, grounded furniture and warm interior finishing added; protected v23 road/orientation/signage/dedication source unchanged."
+}
