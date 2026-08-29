@@ -1,0 +1,18 @@
+{
+  "status": "ASSET_APPROVED_GRANTED_AND_REGISTERED",
+  "project": "LOST & FOUND: NIGHT SHIFT",
+  "assetName": "Oxford Formal Shoe",
+  "assetId": 91598094761025,
+  "universeId": "10745354451",
+  "modelSha256": "14d9d148dac7ba464d0a8c2b7abbb2796be77feb4cf304182a5e98a277e59747",
+  "modelBytes": 28608,
+  "assetOwner": "10001957153",
+  "assetKeyOwner": "10001957153",
+  "universeKeyOwner": "8878884630",
+  "collaboratorStatus": "FAILED",
+  "collaboratorHttp": "403",
+  "permissionHttp": "200",
+  "sourceCommit": "8fd2d3f62e81de7c628c59efbdffa73f3ca2cb50",
+  "runId": "33253872799",
+  "registeredAt": "2026-08-29T12:59:52Z"
+}

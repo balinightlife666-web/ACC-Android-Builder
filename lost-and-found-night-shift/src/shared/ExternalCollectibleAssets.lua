@@ -6,7 +6,7 @@ return {
     version = "M5C3_EXTERNAL_ASSETS_V1",
     Models = {
         daniel_formal_shoe = {
-            assetId = 0, -- ROBLOX_ASSET_ID
+            assetId = 91598094761025, -- ROBLOX_ASSET_ID
             sourceTitle = "Oxford style leather shoe for men",
             sourceCreator = "assetfactory",
             sourcePlatform = "Sketchfab",
@@ -14,8 +14,8 @@ return {
             sourceUrl = "https://sketchfab.com/3d-models/oxford-style-leather-shoe-for-men-632ce6f25dec417e81b6998bae1ea3e1",
             sourceTriangles = 13568,
             sourceVerticesApprox = 6900,
-            optimizedSha256 = "82ed5b004820e77f95599e7da1254f322b0ebe446eeafab2083cc519dcbd83ef",
-            optimizedBytes = 449448,
+            optimizedSha256 = "14d9d148dac7ba464d0a8c2b7abbb2796be77feb4cf304182a5e98a277e59747",
+            optimizedBytes = 28608,
             note = "Mesh-only Roblox upload derivative; silhouette retained, embedded high-resolution PBR textures removed for runtime weight. Procedural fallback remains authoritative if loading fails.",
         },
     },
