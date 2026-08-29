@@ -21,9 +21,10 @@ import java.util.Locale;
 public class TestSeedProvider extends ContentProvider {
     private static final String PREFS = "bbya_music_manager";
     private static final String CATALOG_KEY = "catalog_json";
+    private static final String REJECTED_ASSET_ID = "102227106442067";
 
     private static final String[][] TEST_TRACKS = new String[][]{
-            {"86006580589828", "Screenshot ID 01 (judul tertutup / belum terverifikasi)"},
+            {"86006580589828", "DJ LUKA NEGARA VERSI JEPANG V2"},
             {"125820152354579", "DJ Paradise X Velocity Baby Don't Go feat IMA Audio"},
             {"133947654553749", "DJ TJAP Morgan V4"},
             {"95691778643767", "DJ Ayang Ayang"},
@@ -35,19 +36,19 @@ public class TestSeedProvider extends ContentProvider {
             {"89763491889927", "DJ Battle HKS"},
             {"96924419000406", "DJ Trap Love Of War"},
             {"132460784559824", "DJ Cinta Yang Sempurna"},
-            {"122720606049274", "DJ Bocah Bocah Cilik Sholawat"},
+            {"122720606049274", "DJ Bocah Cilik Sholawat"},
             {"70777592375726", "DJ Mahabarata"},
             {"98308711398889", "DJ Bila Nanti"},
             {"95839337053281", "DJ Punk Rock Jalanan"},
             {"135587255285184", "DJ TJAP Morgan Trompet - By Klepon Remix"},
-            {"104136707299013", "DJ Gedhang Klutuk by DJ Tanti"},
+            {"104136707299013", "DJ Gedhang Kluthuk"},
             {"131597067752690", "Garam Cina"},
             {"73502975968958", "DJ Sin Pijama by Alvin Revolution"},
-            {"101289385838814", "DJ Trompet Brazil"},
-            {"102043858565172", "DJ Viral Tik Tok Pal Pal Di Kepas"},
-            {"79235704240751", "DJ Twenty One Pilots Nova - Tambal Elang"},
-            {"103710801320668", "DJ Prank Karnaval Viral Booyah"},
-            {"102227106442067", "DJ We Found Love (ID screenshot belum 100% terverifikasi)"}
+            {"101289385838814", "DJ Trompet Brazil - Bass Jepat Bedil Nguwer King M"},
+            {"102043858565172", "DJ Viral Tik Tok Slow Bas Pal Pal Di Kepas by IRP"},
+            {"79235704240751", "DJ Twenty One Pilots Nova - Tambai Elang"},
+            {"103710801320668", "Awas Jantung Copot - DJ Prank Karnaval Viral"},
+            {"102227106442067", "DJ We Found Love MINIONS AUDIO"}
     };
 
     @Override
@@ -72,34 +73,38 @@ public class TestSeedProvider extends ContentProvider {
 
             JSONArray tracks = new JSONArray();
             for (int i = 0; i < TEST_TRACKS.length; i++) {
+                String assetId = TEST_TRACKS[i][0];
+                boolean approved = !REJECTED_ASSET_ID.equals(assetId);
                 JSONObject track = new JSONObject();
                 track.put("id", String.format(Locale.US, "test-shot-20260829-%02d", i + 1));
                 track.put("title", TEST_TRACKS[i][1]);
                 track.put("artist", "Screenshot Roblox ID Test");
-                track.put("enabled", true);
+                track.put("enabled", approved);
                 track.put("order", i + 1);
                 track.put("sourceUri", "");
                 track.put("sourceName", "");
                 track.put("localPath", "");
                 track.put("mimeType", "");
                 track.put("sizeBytes", 0);
-                track.put("robloxAssetId", TEST_TRACKS[i][0]);
+                track.put("robloxAssetId", assetId);
                 track.put("coverImage", "");
-                track.put("uploadState", "READY");
+                track.put("uploadState", approved ? "READY" : "ROBLOX_REJECTED");
                 track.put("syncState", "LOCAL_ONLY");
-                track.put("testSource", "screenshot-2026-08-29");
+                track.put("moderationAudit", approved ? "APPROVED" : "REJECTED");
+                track.put("testSource", "screenshot-2026-08-29+metadata-audit");
                 tracks.put(track);
             }
             underground.put("tracks", tracks);
             underground.put("enabled", true);
             underground.put("testMode", "SCREENSHOT_ID_ISOLATED");
+            underground.put("metadataAudit", "24_APPROVED_1_REJECTED_DISABLED");
 
             catalog.put("schemaVersion", 2);
             catalog.put("revision", Math.max(1, catalog.optInt("revision", 1)) + 1);
             prefs.edit()
                     .putString(CATALOG_KEY, catalog.toString())
                     .putInt("bbya_test_seed_20260829_added", TEST_TRACKS.length)
-                    .putString("oauth_last_status", "ID Test siap: 25 track Underground terisolasi")
+                    .putString("oauth_last_status", "ID Test siap: 24 approved + 1 rejected dinonaktifkan")
                     .apply();
             return true;
         } catch (Exception ignored) {
