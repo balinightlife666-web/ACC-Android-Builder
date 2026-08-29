@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 
 from app.chat.models import Conversation, ConversationMember, Message, MessageAttachment, MessageReaction, MessageReceipt
 from app.chat.schemas import AttachmentResponse, ConversationResponse, GroupPreview, MessageResponse, ReactionSummary, ReplyPreview, UserPreview
+from app.commerce.service import serialize_catalog_card, serialize_order_card
 from app.groups.models import GroupMemberRole, GroupProfile
 from app.identity.models import User
 
@@ -89,6 +90,8 @@ def serialize_message(message: Message, viewer_id: str) -> MessageResponse:
         ),
         reactions=reaction_summary(message, viewer_id),
         attachments=[] if deleted else attachment_summary(message),
+        catalog_card=(serialize_catalog_card(message.catalog_card) if not deleted and message.catalog_card is not None else None),
+        order_card=(serialize_order_card(message.order_card) if not deleted and message.order_card is not None else None),
     )
 
 
@@ -157,6 +160,8 @@ def create_message(
     body: str,
     reply_to_id: str | None = None,
     attachment_ids: list[str] | None = None,
+    *,
+    commit: bool = True,
 ) -> tuple[Message, bool]:
     existing = db.scalar(
         select(Message).where(
@@ -216,6 +221,9 @@ def create_message(
     for member_id in member_ids:
         if member_id != sender_id:
             db.add(MessageReceipt(message_id=message.id, user_id=member_id))
-    db.commit()
-    db.refresh(message)
+    if commit:
+        db.commit()
+        db.refresh(message)
+    else:
+        db.flush()
     return message, True
