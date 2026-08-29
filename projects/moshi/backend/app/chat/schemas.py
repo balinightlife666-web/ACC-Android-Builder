@@ -1,0 +1,48 @@
+from __future__ import annotations
+
+from datetime import datetime
+
+from pydantic import BaseModel, ConfigDict, Field
+
+
+class UserPreview(BaseModel):
+    id: str
+    username: str
+    display_name: str
+    business_mode: bool
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class DirectConversationRequest(BaseModel):
+    username: str = Field(min_length=3, max_length=30, pattern=r"^[a-zA-Z0-9_.]+$")
+
+
+class SendMessageRequest(BaseModel):
+    client_message_id: str = Field(min_length=8, max_length=64)
+    body: str = Field(min_length=1, max_length=8000)
+
+
+class ReadRequest(BaseModel):
+    message_id: str
+
+
+class MessageResponse(BaseModel):
+    id: str
+    conversation_id: str
+    sender_id: str
+    client_message_id: str
+    body: str
+    created_at: datetime
+    edited_at: datetime | None = None
+    state: str = "sent"
+
+
+class ConversationResponse(BaseModel):
+    id: str
+    kind: str
+    peer: UserPreview | None
+    latest_message: MessageResponse | None
+    unread_count: int
+    created_at: datetime
+    updated_at: datetime
