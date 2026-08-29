@@ -1,0 +1,14 @@
+{
+  "status": "QC_PASS",
+  "project": "AFTER SCHOOL CITY",
+  "mode": "LOCKER_CLEARANCE_HOTFIX_V0_7_5",
+  "sourceRepo": "ardarawk-cloud/ACC-Roblox-maps",
+  "sourceCommit": "7c439b4c3a74bc3574dc6f1781c012a8f34946b7",
+  "baseLiveCommit": "db0fe8df0b18daac792e4893492633086a692e85",
+  "rojoVersion": "7.7.0",
+  "placeBytes": 95148,
+  "placeSha256": "b5a54fe149a70bf071ecd36d94f721b198a6ee80bcabbfed2bdec0c9a3691f97",
+  "runId": "33233775486",
+  "checkedAt": "2026-08-29T04:25:29Z",
+  "note": "Hosted QC only; NOT PUBLISHED. Narrow 3-file delta from LIVE v24; all hall lockers relocated to solid wall slots outside both classroom door clear zones; fail-closed runtime clearance guard included; protected source unchanged."
+}
