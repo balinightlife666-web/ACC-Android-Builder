@@ -1,8 +1,8 @@
-LOST FOUND M5-C.2 COLLECTIBLE READABILITY PASS
-Triggered: 2026-08-29
-Retry: 57
+LOST FOUND M5-C.3.1 OXFORD RUNTIME COLOR PASS
+Triggered: 2026-08-30
+Retry: 58
 Universe: 10745354451
 Place: 93699016600671
-Reason: v56 showcase lifecycle is stable. Continue visual quality only: improve Daniel's Formal Shoe so it reads immediately as footwear from the five-slot rack, improve Duplicate Passport booklet readability, and add restrained hardcase handle/latch detail. M5-C.1.3 remains the sole stable showcase lifecycle authority. M5-C.2 is event-driven once per newly visible stable model: no periodic loop, no ScaleTo, no repeated PivotTo, and no destroy/recreate of stable models. Preserve five-slot selection/persistence/trade cleanup, Credits/XP, Station Shop, case logic/difficulty/answers, Season 1 mystery canon, collectible drop chances, Collection Index history, inventory ownership, mint counters, immutable instanceId/serial/provenance, TradeService rules, station isolation, SCAN/TAG/OPEN/DECIDE validation, EN/ID foundation and hard-locked decision colors. Roblox in-engine geometry only; no generated images, decals, external textures or external assets.
+M5-C.1.3 stable five-slot showcase lifecycle remains authoritative.
 M5-C.3 Oxford universe-owned model asset: 118204524698844
-M5-C.3 Canonical publish kick: owner/permission verified; publish this exact registry state.
+M5-C.3.1 color-only runtime pass: Oxford leather espresso/dark brown, sole near-black, cord/laces warm tan. Preserve the existing Oxford mesh, rack position, fit, scale, rotation, stable slot Model, immutable instanceId/serial/provenance, trading, economy, drop chances, station isolation, case flow, localization, and Season 1 canon. No periodic mutation loop. No generated images.
