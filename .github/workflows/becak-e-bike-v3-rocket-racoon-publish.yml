@@ -1,0 +1,133 @@
+name: Becak E-Bike V3 Rocket Racoon Publish
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/becak-e-bike-v3-rocket-racoon-publish.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: becak-e-bike-v3-rocket-racoon-live
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      SOURCE_REPO: ardarawk-cloud/ACC-Roblox-maps
+      SOURCE_SHA: fb9667f9d1ff144e31d4e17a2e5adc05b9ee1e89
+      UNIVERSE_ID: '10745325613'
+      PLACE_ID: '80994730522893'
+      ROBLOX_API_KEY: ${{ secrets.ROCKET_RACOON_PUBLISH }}
+
+    steps:
+      - name: Checkout publisher repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Checkout locked Becak E-Bike V3 source
+        uses: actions/checkout@v4
+        with:
+          repository: ardarawk-cloud/ACC-Roblox-maps
+          ref: fb9667f9d1ff144e31d4e17a2e5adc05b9ee1e89
+          token: ${{ secrets.ACC_ROBLOX_MAPS_READ_TOKEN }}
+          path: becak-source
+          fetch-depth: 1
+
+      - name: Preflight locked target and V3 source
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ -n "${ROBLOX_API_KEY:-}" ]] || { echo 'ROCKET_RACOON_PUBLISH missing'; exit 10; }
+          actual=$(git -C becak-source rev-parse HEAD)
+          [[ "$actual" == "$SOURCE_SHA" ]] || { echo "Source SHA mismatch: $actual"; exit 11; }
+          test -s becak-source/maps/becak-e-bike/place.rbxlx
+          test -s becak-source/scripts/patch-becak-v3-place.js
+          grep -Fq 'ACC_BecakWorldV3' becak-source/maps/becak-e-bike/city.realism.architecture.server.lua
+          grep -Fq 'BecakWorldV3VisualAuthority' becak-source/maps/becak-e-bike/city.realism.architecture.server.lua
+          grep -Fq 'ACC_BecakVehicleRealism' becak-source/maps/becak-e-bike/vehicle.realism.server.lua
+          grep -Fq 'ACC_BecakVehicleGeometryRealism' becak-source/maps/becak-e-bike/vehicle.geometry.realism.server.lua
+          echo "BECAK V3 SOURCE LOCK PASS source=$actual"
+
+      - name: Patch proven place with Nusakarya V3
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd becak-source
+          node scripts/patch-becak-v3-place.js
+
+      - name: Validate patched Becak V3 place
+        shell: bash
+        run: |
+          set -euo pipefail
+          place='becak-source/maps/becak-e-bike/place.rbxlx'
+          test -s "$place"
+          bytes=$(stat -c%s "$place")
+          (( bytes > 100000 )) || { echo "Patched place suspiciously small: $bytes"; exit 20; }
+          grep -q 'BecakEBike_Runtime' "$place"
+          grep -q 'BecakEBike_Client' "$place"
+          grep -q 'BecakEBike_DriverPhone' "$place"
+          grep -q 'ACC_BecakWorldV3' "$place"
+          grep -q 'BecakWorldV3VisualAuthority' "$place"
+          grep -q 'BecakWorldV3LegacyVisibleShells' "$place"
+          grep -q 'BecakEBike_VehicleRealism' "$place"
+          grep -q 'BecakEBike_VehicleGeometryRealism' "$place"
+          sha=$(sha256sum "$place" | awk '{print $1}')
+          echo "PLACE_FILE=$place" >> "$GITHUB_ENV"
+          echo "PLACE_BYTES=$bytes" >> "$GITHUB_ENV"
+          echo "PLACE_SHA256=$sha" >> "$GITHUB_ENV"
+          echo "BECAK V3 PLACE PASS bytes=$bytes sha256=$sha"
+
+      - name: Publish Becak E-Bike V3 LIVE via Rocket Racoon
+        shell: bash
+        run: |
+          set -euo pipefail
+          url="https://apis.roblox.com/universes/v1/${UNIVERSE_ID}/places/${PLACE_ID}/versions?versionType=Published"
+          response="$RUNNER_TEMP/becak-v3-publish-response.json"
+          http=$(curl -sS --location -o "$response" -w '%{http_code}' \
+            -X POST "$url" \
+            -H "x-api-key: $ROBLOX_API_KEY" \
+            -H 'Content-Type: application/octet-stream' \
+            --data-binary "@$PLACE_FILE")
+          body=$(cat "$response")
+          echo "Roblox publish HTTP $http"
+          [[ "$http" =~ ^2[0-9][0-9]$ ]] || { echo "$body"; exit 30; }
+          version=$(jq -r '.versionNumber // empty' "$response")
+          [[ -n "$version" ]] || { echo "Missing versionNumber: $body"; exit 31; }
+          echo "PUBLISHED_VERSION=$version" >> "$GITHUB_ENV"
+          echo "ROBLOX PUBLISH PASS version=$version"
+
+      - name: Persist Becak V3 Rocket Racoon receipt
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p deploy-status
+          jq -n \
+            --arg status 'LIVE_PUBLISHED' \
+            --arg project 'BECAK E-BIKE' \
+            --arg mode 'NUSAKARYA_V3_ROCKET_RACOON' \
+            --arg sourceRepo "$SOURCE_REPO" \
+            --arg sourceCommit "$SOURCE_SHA" \
+            --arg universeId "$UNIVERSE_ID" \
+            --arg placeId "$PLACE_ID" \
+            --arg versionNumber "$PUBLISHED_VERSION" \
+            --arg placeBytes "$PLACE_BYTES" \
+            --arg placeSha256 "$PLACE_SHA256" \
+            --arg runId "$GITHUB_RUN_ID" \
+            --arg publishedAt "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+            '{status:$status,project:$project,mode:$mode,sourceRepo:$sourceRepo,sourceCommit:$sourceCommit,universeId:$universeId,placeId:$placeId,versionNumber:($versionNumber|tonumber),placeBytes:($placeBytes|tonumber),placeSha256:$placeSha256,runId:$runId,publishedAt:$publishedAt,note:"Becak E-Bike Nusakarya V3 published from Bali Night Life publisher using ROCKET_RACOON_PUBLISH."}' \
+            > deploy-status/becak-e-bike-v3-rocket-racoon.json
+          cat deploy-status/becak-e-bike-v3-rocket-racoon.json
+
+          git config user.name 'Becak E-Bike Publish Bot'
+          git config user.email 'actions@users.noreply.github.com'
+          git add deploy-status/becak-e-bike-v3-rocket-racoon.json
+          git commit -m "Record Becak E-Bike V3 publish v${PUBLISHED_VERSION} [skip ci]"
+          git pull --rebase origin main
+          git push origin HEAD:main
