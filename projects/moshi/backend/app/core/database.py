@@ -16,5 +16,6 @@ SessionLocal = sessionmaker(bind=engine, autoflush=False, expire_on_commit=False
 def init_db() -> None:
     # Import models so SQLAlchemy knows the metadata before create_all.
     from app.identity import models  # noqa: F401
+    from app.chat import models as chat_models  # noqa: F401
 
     Base.metadata.create_all(bind=engine)
