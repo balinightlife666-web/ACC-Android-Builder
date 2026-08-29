@@ -1,0 +1,211 @@
+name: LOST FOUND Oxford Permission Recovery
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/lost-found-oxford-permission-recovery.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: lost-found-oxford-permission-recovery
+  cancel-in-progress: false
+
+jobs:
+  recover:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      ASSET_KEY: ${{ secrets.AM_STUDIO_AUDIO_CADANGAN_02 || secrets.ROBLOX_PUBLISH_CADANGAN_AUDII_01 }}
+      UNIVERSE_KEY: ${{ secrets.ROCKET_RACOON_PUBLISH }}
+      ASSET_ID: '91598094761025'
+      UNIVERSE_ID: '10745354451'
+      PROJECT_DIR: lost-and-found-night-shift
+      MODEL_SHA256: '14d9d148dac7ba464d0a8c2b7abbb2796be77feb4cf304182a5e98a277e59747'
+      MODEL_BYTES: '28608'
+
+    steps:
+      - name: Checkout exact recovery source
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Verify approved Oxford asset still exists
+        id: asset
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ -n "${ASSET_KEY:-}" ]] || { echo ASSET_KEY_MISSING; exit 10; }
+          tmp=$(mktemp)
+          code=$(curl -sS -o "$tmp" -w '%{http_code}' -H "x-api-key: $ASSET_KEY" \
+            "https://apis.roblox.com/assets/v1/assets/${ASSET_ID}?readMask=moderationResult,state,displayName,creationContext")
+          cat "$tmp"
+          echo
+          [[ "$code" == 200 ]] || { echo "ASSET_METADATA_HTTP_$code"; exit 11; }
+          state=$(jq -r '.state // empty' "$tmp")
+          moderation=$(jq -r '.moderationResult.moderationState // empty' "$tmp")
+          creator=$(jq -r '.creationContext.creator.userId // .creationContext.creator.groupId // empty' "$tmp")
+          [[ "$state" == 'Active' ]] || { echo "ASSET_NOT_ACTIVE $state"; exit 12; }
+          [[ "$moderation" == 'Approved' ]] || { echo "ASSET_NOT_APPROVED $moderation"; exit 13; }
+          echo "creator=$creator" >> "$GITHUB_OUTPUT"
+          echo "ASSET_RECOVERY_PASS id=$ASSET_ID creator=$creator state=$state moderation=$moderation"
+          rm -f "$tmp"
+
+      - name: Introspect asset and universe principals
+        id: principals
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ -n "${UNIVERSE_KEY:-}" ]] || { echo UNIVERSE_KEY_MISSING; exit 20; }
+          inspect() {
+            local key="$1" out="$2" label="$3"
+            local code
+            code=$(curl -sS -o "$out" -w '%{http_code}' -X POST 'https://apis.roblox.com/api-keys/v1/introspect' \
+              -H 'Content-Type: application/json' \
+              --data "{\"apiKey\":\"$key\"}")
+            [[ "$code" == 200 ]] || { cat "$out"; echo "${label}_INTROSPECT_HTTP_$code"; exit 21; }
+          }
+          inspect "$ASSET_KEY" "$RUNNER_TEMP/asset-key.json" ASSET
+          inspect "$UNIVERSE_KEY" "$RUNNER_TEMP/universe-key.json" UNIVERSE
+          asset_uid=$(jq -r '.authorizedUserId // empty' "$RUNNER_TEMP/asset-key.json")
+          universe_uid=$(jq -r '.authorizedUserId // empty' "$RUNNER_TEMP/universe-key.json")
+          [[ -n "$asset_uid" && -n "$universe_uid" ]] || { echo PRINCIPAL_ID_MISSING; exit 22; }
+          echo "asset_uid=$asset_uid" >> "$GITHUB_OUTPUT"
+          echo "universe_uid=$universe_uid" >> "$GITHUB_OUTPUT"
+          echo "ASSET_KEY_OWNER=$asset_uid"
+          echo "UNIVERSE_KEY_OWNER=$universe_uid"
+          echo 'ASSET_KEY_SCOPES:'
+          jq -r '.scopes[]? | "  \(.name):\((.operations // [])|join(","))"' "$RUNNER_TEMP/asset-key.json"
+          echo 'UNIVERSE_KEY_SCOPES:'
+          jq -r '.scopes[]? | "  \(.name):\((.operations // [])|join(","))"' "$RUNNER_TEMP/universe-key.json"
+
+      - name: Verify universe key can access LOST FOUND universe
+        id: universe
+        shell: bash
+        run: |
+          set -euo pipefail
+          tmp=$(mktemp)
+          code=$(curl -sS -o "$tmp" -w '%{http_code}' -H "x-api-key: $UNIVERSE_KEY" \
+            "https://apis.roblox.com/cloud/v2/universes/${UNIVERSE_ID}")
+          cat "$tmp" || true
+          echo
+          echo "http=$code" >> "$GITHUB_OUTPUT"
+          [[ "$code" == 200 ]] || { echo "UNIVERSE_ACCESS_HTTP_$code"; exit 30; }
+          echo "UNIVERSE_ACCESS_PASS id=$UNIVERSE_ID"
+          rm -f "$tmp"
+
+      - name: Share Oxford asset with universe principal
+        id: collaborator
+        shell: bash
+        env:
+          UNIVERSE_USER_ID: ${{ steps.principals.outputs.universe_uid }}
+        run: |
+          set -euo pipefail
+          if [[ "$UNIVERSE_USER_ID" == "${{ steps.principals.outputs.asset_uid }}" ]]; then
+            echo 'SAME_PRINCIPAL_SHARE_NOT_REQUIRED'
+            echo 'status=SAME_PRINCIPAL' >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          payload=$(jq -cn --arg uid "$UNIVERSE_USER_ID" --argjson asset "$ASSET_ID" \
+            '{subjectType:"User",subjectId:$uid,action:"Use",requests:[{assetId:$asset}]}')
+          tmp=$(mktemp)
+          code=$(curl -sS -o "$tmp" -w '%{http_code}' -X PATCH \
+            'https://apis.roblox.com/asset-permissions-api/v1/assets/permissions' \
+            -H "x-api-key: $ASSET_KEY" \
+            -H 'Content-Type: application/json-patch+json' \
+            --data "$payload")
+          cat "$tmp" || true
+          echo
+          echo "http=$code" >> "$GITHUB_OUTPUT"
+          if [[ "$code" =~ ^20[0-4]$ ]]; then
+            echo 'status=SHARED' >> "$GITHUB_OUTPUT"
+            echo "COLLABORATOR_SHARE_PASS user=$UNIVERSE_USER_ID"
+          else
+            echo 'status=FAILED' >> "$GITHUB_OUTPUT"
+            echo "COLLABORATOR_SHARE_HTTP_$code"
+          fi
+          rm -f "$tmp"
+
+      - name: Grant Oxford asset to LOST FOUND universe
+        id: permission
+        shell: bash
+        run: |
+          set -euo pipefail
+          payload=$(jq -cn --arg universe "$UNIVERSE_ID" --argjson asset "$ASSET_ID" \
+            '{subjectType:"Universe",subjectId:$universe,action:"Use",requests:[{assetId:$asset}]}')
+          tmp=$(mktemp)
+          code=$(curl -sS -o "$tmp" -w '%{http_code}' -X PATCH \
+            'https://apis.roblox.com/asset-permissions-api/v1/assets/permissions' \
+            -H "x-api-key: $UNIVERSE_KEY" \
+            -H 'Content-Type: application/json-patch+json' \
+            --data "$payload")
+          cat "$tmp" || true
+          echo
+          echo "http=$code" >> "$GITHUB_OUTPUT"
+          [[ "$code" =~ ^20[0-4]$ ]] || { echo "UNIVERSE_PERMISSION_HTTP_$code"; exit 40; }
+          echo "UNIVERSE_PERMISSION_PASS asset=$ASSET_ID universe=$UNIVERSE_ID"
+          rm -f "$tmp"
+
+      - name: Register approved Oxford asset and trigger map publish
+        shell: bash
+        env:
+          ASSET_OWNER: ${{ steps.asset.outputs.creator }}
+          ASSET_KEY_OWNER: ${{ steps.principals.outputs.asset_uid }}
+          UNIVERSE_KEY_OWNER: ${{ steps.principals.outputs.universe_uid }}
+          COLLABORATOR_STATUS: ${{ steps.collaborator.outputs.status }}
+          COLLABORATOR_HTTP: ${{ steps.collaborator.outputs.http }}
+          PERMISSION_HTTP: ${{ steps.permission.outputs.http }}
+        run: |
+          set -euo pipefail
+          python3 - "$ASSET_ID" <<'PY'
+          import pathlib,re,sys
+          asset_id=sys.argv[1]
+          p=pathlib.Path('lost-and-found-night-shift/src/shared/ExternalCollectibleAssets.lua')
+          text=p.read_text(encoding='utf-8')
+          text,n=re.subn(r'assetId\s*=\s*\d+\s*,\s*-- ROBLOX_ASSET_ID',f'assetId = {asset_id}, -- ROBLOX_ASSET_ID',text,count=1)
+          if n != 1: raise SystemExit('ASSET_REGISTRY_TOKEN_NOT_FOUND')
+          text=re.sub(r'optimizedSha256\s*=\s*"[^"]+"', 'optimizedSha256 = "14d9d148dac7ba464d0a8c2b7abbb2796be77feb4cf304182a5e98a277e59747"', text, count=1)
+          text=re.sub(r'optimizedBytes\s*=\s*\d+', 'optimizedBytes = 28608', text, count=1)
+          p.write_text(text,encoding='utf-8')
+
+          t=pathlib.Path('.lost-found-m0-trigger')
+          src=t.read_text(encoding='utf-8') if t.exists() else ''
+          line=f'M5-C.3 Oxford external model asset: {asset_id}'
+          if re.search(r'^M5-C\.3 Oxford external model asset: .*$',src,flags=re.M):
+              src=re.sub(r'^M5-C\.3 Oxford external model asset: .*$',line,src,flags=re.M)
+          else:
+              src=src.rstrip()+"\n"+line+"\n"
+          t.write_text(src,encoding='utf-8')
+          PY
+
+          mkdir -p deploy-status
+          jq -n \
+            --arg status 'ASSET_APPROVED_GRANTED_AND_REGISTERED' \
+            --arg project 'LOST & FOUND: NIGHT SHIFT' \
+            --arg assetName 'Oxford Formal Shoe' \
+            --arg assetId "$ASSET_ID" \
+            --arg universeId "$UNIVERSE_ID" \
+            --arg modelSha256 "$MODEL_SHA256" \
+            --arg modelBytes "$MODEL_BYTES" \
+            --arg assetOwner "$ASSET_OWNER" \
+            --arg assetKeyOwner "$ASSET_KEY_OWNER" \
+            --arg universeKeyOwner "$UNIVERSE_KEY_OWNER" \
+            --arg collaboratorStatus "${COLLABORATOR_STATUS:-}" \
+            --arg collaboratorHttp "${COLLABORATOR_HTTP:-}" \
+            --arg permissionHttp "$PERMISSION_HTTP" \
+            --arg sourceCommit "$GITHUB_SHA" \
+            --arg runId "$GITHUB_RUN_ID" \
+            --arg registeredAt "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+            '{status:$status,project:$project,assetName:$assetName,assetId:($assetId|tonumber),universeId:$universeId,modelSha256:$modelSha256,modelBytes:($modelBytes|tonumber),assetOwner:$assetOwner,assetKeyOwner:$assetKeyOwner,universeKeyOwner:$universeKeyOwner,collaboratorStatus:$collaboratorStatus,collaboratorHttp:$collaboratorHttp,permissionHttp:$permissionHttp,sourceCommit:$sourceCommit,runId:$runId,registeredAt:$registeredAt}' \
+            > deploy-status/lost-found-oxford-model.json
+          cat deploy-status/lost-found-oxford-model.json
+
+          git config user.name 'Lost Found Oxford Recovery Bot'
+          git config user.email 'actions@users.noreply.github.com'
+          git add lost-and-found-night-shift/src/shared/ExternalCollectibleAssets.lua deploy-status/lost-found-oxford-model.json .lost-found-m0-trigger
+          git commit -m "Register approved LOST FOUND Oxford model ${ASSET_ID}"
+          git pull --rebase origin main
+          git push origin HEAD:main
