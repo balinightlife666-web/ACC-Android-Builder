@@ -21,5 +21,6 @@ def init_db() -> None:
     from app.groups import models as group_models  # noqa: F401
     from app.business import models as business_models  # noqa: F401
     from app.commerce import models as commerce_models  # noqa: F401
+    from app.business_ops import models as business_ops_models  # noqa: F401
 
     Base.metadata.create_all(bind=engine)
