@@ -20,6 +20,26 @@ data class ReactionSummary(
     val reactedByMe: Boolean,
 )
 
+data class ChatAttachment(
+    val id: String,
+    val kind: String,
+    val fileName: String,
+    val contentType: String,
+    val sizeBytes: Long,
+    val status: String,
+    val downloadPath: String,
+)
+
+data class UploadTicket(
+    val id: String,
+    val kind: String,
+    val fileName: String,
+    val contentType: String,
+    val sizeBytes: Long,
+    val status: String,
+    val uploadPath: String,
+)
+
 data class ChatMessage(
     val id: String,
     val conversationId: String,
@@ -33,6 +53,7 @@ data class ChatMessage(
     val state: String,
     val replyTo: ReplyPreview?,
     val reactions: List<ReactionSummary>,
+    val attachments: List<ChatAttachment>,
 )
 
 data class ChatConversation(
