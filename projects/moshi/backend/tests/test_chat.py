@@ -24,6 +24,29 @@ def auth_headers(auth: dict) -> dict[str, str]:
     return {"Authorization": f"Bearer {auth['access_token']}"}
 
 
+def direct_conversation(client: TestClient, alice: dict, bob: dict) -> dict:
+    response = client.post(
+        "/v1/conversations/direct",
+        json={"username": bob["user"]["username"]},
+        headers=auth_headers(alice),
+    )
+    assert response.status_code == 200, response.text
+    return response.json()
+
+
+def send(client: TestClient, auth: dict, conversation_id: str, body: str, reply_to_id: str | None = None) -> dict:
+    payload: dict[str, str] = {"client_message_id": uuid4().hex, "body": body}
+    if reply_to_id:
+        payload["reply_to_id"] = reply_to_id
+    response = client.post(
+        f"/v1/conversations/{conversation_id}/messages",
+        json=payload,
+        headers=auth_headers(auth),
+    )
+    assert response.status_code == 201, response.text
+    return response.json()
+
+
 def test_direct_conversation_persistence_delivery_read_and_idempotency() -> None:
     with TestClient(app) as client:
         alice = register(client, "alice")
@@ -31,18 +54,24 @@ def test_direct_conversation_persistence_delivery_read_and_idempotency() -> None
         search = client.get("/v1/users/search", params={"q": bob["user"]["username"]}, headers=auth_headers(alice))
         assert search.status_code == 200
         assert search.json()[0]["username"] == bob["user"]["username"]
-        created = client.post("/v1/conversations/direct", json={"username": bob["user"]["username"]}, headers=auth_headers(alice))
-        assert created.status_code == 200, created.text
-        conversation = created.json()
+        conversation = direct_conversation(client, alice, bob)
         same = client.post("/v1/conversations/direct", json={"username": alice["user"]["username"]}, headers=auth_headers(bob))
         assert same.status_code == 200
         assert same.json()["id"] == conversation["id"]
         client_id = uuid4().hex
-        sent = client.post(f"/v1/conversations/{conversation['id']}/messages", json={"client_message_id": client_id, "body": "Hello from MOSHI"}, headers=auth_headers(alice))
+        sent = client.post(
+            f"/v1/conversations/{conversation['id']}/messages",
+            json={"client_message_id": client_id, "body": "Hello from MOSHI"},
+            headers=auth_headers(alice),
+        )
         assert sent.status_code == 201, sent.text
         message = sent.json()
         assert message["state"] == "sent"
-        duplicate = client.post(f"/v1/conversations/{conversation['id']}/messages", json={"client_message_id": client_id, "body": "Hello from MOSHI"}, headers=auth_headers(alice))
+        duplicate = client.post(
+            f"/v1/conversations/{conversation['id']}/messages",
+            json={"client_message_id": client_id, "body": "Hello from MOSHI"},
+            headers=auth_headers(alice),
+        )
         assert duplicate.status_code == 201
         assert duplicate.json()["id"] == message["id"]
         bob_messages = client.get(f"/v1/conversations/{conversation['id']}/messages", headers=auth_headers(bob))
@@ -59,19 +88,92 @@ def test_direct_conversation_persistence_delivery_read_and_idempotency() -> None
         assert bob_list.json()[0]["unread_count"] == 0
 
 
-def test_websocket_receives_new_message_and_ping_pong() -> None:
+def test_reply_edit_reaction_soft_delete_and_cumulative_read() -> None:
+    with TestClient(app) as client:
+        alice = register(client, "toolsalice")
+        bob = register(client, "toolsbob")
+        conversation = direct_conversation(client, alice, bob)
+        first = send(client, alice, conversation["id"], "First message")
+        second = send(client, alice, conversation["id"], "Second reply", reply_to_id=first["id"])
+        assert second["reply_to"]["id"] == first["id"]
+        assert second["reply_to"]["body"] == "First message"
+
+        client.get(f"/v1/conversations/{conversation['id']}/messages", headers=auth_headers(bob))
+        read = client.post(
+            f"/v1/conversations/{conversation['id']}/read",
+            json={"message_id": second["id"]},
+            headers=auth_headers(bob),
+        )
+        assert read.status_code == 204
+        alice_history = client.get(f"/v1/conversations/{conversation['id']}/messages", headers=auth_headers(alice)).json()
+        assert [item["state"] for item in alice_history[-2:]] == ["read", "read"]
+
+        edit = client.patch(
+            f"/v1/conversations/{conversation['id']}/messages/{first['id']}",
+            json={"body": "First message edited"},
+            headers=auth_headers(alice),
+        )
+        assert edit.status_code == 200, edit.text
+        assert edit.json()["body"] == "First message edited"
+        assert edit.json()["edited_at"] is not None
+        forbidden = client.patch(
+            f"/v1/conversations/{conversation['id']}/messages/{first['id']}",
+            json={"body": "Bob cannot edit this"},
+            headers=auth_headers(bob),
+        )
+        assert forbidden.status_code == 403
+
+        reaction = client.post(
+            f"/v1/conversations/{conversation['id']}/messages/{first['id']}/reactions",
+            json={"emoji": "👍"},
+            headers=auth_headers(bob),
+        )
+        assert reaction.status_code == 200, reaction.text
+        assert reaction.json()["reactions"] == [{"emoji": "👍", "count": 1, "reacted_by_me": True}]
+        alice_view = client.get(f"/v1/conversations/{conversation['id']}/messages", headers=auth_headers(alice)).json()
+        first_view = next(item for item in alice_view if item["id"] == first["id"])
+        assert first_view["reactions"] == [{"emoji": "👍", "count": 1, "reacted_by_me": False}]
+        toggle_off = client.post(
+            f"/v1/conversations/{conversation['id']}/messages/{first['id']}/reactions",
+            json={"emoji": "👍"},
+            headers=auth_headers(bob),
+        )
+        assert toggle_off.json()["reactions"] == []
+
+        deleted = client.delete(
+            f"/v1/conversations/{conversation['id']}/messages/{first['id']}",
+            headers=auth_headers(alice),
+        )
+        assert deleted.status_code == 200, deleted.text
+        assert deleted.json()["is_deleted"] is True
+        assert deleted.json()["body"] == ""
+        history = client.get(f"/v1/conversations/{conversation['id']}/messages", headers=auth_headers(bob)).json()
+        reply = next(item for item in history if item["id"] == second["id"])
+        assert reply["reply_to"]["is_deleted"] is True
+        assert reply["reply_to"]["body"] == ""
+
+
+def test_websocket_receives_new_and_updated_message_events() -> None:
     with TestClient(app) as client:
         alice = register(client, "wsalice")
         bob = register(client, "wsbob")
-        conversation = client.post("/v1/conversations/direct", json={"username": bob["user"]["username"]}, headers=auth_headers(alice)).json()
+        conversation = direct_conversation(client, alice, bob)
         with client.websocket_connect(f"/v1/ws?token={bob['access_token']}") as websocket:
             assert websocket.receive_json()["type"] == "ready"
             websocket.send_json({"type": "ping"})
             assert websocket.receive_json()["type"] == "pong"
-            sent = client.post(f"/v1/conversations/{conversation['id']}/messages", json={"client_message_id": uuid4().hex, "body": "Realtime hello"}, headers=auth_headers(alice))
-            assert sent.status_code == 201
+            sent = send(client, alice, conversation["id"], "Realtime hello")
             event = websocket.receive_json()
             assert event["type"] == "message.created"
             assert event["message"]["body"] == "Realtime hello"
+            edited = client.patch(
+                f"/v1/conversations/{conversation['id']}/messages/{sent['id']}",
+                json={"body": "Realtime edited"},
+                headers=auth_headers(alice),
+            )
+            assert edited.status_code == 200
+            updated = websocket.receive_json()
+            assert updated["type"] == "message.updated"
+            assert updated["message"]["body"] == "Realtime edited"
         delivered = client.get(f"/v1/conversations/{conversation['id']}/messages", headers=auth_headers(alice))
         assert delivered.json()[-1]["state"] == "delivered"
