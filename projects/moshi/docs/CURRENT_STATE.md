@@ -1,136 +1,98 @@
 # MOSHI — CURRENT STATE
 
-Authority: MASTER PLAN v1.1 + PRODUCT SPEC v1.0 + IDENTITY/AUTH v1.0 + CHAT CORE v1.0
-Status: ACTIVE / PHASE 4B GROUP CHAT CORE — BUILD VERIFIED
+Authority: MASTER PLAN v1.1 + PRODUCT SPEC + verified GitHub CI receipts
+Status: ACTIVE / INTERNAL ALPHA v0.1 PREPARATION
 
-## Foundation verified
-- monorepo scaffold
-- Android Jetpack Compose shell
-- FastAPI backend
-- Business Mode in the same MOSHI app
-- AI Summary contract placeholder
-- GitHub CI workflow
-- source hosted inside `balinightlife666-web/ACC-Android-Builder` under `projects/moshi/`
+## Integrated verified baseline
+The verified MOSHI feature stack through Phase 5C is now merged into repository `main` under `projects/moshi/`.
 
-## Phase 1 verified — identity/auth
-- persistent users + device sessions
-- username registration/login
-- Argon2 password hashing
-- JWT access token + rotating refresh token
-- session revoke/logout
-- Android auth UI + encrypted refresh-token vault
-- profile + server-persisted Business Mode
+### Identity & chat
+- username accounts, Argon2 passwords, JWT access + rotating refresh sessions
+- Android Keystore refresh-token vault
+- direct realtime chat over authenticated WebSocket
+- persistent messages, idempotent send, sent/delivered/read states
+- reply, reactions, edit, soft-delete
+- Room cache, persistent outbox, reconnect + automatic retry
 
-## Phase 2 verified — direct chat core
-- persistent direct conversations
-- user search
-- message persistence
-- sender-side idempotency via `client_message_id`
-- authenticated realtime WebSocket
-- realtime `message.created` + `message.read`
-- sent/delivered/read receipt contract
-- message history/catch-up endpoint
-- conversation unread counts
-- Android conversation list + direct chat UI
+### Media
+- photo/file attachments
+- authenticated upload/download
+- restart-safe attachment outbox
+- streaming upload
+- secure FileProvider open
+- native AAC/M4A voice notes
 
-## Phase 3A verified — messaging actions
-- reply
-- edit own message
-- soft-delete own message
-- per-user emoji reactions
-- cumulative read receipts
-- realtime `message.updated`
-
-## Phase 3B verified — offline resilience
-- Room conversation/message cache
-- persistent outbox
-- optimistic queued messages
-- retry preserves original `client_message_id`
-- automatic WebSocket reconnect + outbox flush
-- cached hydration before network sync
-
-## Phase 3C verified — attachments
-- image/file upload-init and ownership authorization
-- attachment metadata in messages
-- Android system document picker
-- persistent attachment retry across restart
-- streaming upload from persisted URI
-- authenticated download
-- secure open through FileProvider
-- 20 MB validation boundary
-
-## Phase 3D verified — voice notes
-- Android native microphone recording
-- AAC/M4A `audio/mp4`
-- 5 minute recorder cap
-- app-private queued recordings
-- voice notes reuse attachment outbox/retry/download pipeline
-- Android voice-note bubble + Play action
-- CI run #102 PASS
-
-## Phase 4A verified — notification plumbing
-- per-session FCM token registry
-- token ownership lifecycle and cleanup
-- realtime-first message delivery
-- FCM fallback only when no WebSocket receives `message.created`
-- privacy-first push payload: generic `MOSHI / New message`
-- Android Firebase Messaging service + notification channel
-- Android 13+ notification permission
-- backend FCM HTTP v1 sender through deployment credentials
-- no Firebase service-account credential committed to source
-- CI run #104 PASS
-
-### FCM deployment boundary
-The notification code is build verified but real push is not claimed LIVE until a MOSHI Firebase project is provisioned, Android Firebase config is installed, backend Google credentials + `MOSHI_FCM_PROJECT_ID` are injected, and physical-device background/process-death QA passes.
-
-## Phase 4B verified — group chat core
-- migration-safe `group_profiles` and `group_member_roles` tables
-- create group with optional initial members
+### Groups
+- group creation
 - admin / moderator / member roles
-- admin group profile update contract
-- admin/moderator member management
-- admin-only role changes
+- member add/remove and role management
 - last-admin protection
-- group metadata integrated into normal conversation list
-- group chats reuse existing realtime messages, receipts, reply/edit/delete, reactions, attachments, voice notes, offline outbox and push fallback
-- Android New Group flow in Chats
-- Android group title/member-count display
-- Android Members panel
-- add/remove member UI
-- role-management UI
-- group sender labels resolved from current member list
+- group messaging reuses realtime/media/offline pipeline
 
-## Phase 4B verification
-- backend integration tests: PASS
-- Android `:app:assembleDebug --stacktrace`: PASS
-- MOSHI CI run #110: PASS
-- debug artifact: `MOSHI-debug-apk`
-- artifact id: `9717445670`
-- artifact size: `11,502,448 bytes`
-- artifact digest: `sha256:c8f5b0e786fde9ac9f4c5c3c872a4adb40ccdc4080c97b57fc76d455f44438f9`
-- verified code head: `09cd80695dbca6e8003ed96784a28b790d6c08f1`
-- PR #61 stacked on verified Phase 4A baseline
+### Notifications
+- per-session FCM token registry
+- realtime-first delivery with push fallback
+- Android notification channel/service/permission
+- FCM HTTP v1 backend abstraction
+- real Firebase push remains deployment/device-QA BLOCKED until Firebase is provisioned
 
-## Device QA still required
-Build verification does not replace physical Android testing. Before release, validate at minimum:
-1. two or more devices create/join a group
-2. realtime group messages arrive once
-3. sender labels and unread counts remain correct
-4. admin/moderator/member permissions behave correctly
-5. removed member immediately loses group access
-6. queued group text/media/voice survives restart and resends once
-7. FCM group notification path after Firebase activation
+### Business & commerce
+- Business Mode in the same MOSHI APK
+- Business Profile
+- product + service catalog CRUD
+- price, stock, availability and catalog photos
+- catalog card snapshots shared into chat
+- visual Ask / Order actions
+- persistent Order Drafts
+- order lifecycle: draft → awaiting_confirmation → confirmed → processing → completed; cancelled before completion
+- stock decremented once on confirmation and restored when applicable on cancellation
+- quick replies
+- private per-business customer labels
+- Orders & CRM Android panel
 
-## Next implementation target
-PHASE 5A — BUSINESS CATALOG CORE
+## Latest feature verification
+Phase 5C verified by MOSHI CI run #138:
+- backend pytest PASS
+- Android `assembleDebug` PASS
+- `MOSHI-debug-apk` artifact PASS
+- verified feature head `36405120f6a73a70ac8e0a4287d0c97eeec12da6`
+- artifact SHA256 `324a6b261026c6c7f2aaa2e8c4080684a8a1f526359e612e0e32fdbd559dad4c`
 
-Priority slice:
-1. business profile persistence
-2. product/service catalog CRUD
-3. photos, price, description, availability/stock fields
-4. catalog visible from business profile
-5. share catalog item as a chat card
-6. customer inquiry / order draft entrypoint
-7. quick replies + customer labels after catalog contract is stable
+The complete verified stack was subsequently consolidated into `main` with merge commits preserving branch ancestry. Main after Phase 5C integration: `2f65880af70177b40189f837edde9ad6d4d42f86`.
 
-MOSHI remains one APK: personal use and Business Mode stay inside the same application.
+## Internal Alpha v0.1 preparation
+Branch: `feat/moshi-alpha-v0.1`
+
+Alpha work adds:
+- PostgreSQL driver
+- hardened alpha/production config checks
+- database readiness endpoint `/ready`
+- Docker backend image on port 8010
+- PostgreSQL 16 compose stack with persistent DB/media volumes
+- phone-only `alpha-smoke` launcher for temporary SQLite smoke testing
+- Cloudflare Quick Tunnel launcher
+- build-configurable Android API endpoint
+- Android version `0.4.0-alpha.1`, versionCode 3
+- manual `MOSHI Alpha APK` GitHub workflow requiring an HTTPS API endpoint
+- optional stable signing through repository Actions secrets
+- two-device physical QA checklist
+- CI validation for pytest + compose config + Docker image + Android build
+
+## Alpha boundaries
+Do not claim these as live until actually provisioned/tested:
+- public HTTPS MOSHI backend
+- production PostgreSQL service
+- real Firebase push
+- stable production/alpha signing key
+- physical two-device pass
+
+For Internal Alpha, local persistent upload volume is temporary. Before public beta, move media to object storage and add real DB migrations/backups/monitoring.
+
+## Current execution target
+1. make Alpha branch CI green
+2. merge Alpha tooling to main
+3. start an actual backend endpoint (proper PostgreSQL preferred; phone `alpha-smoke` acceptable for first device smoke only)
+4. run `MOSHI Alpha APK` with that HTTPS endpoint
+5. install the resulting APK on two Android devices
+6. execute `docs/ALPHA_QA.md`
+7. after the communication/business baseline is stable, proceed to Phase 6 — MOSHI AI Catch Me Up / Summarize Unread
