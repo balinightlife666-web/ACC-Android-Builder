@@ -1,0 +1,21 @@
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+backend/moshi.db
+backend/*.db
+
+# Android
+.gradle/
+**/build/
+local.properties
+*.apk
+
+# Secrets
+.env
+*.jks
+*.keystore
+
+# OS
+.DS_Store
