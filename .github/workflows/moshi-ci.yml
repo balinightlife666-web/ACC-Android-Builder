@@ -19,7 +19,7 @@ concurrency:
 
 jobs:
   backend:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     defaults:
       run:
         working-directory: projects/moshi/backend
@@ -40,7 +40,7 @@ jobs:
         run: docker build -t moshi-api:ci .
 
   android:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     defaults:
       run:
         working-directory: projects/moshi/android
