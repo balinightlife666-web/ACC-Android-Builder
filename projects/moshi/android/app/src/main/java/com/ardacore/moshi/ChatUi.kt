@@ -132,11 +132,13 @@ private fun UserResultCard(user: ChatUser, onClick: () -> Unit) {
 @Composable
 private fun ConversationCard(conversation: ChatConversation, onClick: () -> Unit) {
     val latest = conversation.latestMessage
+    val firstAttachment = latest?.attachments?.firstOrNull()
     val latestText = when {
         latest == null -> "Start talking"
         latest.isDeleted -> "Message deleted"
         latest.body.isNotBlank() -> latest.body
-        latest.attachments.isNotEmpty() -> "📎 ${latest.attachments.first().fileName}"
+        firstAttachment?.contentType?.startsWith("audio/") == true -> "🎤 Voice note"
+        firstAttachment != null -> "📎 ${firstAttachment.fileName}"
         else -> "Message"
     }
     Card(onClick = onClick, modifier = Modifier.fillMaxWidth()) {
@@ -199,6 +201,38 @@ private fun ConversationScreen(controller: ChatController, me: MoshiUser, modifi
                 }
             } catch (t: Throwable) {
                 attachmentError = t.message ?: "Could not queue attachment"
+            } finally {
+                attachmentBusy = false
+            }
+        }
+    }
+
+    fun sendVoiceNote(fileUri: Uri, fileName: String, sizeBytes: Long) {
+        if (sizeBytes <= 0L || sizeBytes > MAX_ATTACHMENT_BYTES) {
+            attachmentError = "Voice note size is invalid"
+            return
+        }
+        attachmentBusy = true
+        attachmentError = null
+        val body = messageText
+        val replyId = replyToId
+        scope.launch {
+            try {
+                controller.sendAttachment(
+                    body = body,
+                    replyToId = replyId,
+                    kind = "file",
+                    fileName = fileName,
+                    contentType = "audio/mp4",
+                    sizeBytes = sizeBytes,
+                    uri = fileUri.toString(),
+                )
+                if (controller.error == null || controller.error?.contains("queued", ignoreCase = true) == true) {
+                    messageText = ""
+                    replyToId = null
+                }
+            } catch (t: Throwable) {
+                attachmentError = t.message ?: "Could not queue voice note"
             } finally {
                 attachmentBusy = false
             }
@@ -303,7 +337,7 @@ private fun ConversationScreen(controller: ChatController, me: MoshiUser, modifi
         attachmentError?.let { Text(it, color = MaterialTheme.colorScheme.error) }
         if (hasQueued) {
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                Text("Queued messages/files are saved on this device.", style = MaterialTheme.typography.bodySmall)
+                Text("Queued messages/files/voice notes are saved on this device.", style = MaterialTheme.typography.bodySmall)
                 TextButton(onClick = { scope.launch { controller.retryPending() } }, enabled = !controller.busy && !attachmentBusy) {
                     Text("Retry now")
                 }
@@ -313,6 +347,11 @@ private fun ConversationScreen(controller: ChatController, me: MoshiUser, modifi
 
         if (editing == null) {
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                VoiceNoteButton(
+                    enabled = !controller.busy && !attachmentBusy,
+                    onReady = { file -> sendVoiceNote(Uri.fromFile(file), file.name, file.length()) },
+                    onError = { message -> attachmentError = message },
+                )
                 OutlinedButton(
                     onClick = { photoPicker.launch(arrayOf("image/jpeg", "image/png", "image/webp", "image/gif")) },
                     enabled = !controller.busy && !attachmentBusy,
@@ -335,8 +374,8 @@ private fun ConversationScreen(controller: ChatController, me: MoshiUser, modifi
                     },
                     enabled = !controller.busy && !attachmentBusy,
                 ) { Text("File") }
-                Text("Max 20 MB", modifier = Modifier.align(Alignment.CenterVertically), style = MaterialTheme.typography.labelSmall)
             }
+            Text("Voice max 5 min · attachments max 20 MB", style = MaterialTheme.typography.labelSmall)
         }
 
         Row(
@@ -420,13 +459,22 @@ private fun MessageBubble(
                 } else {
                     if (message.body.isNotBlank()) Text(message.body)
                     message.attachments.forEach { attachment ->
+                        val isVoice = attachment.contentType.startsWith("audio/")
                         Card(modifier = Modifier.fillMaxWidth()) {
                             Column(Modifier.padding(8.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                                Text(if (attachment.kind == "image") "Photo" else "File", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.SemiBold)
-                                Text(attachment.fileName, fontWeight = FontWeight.Medium)
+                                Text(
+                                    when {
+                                        isVoice -> "🎤 Voice note"
+                                        attachment.kind == "image" -> "Photo"
+                                        else -> "File"
+                                    },
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontWeight = FontWeight.SemiBold,
+                                )
+                                if (!isVoice) Text(attachment.fileName, fontWeight = FontWeight.Medium)
                                 Text(formatBytes(attachment.sizeBytes), style = MaterialTheme.typography.labelSmall)
                                 if (attachment.status == "ready" && attachment.downloadPath.isNotBlank()) {
-                                    TextButton(onClick = { onOpenAttachment(attachment) }) { Text("Open") }
+                                    TextButton(onClick = { onOpenAttachment(attachment) }) { Text(if (isVoice) "Play" else "Open") }
                                 } else {
                                     Text(attachment.status.replaceFirstChar { it.uppercase() }, style = MaterialTheme.typography.labelSmall)
                                 }
