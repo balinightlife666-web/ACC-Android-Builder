@@ -1,4 +1,4 @@
-# Owner-approved TRACK 01 v3.9.1 LIVE publish via RR key
+# Owner-approved TRACK 01 v4.0.0 LIVE publish via RR key
 name: Publish TRACK 01 via RR Key
 
 on:
@@ -21,7 +21,7 @@ jobs:
     timeout-minutes: 15
     env:
       SOURCE_REPO: ardarawk-cloud/ACC-Roblox-maps
-      SOURCE_SHA: 205b3ade9b49c34b2e1d4c9155292ee9c0b2bae0
+      SOURCE_SHA: 3656c04585a13b23816142ef0b2e8958e89f3fb6
       UNIVERSE_ID: '10745349805'
       PLACE_ID: '79748872921213'
       ROBLOX_API_KEY: ${{ secrets.ROCKET_RACOON_PUBLISH }}
@@ -36,7 +36,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: ardarawk-cloud/ACC-Roblox-maps
-          ref: 205b3ade9b49c34b2e1d4c9155292ee9c0b2bae0
+          ref: 3656c04585a13b23816142ef0b2e8958e89f3fb6
           token: ${{ secrets.ACC_ROBLOX_MAPS_WRITE_TOKEN }}
           path: track-src
           fetch-depth: 1
@@ -46,18 +46,18 @@ jobs:
         with:
           node-version: '20'
 
-      - name: Preflight TRACK 01 v3.9.1 target lock
+      - name: Preflight TRACK 01 v4.0.0 target lock
         shell: bash
         run: |
           set -euo pipefail
-          [[ -n "${ROBLOX_API_KEY:-}" ]] || { echo 'ROCKET_RACOON_PUBLISH missing'; exit 10; }
+          [[ -n "${ROBLOX_API_KEY:-}" ]] || { echo 'RR publisher credential missing'; exit 10; }
           actual=$(git -C track-src rev-parse HEAD)
           [[ "$actual" == "$SOURCE_SHA" ]] || { echo "Source SHA mismatch: $actual"; exit 11; }
           node - <<'NODE'
           const c=require('./track-src/maps/track-01/track01.config.json');
           if(String(c.universeId)!=='10745349805') throw new Error('Wrong Universe ID');
           if(String(c.placeId)!=='79748872921213') throw new Error('Wrong Place ID');
-          if(String(c.version)!=='3.9.1') throw new Error('Wrong TRACK 01 source version: '+c.version);
+          if(String(c.version)!=='4.0.0') throw new Error('Wrong TRACK 01 source version: '+c.version);
           if(!c.enabled) throw new Error('TRACK 01 disabled');
           console.log('LOCK PASS TRACK 01',c.version,c.universeId,c.placeId);
           NODE
@@ -78,6 +78,7 @@ jobs:
           grep -q 'YardFillPhoto' maps/track-01/place.rbxlx
           grep -q 'TRACK01_FinalQC' maps/track-01/place.rbxlx
           grep -q 'ACC_TRACK01_FINAL_QC_READY' maps/track-01/place.rbxlx
+          grep -q 'ACC_TRACK01_FEATURE_COMPLETE' maps/track-01/place.rbxlx
           grep -q 'TRACK01_SocialInteractions' maps/track-01/place.rbxlx
           grep -q 'NightDrinkTray' maps/track-01/place.rbxlx
           grep -q 'Car03DanceZone' maps/track-01/place.rbxlx
@@ -88,6 +89,15 @@ jobs:
           grep -q 'AudioTextToSpeech' maps/track-01/place.rbxlx
           grep -q 'TRACK01_EndOfLineHero' maps/track-01/place.rbxlx
           grep -q 'END OF LINE' maps/track-01/place.rbxlx
+          grep -q 'TRACK01_AdminPanelServer' maps/track-01/place.rbxlx
+          grep -q 'TRACK01_AdminPanelClient' maps/track-01/place.rbxlx
+          grep -q 'TRACK01_AdminPAClient' maps/track-01/place.rbxlx
+          grep -q 'ACC_TRACK01_ADMIN_PANEL_READY' maps/track-01/place.rbxlx
+          grep -q 'ACC_TRACK01_PANEL_VERSION' maps/track-01/place.rbxlx
+          grep -q 'TRACK01_ADMIN_USER_IDS' maps/track-01/place.rbxlx
+          grep -q 'TRACK01_LIGHT_PULSE_ENABLED' maps/track-01/place.rbxlx
+          grep -q 'NO KICK BUTTON' maps/track-01/place.rbxlx
+          grep -q 'LAST TRAIN' maps/track-01/place.rbxlx
           bytes=$(stat -c%s maps/track-01/place.rbxlx)
           sha=$(sha256sum maps/track-01/place.rbxlx | awk '{print $1}')
           echo "PLACE_FILE=$GITHUB_WORKSPACE/track-src/maps/track-01/place.rbxlx" >> "$GITHUB_ENV"
@@ -95,7 +105,7 @@ jobs:
           echo "PLACE_SHA256=$sha" >> "$GITHUB_ENV"
           echo "BUILD PASS bytes=$bytes sha256=$sha"
 
-      - name: Publish TRACK 01 v3.9.1 LIVE to Roblox
+      - name: Publish TRACK 01 v4.0.0 LIVE to Roblox
         shell: bash
         run: |
           set -euo pipefail
@@ -110,6 +120,8 @@ jobs:
           [[ "$http" =~ ^2[0-9][0-9]$ ]] || { echo "$body"; exit 30; }
           version=$(jq -r '.versionNumber // empty' "$RUNNER_TEMP/track01-publish-response.json")
           [[ -n "$version" ]] || { echo "Missing versionNumber: $body"; exit 31; }
+          [[ "$version" =~ ^[0-9]+$ ]] || { echo "Invalid versionNumber: $version"; exit 32; }
+          (( version > 23 )) || { echo "Roblox version did not increment beyond verified v23: $version"; exit 33; }
           echo "PUBLISHED_VERSION=$version" >> "$GITHUB_ENV"
           echo "ROBLOX PUBLISH PASS version=$version"
 
@@ -121,7 +133,7 @@ jobs:
           jq -n \
             --arg status 'LIVE_PUBLISHED' \
             --arg project 'TRACK 01' \
-            --arg mode 'RR_KEY_V3_9_1' \
+            --arg mode 'RR_KEY_V4_0_0' \
             --arg sourceRepo "$SOURCE_REPO" \
             --arg sourceCommit "$SOURCE_SHA" \
             --arg universeId "$UNIVERSE_ID" \
