@@ -18,7 +18,7 @@ permissions:
 
 jobs:
   build-alpha-apk:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     env:
       MOSHI_ALPHA_KEYSTORE_B64: ${{ secrets.MOSHI_ALPHA_KEYSTORE_B64 }}
       MOSHI_ALPHA_KEY_ALIAS: ${{ secrets.MOSHI_ALPHA_KEY_ALIAS }}
