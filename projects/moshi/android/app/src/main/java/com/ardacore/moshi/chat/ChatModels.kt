@@ -7,6 +7,39 @@ data class ChatUser(
     val businessMode: Boolean,
 )
 
+data class ReplyPreview(
+    val id: String,
+    val senderId: String,
+    val body: String,
+    val isDeleted: Boolean,
+)
+
+data class ReactionSummary(
+    val emoji: String,
+    val count: Int,
+    val reactedByMe: Boolean,
+)
+
+data class ChatAttachment(
+    val id: String,
+    val kind: String,
+    val fileName: String,
+    val contentType: String,
+    val sizeBytes: Long,
+    val status: String,
+    val downloadPath: String,
+)
+
+data class UploadTicket(
+    val id: String,
+    val kind: String,
+    val fileName: String,
+    val contentType: String,
+    val sizeBytes: Long,
+    val status: String,
+    val uploadPath: String,
+)
+
 data class ChatMessage(
     val id: String,
     val conversationId: String,
@@ -14,7 +47,13 @@ data class ChatMessage(
     val clientMessageId: String,
     val body: String,
     val createdAt: String,
+    val editedAt: String?,
+    val deletedAt: String?,
+    val isDeleted: Boolean,
     val state: String,
+    val replyTo: ReplyPreview?,
+    val reactions: List<ReactionSummary>,
+    val attachments: List<ChatAttachment>,
 )
 
 data class ChatConversation(

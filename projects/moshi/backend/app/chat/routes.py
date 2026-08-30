@@ -1,19 +1,158 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime
+from pathlib import Path
+import uuid
 
-from fastapi import APIRouter, Depends, HTTPException, Query, WebSocket, WebSocketDisconnect, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, WebSocket, WebSocketDisconnect, status
+from fastapi.responses import FileResponse
 from sqlalchemy import or_, select
 from sqlalchemy.orm import Session
 
-from app.chat.models import Conversation, ConversationMember, Message, MessageReceipt
+from app.chat.models import Conversation, ConversationMember, Message, MessageAttachment, MessageReaction, MessageReceipt
 from app.chat.realtime import manager
-from app.chat.schemas import ConversationResponse, DirectConversationRequest, MessageResponse, ReadRequest, SendMessageRequest, UserPreview
+from app.chat.schemas import (
+    AttachmentResponse,
+    ConversationResponse,
+    DirectConversationRequest,
+    EditMessageRequest,
+    MessageResponse,
+    ReactionRequest,
+    ReadRequest,
+    SendMessageRequest,
+    UploadInitRequest,
+    UploadInitResponse,
+    UserPreview,
+)
 from app.chat.service import create_message, ensure_member, serialize_conversation, serialize_message
+from app.core.config import settings
 from app.identity.deps import authenticate_access_token, get_current_user, get_db
 from app.identity.models import User
 
 router = APIRouter()
+
+ALLOWED_IMAGE_TYPES = {"image/jpeg", "image/png", "image/webp", "image/gif"}
+ALLOWED_FILE_TYPES = {
+    "application/pdf",
+    "text/plain",
+    "application/zip",
+    "application/msword",
+    "application/vnd.ms-excel",
+    "application/vnd.ms-powerpoint",
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+}
+
+
+async def broadcast_message(db: Session, message: Message, event_type: str, exclude_user_id: str | None = None) -> None:
+    member_ids = db.scalars(
+        select(ConversationMember.user_id).where(ConversationMember.conversation_id == message.conversation_id)
+    ).all()
+    for member_id in member_ids:
+        if member_id == exclude_user_id:
+            continue
+        await manager.send_user(
+            member_id,
+            {"type": event_type, "message": serialize_message(message, member_id).model_dump(mode="json")},
+        )
+
+
+def attachment_response(item: MessageAttachment) -> AttachmentResponse:
+    return AttachmentResponse(
+        id=item.id,
+        kind=item.kind,
+        file_name=item.file_name,
+        content_type=item.content_type,
+        size_bytes=item.size_bytes,
+        status=item.status,
+        download_path=f"/v1/attachments/{item.id}",
+    )
+
+
+@router.post("/uploads", response_model=UploadInitResponse, status_code=201)
+def init_upload(payload: UploadInitRequest, user: User = Depends(get_current_user), db: Session = Depends(get_db)) -> UploadInitResponse:
+    if payload.size_bytes > settings.max_upload_bytes:
+        raise HTTPException(status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE, detail="file too large")
+    file_name = Path(payload.file_name).name.strip()
+    if not file_name or file_name in {".", ".."}:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="invalid file name")
+    content_type = payload.content_type.strip().lower()
+    allowed = ALLOWED_IMAGE_TYPES if payload.kind == "image" else ALLOWED_FILE_TYPES
+    if content_type not in allowed:
+        raise HTTPException(status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE, detail="unsupported content type")
+    attachment = MessageAttachment(
+        owner_id=user.id,
+        kind=payload.kind,
+        file_name=file_name,
+        content_type=content_type,
+        size_bytes=payload.size_bytes,
+        storage_key=uuid.uuid4().hex,
+        status="pending",
+    )
+    db.add(attachment)
+    db.commit()
+    db.refresh(attachment)
+    return UploadInitResponse(
+        id=attachment.id,
+        kind=attachment.kind,
+        file_name=attachment.file_name,
+        content_type=attachment.content_type,
+        size_bytes=attachment.size_bytes,
+        status=attachment.status,
+        upload_path=f"/v1/uploads/{attachment.id}/content",
+        created_at=attachment.created_at,
+    )
+
+
+@router.put("/uploads/{upload_id}/content", response_model=AttachmentResponse)
+async def upload_content(upload_id: str, request: Request, user: User = Depends(get_current_user), db: Session = Depends(get_db)) -> AttachmentResponse:
+    attachment = db.get(MessageAttachment, upload_id)
+    if attachment is None or attachment.owner_id != user.id:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="upload not found")
+    if attachment.message_id is not None or attachment.status == "attached":
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="upload already attached")
+    request_type = request.headers.get("content-type", "").split(";", 1)[0].strip().lower()
+    if request_type != attachment.content_type:
+        raise HTTPException(status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE, detail="content type mismatch")
+    content = await request.body()
+    if len(content) > settings.max_upload_bytes:
+        raise HTTPException(status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE, detail="file too large")
+    if len(content) != attachment.size_bytes:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="file size mismatch")
+    upload_root = Path(settings.uploads_dir)
+    upload_root.mkdir(parents=True, exist_ok=True)
+    (upload_root / attachment.storage_key).write_bytes(content)
+    attachment.status = "ready"
+    db.add(attachment)
+    db.commit()
+    db.refresh(attachment)
+    return attachment_response(attachment)
+
+
+@router.get("/attachments/{attachment_id}")
+def download_attachment(attachment_id: str, user: User = Depends(get_current_user), db: Session = Depends(get_db)) -> FileResponse:
+    attachment = db.get(MessageAttachment, attachment_id)
+    if attachment is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="attachment not found")
+    if attachment.message_id is None:
+        if attachment.owner_id != user.id:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="attachment not found")
+    else:
+        message = db.get(Message, attachment.message_id)
+        if message is None or message.deleted_at is not None or ensure_member(db, message.conversation_id, user.id) is None:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="attachment not found")
+    if attachment.status not in {"ready", "attached"}:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="attachment not ready")
+    file_path = Path(settings.uploads_dir) / attachment.storage_key
+    if not file_path.is_file():
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="attachment content missing")
+    return FileResponse(
+        path=file_path,
+        media_type=attachment.content_type,
+        filename=attachment.file_name,
+        headers={"X-Content-Type-Options": "nosniff", "Cache-Control": "private, max-age=300"},
+    )
 
 
 @router.get("/users/search", response_model=list[UserPreview])
@@ -83,13 +222,28 @@ async def send_message(conversation_id: str, payload: SendMessageRequest, user: 
     conversation = db.get(Conversation, conversation_id)
     if conversation is None or ensure_member(db, conversation_id, user.id) is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="conversation not found")
-    message, created = create_message(db, conversation, user.id, payload.client_message_id, payload.body)
+    try:
+        message, created = create_message(
+            db,
+            conversation,
+            user.id,
+            payload.client_message_id,
+            payload.body,
+            payload.reply_to_id,
+            payload.attachment_ids,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
     if created:
-        recipient_ids = db.scalars(select(ConversationMember.user_id).where(ConversationMember.conversation_id == conversation_id, ConversationMember.user_id != user.id)).all()
-        event = {"type": "message.created", "message": serialize_message(message, user.id).model_dump(mode="json")}
+        recipient_ids = db.scalars(
+            select(ConversationMember.user_id).where(ConversationMember.conversation_id == conversation_id, ConversationMember.user_id != user.id)
+        ).all()
         delivered_any = False
         for recipient_id in recipient_ids:
-            delivered = await manager.send_user(recipient_id, event)
+            delivered = await manager.send_user(
+                recipient_id,
+                {"type": "message.created", "message": serialize_message(message, recipient_id).model_dump(mode="json")},
+            )
             if delivered:
                 receipt = db.get(MessageReceipt, (message.id, recipient_id))
                 if receipt is not None and receipt.delivered_at is None:
@@ -102,24 +256,103 @@ async def send_message(conversation_id: str, payload: SendMessageRequest, user: 
     return serialize_message(message, user.id)
 
 
+@router.patch("/conversations/{conversation_id}/messages/{message_id}", response_model=MessageResponse)
+async def edit_message(conversation_id: str, message_id: str, payload: EditMessageRequest, user: User = Depends(get_current_user), db: Session = Depends(get_db)) -> MessageResponse:
+    message = db.get(Message, message_id)
+    if message is None or message.conversation_id != conversation_id or ensure_member(db, conversation_id, user.id) is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="message not found")
+    if message.sender_id != user.id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="only sender can edit message")
+    if message.deleted_at is not None:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="deleted message cannot be edited")
+    message.body = payload.body.strip()
+    message.edited_at = datetime.now(UTC)
+    db.add(message)
+    db.commit()
+    db.refresh(message)
+    await broadcast_message(db, message, "message.updated", exclude_user_id=user.id)
+    return serialize_message(message, user.id)
+
+
+@router.delete("/conversations/{conversation_id}/messages/{message_id}", response_model=MessageResponse)
+async def delete_message(conversation_id: str, message_id: str, user: User = Depends(get_current_user), db: Session = Depends(get_db)) -> MessageResponse:
+    message = db.get(Message, message_id)
+    if message is None or message.conversation_id != conversation_id or ensure_member(db, conversation_id, user.id) is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="message not found")
+    if message.sender_id != user.id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="only sender can delete message")
+    if message.deleted_at is None:
+        message.deleted_at = datetime.now(UTC)
+        message.body = ""
+        db.add(message)
+        db.commit()
+        db.refresh(message)
+    await broadcast_message(db, message, "message.updated", exclude_user_id=user.id)
+    return serialize_message(message, user.id)
+
+
+@router.post("/conversations/{conversation_id}/messages/{message_id}/reactions", response_model=MessageResponse)
+async def toggle_reaction(conversation_id: str, message_id: str, payload: ReactionRequest, user: User = Depends(get_current_user), db: Session = Depends(get_db)) -> MessageResponse:
+    message = db.get(Message, message_id)
+    if message is None or message.conversation_id != conversation_id or ensure_member(db, conversation_id, user.id) is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="message not found")
+    emoji = payload.emoji.strip()
+    existing = db.scalar(
+        select(MessageReaction).where(
+            MessageReaction.message_id == message_id,
+            MessageReaction.user_id == user.id,
+            MessageReaction.emoji == emoji,
+        )
+    )
+    if existing is None:
+        db.add(MessageReaction(message_id=message_id, user_id=user.id, emoji=emoji))
+    else:
+        db.delete(existing)
+    db.commit()
+    db.refresh(message)
+    await broadcast_message(db, message, "message.updated", exclude_user_id=user.id)
+    return serialize_message(message, user.id)
+
+
 @router.post("/conversations/{conversation_id}/read", status_code=204)
 async def mark_read(conversation_id: str, payload: ReadRequest, user: User = Depends(get_current_user), db: Session = Depends(get_db)) -> None:
     member = ensure_member(db, conversation_id, user.id)
-    message = db.get(Message, payload.message_id)
-    if member is None or message is None or message.conversation_id != conversation_id:
+    target = db.get(Message, payload.message_id)
+    if member is None or target is None or target.conversation_id != conversation_id:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="message not found")
     now = datetime.now(UTC)
-    member.last_read_at = now
+    member.last_read_at = max(_aware_datetime(member.last_read_at), _aware_datetime(target.created_at)) if member.last_read_at else target.created_at
     db.add(member)
-    receipt = db.get(MessageReceipt, (message.id, user.id))
-    if receipt is not None:
+    incoming = db.scalars(
+        select(Message).where(
+            Message.conversation_id == conversation_id,
+            Message.sender_id != user.id,
+            Message.created_at <= target.created_at,
+        )
+    ).all()
+    read_ids: list[str] = []
+    sender_ids: set[str] = set()
+    for message in incoming:
+        receipt = db.get(MessageReceipt, (message.id, user.id))
+        if receipt is None:
+            continue
         if receipt.delivered_at is None:
             receipt.delivered_at = now
-        receipt.read_at = now
+        if receipt.read_at is None:
+            receipt.read_at = now
+            read_ids.append(message.id)
         db.add(receipt)
+        sender_ids.add(message.sender_id)
     db.commit()
-    if message.sender_id != user.id:
-        await manager.send_user(message.sender_id, {"type": "message.read", "conversation_id": conversation_id, "message_id": message.id, "reader_id": user.id})
+    for sender_id in sender_ids:
+        await manager.send_user(
+            sender_id,
+            {"type": "message.read", "conversation_id": conversation_id, "message_id": target.id, "message_ids": read_ids, "reader_id": user.id},
+        )
+
+
+def _aware_datetime(value: datetime) -> datetime:
+    return value if value.tzinfo is not None else value.replace(tzinfo=UTC)
 
 
 @router.websocket("/ws")

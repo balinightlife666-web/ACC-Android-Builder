@@ -10,6 +10,8 @@ class Settings(BaseSettings):
     jwt_algorithm: str = "HS256"
     access_token_minutes: int = 15
     refresh_token_days: int = 30
+    uploads_dir: str = "./moshi_uploads"
+    max_upload_bytes: int = 20 * 1024 * 1024
 
     model_config = SettingsConfigDict(
         env_prefix="MOSHI_",
