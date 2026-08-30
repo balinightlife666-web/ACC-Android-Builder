@@ -5,6 +5,14 @@ plugins {
     id("org.jetbrains.kotlin.kapt")
 }
 
+val configuredApiBaseUrl = providers.gradleProperty("MOSHI_API_BASE_URL")
+    .orElse("http://10.0.2.2:8000")
+    .get()
+    .trim()
+val escapedApiBaseUrl = configuredApiBaseUrl
+    .replace("\\", "\\\\")
+    .replace("\"", "\\\"")
+
 android {
     namespace = "com.ardacore.moshi"
     compileSdk = 35
@@ -13,8 +21,8 @@ android {
         applicationId = "com.ardacore.moshi"
         minSdk = 26
         targetSdk = 35
-        versionCode = 2
-        versionName = "0.3.0-chat-core"
+        versionCode = 3
+        versionName = "0.4.0-alpha.1"
     }
 
     buildFeatures {
@@ -24,11 +32,11 @@ android {
 
     buildTypes {
         debug {
-            buildConfigField("String", "API_BASE_URL", "\"http://10.0.2.2:8000\"")
+            buildConfigField("String", "API_BASE_URL", "\"$escapedApiBaseUrl\"")
         }
         release {
             isMinifyEnabled = false
-            buildConfigField("String", "API_BASE_URL", "\"https://api.moshi.invalid\"")
+            buildConfigField("String", "API_BASE_URL", "\"$escapedApiBaseUrl\"")
         }
     }
 
