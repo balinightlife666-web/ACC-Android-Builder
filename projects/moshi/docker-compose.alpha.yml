@@ -1,0 +1,42 @@
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: moshi
+      POSTGRES_USER: moshi
+      POSTGRES_PASSWORD: ${MOSHI_POSTGRES_PASSWORD:?set MOSHI_POSTGRES_PASSWORD}
+    volumes:
+      - moshi_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U moshi -d moshi"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+
+  api:
+    build:
+      context: ./backend
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      MOSHI_ENVIRONMENT: alpha
+      MOSHI_DATABASE_URL: postgresql+psycopg://moshi:${MOSHI_POSTGRES_PASSWORD}@db:5432/moshi
+      MOSHI_JWT_SECRET: ${MOSHI_JWT_SECRET:?set MOSHI_JWT_SECRET}
+      MOSHI_UPLOADS_DIR: /data/uploads
+      MOSHI_FCM_PROJECT_ID: ${MOSHI_FCM_PROJECT_ID:-}
+    ports:
+      - "127.0.0.1:8010:8010"
+    volumes:
+      - moshi_uploads:/data/uploads
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8010/health', timeout=3).read()"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
+volumes:
+  moshi_postgres_data:
+  moshi_uploads:
