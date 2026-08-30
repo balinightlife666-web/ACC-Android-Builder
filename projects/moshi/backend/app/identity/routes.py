@@ -25,6 +25,7 @@ from app.identity.schemas import (
     RegisterRequest,
     UserResponse,
 )
+from app.push.models import PushRegistration
 
 router = APIRouter()
 
@@ -48,6 +49,14 @@ def _issue_session(db: Session, user: User, device_name: str) -> AuthResponse:
         refresh_token=refresh_token,
         expires_in=expires_in,
     )
+
+
+def _drop_push_registration(db: Session, session_id: str) -> None:
+    registration = db.scalar(
+        select(PushRegistration).where(PushRegistration.session_id == session_id)
+    )
+    if registration is not None:
+        db.delete(registration)
 
 
 @router.post("/auth/register", response_model=AuthResponse, status_code=status.HTTP_201_CREATED)
@@ -93,8 +102,11 @@ def refresh(payload: RefreshRequest, db: Session = Depends(get_db)) -> AuthRespo
     if user is None:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="user no longer exists")
 
-    # Rotate refresh tokens. A used token cannot be replayed.
+    # Rotate refresh tokens. A used token cannot be replayed. Push ownership is
+    # also cleared so the newly issued session must explicitly re-register the
+    # current device token.
     session.revoked_at = now
+    _drop_push_registration(db, session.id)
     db.commit()
     return _issue_session(db, user, session.device_name)
 
@@ -105,6 +117,7 @@ def logout(payload: LogoutRequest, db: Session = Depends(get_db)) -> None:
     session = db.scalar(select(DeviceSession).where(DeviceSession.refresh_token_hash == token_hash))
     if session is not None and session.revoked_at is None:
         session.revoked_at = datetime.now(UTC)
+        _drop_push_registration(db, session.id)
         db.commit()
 
 

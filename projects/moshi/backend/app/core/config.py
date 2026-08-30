@@ -12,6 +12,9 @@ class Settings(BaseSettings):
     refresh_token_days: int = 30
     uploads_dir: str = "./moshi_uploads"
     max_upload_bytes: int = 20 * 1024 * 1024
+    # Optional. Production FCM credentials come from Google Application Default
+    # Credentials (for example GOOGLE_APPLICATION_CREDENTIALS), never source code.
+    fcm_project_id: str | None = None
 
     model_config = SettingsConfigDict(
         env_prefix="MOSHI_",
