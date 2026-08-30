@@ -40,7 +40,7 @@ jobs:
         run: docker build -t moshi-api:ci .
 
   android:
-    runs-on: windows-2022
+    runs-on: ubuntu-22.04
     defaults:
       run:
         working-directory: projects/moshi/android
