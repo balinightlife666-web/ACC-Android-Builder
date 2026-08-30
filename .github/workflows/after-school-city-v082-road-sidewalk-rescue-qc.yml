@@ -1,0 +1,106 @@
+name: After School City V0.8.2 Road Sidewalk Rescue QC
+
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/after-school-city-v082-road-sidewalk-rescue-qc.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  qc:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 12
+    env:
+      SOURCE_SHA: 398f80859527a09d65eae59474342895fef31949
+      BASE_LIVE_SHA: efa281ac26f847f683e002b6085b49d196c05421
+    steps:
+      - name: Checkout QC repo
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Checkout exact ASC source
+        uses: actions/checkout@v4
+        with:
+          repository: ardarawk-cloud/ACC-Roblox-maps
+          ref: 398f80859527a09d65eae59474342895fef31949
+          token: ${{ secrets.ACC_ROBLOX_MAPS_WRITE_TOKEN }}
+          path: asc-source
+          fetch-depth: 0
+
+      - name: Exact source and contract gate
+        shell: bash
+        run: |
+          set -euo pipefail
+          actual=$(git -C asc-source rev-parse HEAD)
+          [[ "$actual" == "$SOURCE_SHA" ]]
+          mapfile -t files < <(git -C asc-source diff --name-only "$BASE_LIVE_SHA" "$SOURCE_SHA")
+          [[ ${#files[@]} -eq 3 ]]
+          printf '%s\n' "${files[@]}" | grep -Fxq 'maps/after-school-city/after-school-city.config.lua'
+          printf '%s\n' "${files[@]}" | grep -Fxq 'maps/after-school-city/after-school-city.road-sidewalk-intersection-cleanup.server.lua'
+          printf '%s\n' "${files[@]}" | grep -Fxq 'maps/after-school-city/default.project.json'
+          map='asc-source/maps/after-school-city'
+          grep -Fq 'Version = "0.8.2-road-sidewalk-intersection-cleanup-1"' "$map/after-school-city.config.lua"
+          grep -Fq 'EnableRoadSidewalkIntersectionCleanupPass = true' "$map/after-school-city.config.lua"
+          grep -Fq 'return -part.CFrame.LookVector' "$map/after-school-city.road-sidewalk-intersection-cleanup.server.lua"
+          grep -Fq 'sidewalk:Destroy()' "$map/after-school-city.road-sidewalk-intersection-cleanup.server.lua"
+          grep -Fq 'ASC_AsphaltIntersectionPriority' "$map/after-school-city.road-sidewalk-intersection-cleanup.server.lua"
+          grep -Fq 'ASC_RoadSidewalkIntersectionCleanup' "$map/default.project.json"
+          git -C asc-source diff --quiet "$BASE_LIVE_SHA" "$SOURCE_SHA" -- "$map/after-school-city.world.server.lua" || true
+          git -C asc-source diff --quiet "$BASE_LIVE_SHA" "$SOURCE_SHA" -- 'maps/after-school-city/after-school-city.world.server.lua'
+          git -C asc-source diff --quiet "$BASE_LIVE_SHA" "$SOURCE_SHA" -- 'maps/after-school-city/after-school-city.street-life.server.lua'
+          git -C asc-source diff --quiet "$BASE_LIVE_SHA" "$SOURCE_SHA" -- 'maps/after-school-city/after-school-city.road-concrete-strip-cleanup.server.lua'
+          git -C asc-source diff --quiet "$BASE_LIVE_SHA" "$SOURCE_SHA" -- 'maps/after-school-city/after-school-city.intro.client.lua'
+          echo 'STATIC CONTRACT PASS'
+
+      - name: Prepare Rojo 7.7.0
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/rojo"
+          curl -fsSL 'https://github.com/rojo-rbx/rojo/releases/download/v7.7.0/rojo-7.7.0-linux-x86_64.zip' -o "$RUNNER_TEMP/rojo.zip"
+          unzip -q -o "$RUNNER_TEMP/rojo.zip" -d "$RUNNER_TEMP/rojo"
+          rojo=$(find "$RUNNER_TEMP/rojo" -type f -name rojo | head -n1)
+          chmod +x "$rojo"
+          [[ "$("$rojo" --version)" == *'7.7.0'* ]]
+          echo "ROJO_EXE=$rojo" >> "$GITHUB_ENV"
+
+      - name: Build exact place
+        shell: bash
+        run: |
+          set -euo pipefail
+          place="$RUNNER_TEMP/after-school-city-v082.rbxl"
+          "$ROJO_EXE" build 'asc-source/maps/after-school-city/default.project.json' -o "$place"
+          bytes=$(stat -c%s "$place")
+          sha=$(sha256sum "$place" | awk '{print $1}')
+          (( bytes > 108466 ))
+          echo "PLACE_BYTES=$bytes" >> "$GITHUB_ENV"
+          echo "PLACE_SHA256=$sha" >> "$GITHUB_ENV"
+          echo "BUILD PASS bytes=$bytes sha=$sha"
+
+      - name: Persist rescue QC receipt
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p deploy-status
+          jq -n \
+            --arg status 'QC_PASS' \
+            --arg project 'AFTER SCHOOL CITY' \
+            --arg mode 'ROAD_SIDEWALK_INTERSECTION_CLEANUP_V0_8_2' \
+            --arg sourceCommit "$SOURCE_SHA" \
+            --arg baseLiveCommit "$BASE_LIVE_SHA" \
+            --arg placeBytes "$PLACE_BYTES" \
+            --arg placeSha256 "$PLACE_SHA256" \
+            --arg runId "$GITHUB_RUN_ID" \
+            --arg checkedAt "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+            '{status:$status,project:$project,mode:$mode,sourceRepo:"ardarawk-cloud/ACC-Roblox-maps",sourceCommit:$sourceCommit,baseLiveCommit:$baseLiveCommit,rojoVersion:"7.7.0",placeBytes:($placeBytes|tonumber),placeSha256:$placeSha256,runId:$runId,checkedAt:$checkedAt,note:"Rescue hosted QC on ubuntu-22.04; V0.8.2 splits legacy main/side-street sidewalks at perpendicular asphalt intersections; asphalt authority and LIVE v28 protected source unchanged."}' \
+            > deploy-status/after-school-city-v082-road-sidewalk-intersection-qc.json
+          git config user.name 'After School City QC Bot'
+          git config user.email 'actions@users.noreply.github.com'
+          git add deploy-status/after-school-city-v082-road-sidewalk-intersection-qc.json
+          git commit -m 'Record After School City V0.8.2 rescue QC [skip ci]'
+          git pull --rebase origin main
+          git push origin HEAD:main
