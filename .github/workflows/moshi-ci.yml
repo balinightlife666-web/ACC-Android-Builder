@@ -6,10 +6,12 @@ on:
     paths:
       - 'projects/moshi/**'
       - '.github/workflows/moshi-ci.yml'
+      - '.github/workflows/moshi-alpha-apk.yml'
   pull_request:
     paths:
       - 'projects/moshi/**'
       - '.github/workflows/moshi-ci.yml'
+      - '.github/workflows/moshi-alpha-apk.yml'
 
 concurrency:
   group: moshi-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
@@ -29,6 +31,13 @@ jobs:
       - run: python -m pip install --upgrade pip
       - run: pip install -r requirements.txt
       - run: pytest -q
+      - name: Validate alpha compose
+        env:
+          MOSHI_POSTGRES_PASSWORD: ci-postgres-password
+          MOSHI_JWT_SECRET: ci-only-jwt-secret-with-more-than-32-characters
+        run: docker compose -f ../docker-compose.alpha.yml config >/dev/null
+      - name: Build backend container
+        run: docker build -t moshi-api:ci .
 
   android:
     runs-on: ubuntu-latest
