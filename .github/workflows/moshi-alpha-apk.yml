@@ -1,0 +1,105 @@
+name: MOSHI Alpha APK
+
+on:
+  workflow_dispatch:
+    inputs:
+      api_base_url:
+        description: 'Public HTTPS MOSHI API base URL, e.g. https://abc.trycloudflare.com'
+        required: true
+        type: string
+      build_label:
+        description: 'Label written into build metadata'
+        required: false
+        default: 'alpha-v0.1'
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  build-alpha-apk:
+    runs-on: ubuntu-latest
+    env:
+      MOSHI_ALPHA_KEYSTORE_B64: ${{ secrets.MOSHI_ALPHA_KEYSTORE_B64 }}
+      MOSHI_ALPHA_KEY_ALIAS: ${{ secrets.MOSHI_ALPHA_KEY_ALIAS }}
+      MOSHI_ALPHA_KEY_PASSWORD: ${{ secrets.MOSHI_ALPHA_KEY_PASSWORD }}
+      MOSHI_ALPHA_STORE_PASSWORD: ${{ secrets.MOSHI_ALPHA_STORE_PASSWORD }}
+    defaults:
+      run:
+        working-directory: projects/moshi/android
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: android-actions/setup-android@v3
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.10.2'
+
+      - name: Validate alpha endpoint
+        env:
+          API_BASE_URL: ${{ inputs.api_base_url }}
+        run: |
+          set -euo pipefail
+          case "$API_BASE_URL" in
+            https://*) ;;
+            *) echo "api_base_url must start with https://" >&2; exit 1 ;;
+          esac
+          if [[ "$API_BASE_URL" == *".invalid"* ]] || [[ "$API_BASE_URL" =~ [[:space:]] ]]; then
+            echo "api_base_url is not a valid alpha endpoint" >&2
+            exit 1
+          fi
+
+      - name: Build endpoint-pinned APK
+        env:
+          API_BASE_URL: ${{ inputs.api_base_url }}
+        run: gradle :app:assembleDebug --stacktrace -PMOSHI_API_BASE_URL="$API_BASE_URL"
+
+      - name: Stable-sign when alpha signing secrets exist
+        if: env.MOSHI_ALPHA_KEYSTORE_B64 != '' && env.MOSHI_ALPHA_KEY_ALIAS != '' && env.MOSHI_ALPHA_KEY_PASSWORD != '' && env.MOSHI_ALPHA_STORE_PASSWORD != ''
+        run: |
+          set -euo pipefail
+          printf '%s' "$MOSHI_ALPHA_KEYSTORE_B64" | base64 --decode > /tmp/moshi-alpha.jks
+          APKSIGNER="$(find "$ANDROID_HOME/build-tools" -type f -name apksigner | sort -V | tail -1)"
+          "$APKSIGNER" sign \
+            --ks /tmp/moshi-alpha.jks \
+            --ks-key-alias "$MOSHI_ALPHA_KEY_ALIAS" \
+            --ks-pass "pass:$MOSHI_ALPHA_STORE_PASSWORD" \
+            --key-pass "pass:$MOSHI_ALPHA_KEY_PASSWORD" \
+            --out /tmp/MOSHI-alpha.apk \
+            app/build/outputs/apk/debug/app-debug.apk
+          "$APKSIGNER" verify --verbose /tmp/MOSHI-alpha.apk
+          echo 'stable_signing=true' > /tmp/moshi-signing.txt
+
+      - name: Use debug signature when stable signing is not configured
+        if: env.MOSHI_ALPHA_KEYSTORE_B64 == '' || env.MOSHI_ALPHA_KEY_ALIAS == '' || env.MOSHI_ALPHA_KEY_PASSWORD == '' || env.MOSHI_ALPHA_STORE_PASSWORD == ''
+        run: |
+          cp app/build/outputs/apk/debug/app-debug.apk /tmp/MOSHI-alpha.apk
+          echo 'stable_signing=false' > /tmp/moshi-signing.txt
+
+      - name: Write build receipt
+        env:
+          API_BASE_URL: ${{ inputs.api_base_url }}
+          BUILD_LABEL: ${{ inputs.build_label }}
+        run: |
+          set -euo pipefail
+          sha256sum /tmp/MOSHI-alpha.apk | tee /tmp/MOSHI-alpha.sha256
+          {
+            echo "product=MOSHI"
+            echo "channel=internal-alpha"
+            echo "label=$BUILD_LABEL"
+            echo "commit=${GITHUB_SHA}"
+            echo "api_base_url=$API_BASE_URL"
+            cat /tmp/moshi-signing.txt
+          } > /tmp/MOSHI-alpha-build.txt
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: MOSHI-alpha-apk
+          path: |
+            /tmp/MOSHI-alpha.apk
+            /tmp/MOSHI-alpha.sha256
+            /tmp/MOSHI-alpha-build.txt
+          retention-days: 30
