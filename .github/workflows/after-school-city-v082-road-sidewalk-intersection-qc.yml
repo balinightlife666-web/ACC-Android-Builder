@@ -19,7 +19,7 @@ jobs:
     timeout-minutes: 15
     env:
       SOURCE_REPO: ardarawk-cloud/ACC-Roblox-maps
-      SOURCE_SHA: e36ac5dc0f30a6f351a89c960a862e04527fcebc
+      SOURCE_SHA: 398f80859527a09d65eae59474342895fef31949
       BASE_LIVE_SHA: efa281ac26f847f683e002b6085b49d196c05421
       EXPECTED_VERSION: 0.8.2-road-sidewalk-intersection-cleanup-1
     steps:
@@ -32,7 +32,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: ardarawk-cloud/ACC-Roblox-maps
-          ref: e36ac5dc0f30a6f351a89c960a862e04527fcebc
+          ref: 398f80859527a09d65eae59474342895fef31949
           token: ${{ secrets.ACC_ROBLOX_MAPS_WRITE_TOKEN }}
           path: asc-source
           fetch-depth: 0
@@ -79,6 +79,7 @@ jobs:
             'SidewalkW', 'SidewalkE',
             'NorthSouthRoad', 'EastWestRoad', 'SchoolSportsRoad', 'SideStreet', 'CrossStreet',
             'PERPENDICULAR_DOT_MAX = 0.45',
+            'return -part.CFrame.LookVector',
             'projectedHalfExtent',
             'SidewalkSegment_',
             'sidewalk:Destroy()',
@@ -198,7 +199,7 @@ jobs:
             --arg placeSha256 "$PLACE_SHA256" \
             --arg runId "$GITHUB_RUN_ID" \
             --arg checkedAt "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
-            '{status:$status,project:$project,mode:$mode,sourceRepo:$sourceRepo,sourceCommit:$sourceCommit,baseLiveCommit:$baseLiveCommit,rojoVersion:$rojoVersion,placeBytes:($placeBytes|tonumber),placeSha256:$placeSha256,runId:$runId,checkedAt:$checkedAt,note:"Hosted QC only; NOT PUBLISHED. V0.8.2 splits legacy 600/570/190-stud sidewalk strips at perpendicular asphalt-road intersections using road CFrame projection; asphalt road geometry is immutable; V0.8.1 and all protected LIVE v28 source unchanged."}' \
+            '{status:$status,project:$project,mode:$mode,sourceRepo:$sourceRepo,sourceCommit:$sourceCommit,baseLiveCommit:$baseLiveCommit,rojoVersion:$rojoVersion,placeBytes:($placeBytes|tonumber),placeSha256:$placeSha256,runId:$runId,checkedAt:$checkedAt,note:"Hosted QC only; NOT PUBLISHED. V0.8.2 splits legacy 600/570/190-stud sidewalk strips at perpendicular asphalt-road intersections using road CFrame projection; local +Z rebuild direction corrected; asphalt road geometry is immutable; V0.8.1 and all protected LIVE v28 source unchanged."}' \
             > deploy-status/after-school-city-v082-road-sidewalk-intersection-qc.json
           cat deploy-status/after-school-city-v082-road-sidewalk-intersection-qc.json
           git config user.name 'After School City QC Bot'
