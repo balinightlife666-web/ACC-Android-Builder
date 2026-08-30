@@ -19,7 +19,6 @@ import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -128,35 +127,9 @@ private fun HomeScreen(controller: AuthController) {
         when (tabs[selected].label) {
             "Chats" -> ChatHubScreen(session, Modifier.padding(padding))
             "Communities" -> PlaceholderScreen("Communities", Modifier.padding(padding))
-            "Business" -> BusinessScreen(controller, Modifier.padding(padding))
+            "Business" -> BusinessHubScreen(controller, Modifier.padding(padding))
             "Activity" -> PlaceholderScreen("Activity", Modifier.padding(padding))
             else -> MeScreen(controller, Modifier.padding(padding))
-        }
-    }
-}
-
-@Composable
-private fun BusinessScreen(controller: AuthController, modifier: Modifier = Modifier) {
-    val scope = rememberCoroutineScope()
-    val user = controller.session?.user ?: return
-    Column(modifier = modifier.fillMaxSize().padding(20.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
-        Text("Business", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
-        Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text("Business Mode", fontWeight = FontWeight.SemiBold)
-                Text("Sell without installing another MOSHI app")
-            }
-            Switch(checked = user.businessMode, enabled = !controller.busy, onCheckedChange = { enabled -> scope.launch { controller.setBusinessMode(enabled) } })
-        }
-        controller.error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
-        if (user.businessMode) {
-            HorizontalDivider()
-            Text("Business profile")
-            Text("Catalog: products + services")
-            Text("Quick replies · Customer labels · Orders")
-            Button(onClick = {}) { Text("Create first catalog item") }
-        } else {
-            Text("Your normal MOSHI account stays personal until Business Mode is enabled.")
         }
     }
 }

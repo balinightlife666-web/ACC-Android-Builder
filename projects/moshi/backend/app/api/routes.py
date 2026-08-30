@@ -4,13 +4,9 @@ from app.identity.routes import router as identity_router
 from app.chat.routes import ALLOWED_FILE_TYPES, router as chat_router
 from app.push.routes import router as push_router
 from app.groups.routes import router as groups_router
+from app.business.routes import router as business_router
 
-from .models import (
-    CatalogItemPreview,
-    CatalogKind,
-    SummaryRequest,
-    SummaryResponse,
-)
+from .models import SummaryRequest, SummaryResponse
 
 VOICE_NOTE_CONTENT_TYPES = {"audio/mp4", "audio/aac", "audio/mpeg"}
 ALLOWED_FILE_TYPES.update(VOICE_NOTE_CONTENT_TYPES)
@@ -20,33 +16,27 @@ router.include_router(identity_router)
 router.include_router(chat_router)
 router.include_router(push_router)
 router.include_router(groups_router)
+router.include_router(business_router)
 
 
 @router.get("/meta")
 def meta() -> dict[str, object]:
     return {
         "product": "MOSHI",
-        "phase": "group-chat-core",
-        "capabilities": ["identity", "auth", "chat", "groups", "push", "communities", "business", "ai-summary"],
+        "phase": "business-catalog-core",
+        "capabilities": [
+            "identity",
+            "auth",
+            "chat",
+            "groups",
+            "push",
+            "business",
+            "business-profile",
+            "business-catalog",
+            "communities",
+            "ai-summary",
+        ],
     }
-
-
-@router.get("/business/catalog/preview", response_model=list[CatalogItemPreview])
-def catalog_preview() -> list[CatalogItemPreview]:
-    return [
-        CatalogItemPreview(
-            id="demo-service-1",
-            title="Example Service",
-            kind=CatalogKind.service,
-            price=500_000,
-        ),
-        CatalogItemPreview(
-            id="demo-product-1",
-            title="Example Product",
-            kind=CatalogKind.product,
-            price=125_000,
-        ),
-    ]
 
 
 @router.post("/ai/summary", response_model=SummaryResponse)
