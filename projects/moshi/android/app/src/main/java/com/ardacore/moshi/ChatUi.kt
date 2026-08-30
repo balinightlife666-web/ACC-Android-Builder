@@ -191,6 +191,8 @@ private fun ConversationCard(conversation: ChatConversation, onClick: () -> Unit
         latest == null && conversation.group != null -> "${conversation.group.memberCount} members"
         latest == null -> "Start talking"
         latest.isDeleted -> "Message deleted"
+        latest.catalogCard != null -> "🛍️ ${latest.catalogCard.title}"
+        latest.orderCard != null -> "🧾 ${latest.orderCard.itemTitle} · ${latest.orderCard.status.replace('_', ' ')}"
         latest.body.isNotBlank() -> latest.body
         firstAttachment?.contentType?.startsWith("audio/") == true -> "🎤 Voice note"
         firstAttachment != null -> "📎 ${firstAttachment.fileName}"
@@ -363,8 +365,18 @@ private fun ConversationScreen(controller: ChatController, me: MoshiUser, modifi
                     mine = mine,
                     senderLabel = senderLabel,
                     selected = selectedId == item.id,
+                    commerceActionsEnabled = !controller.busy && !attachmentBusy,
+                    canAskCatalog = item.catalogCard != null && item.catalogCard.sellerId != me.id,
+                    canOrderCatalog = conversation.kind == "direct" && item.catalogCard != null && item.catalogCard.sellerId != me.id && item.catalogCard.availability == "available",
                     onSelect = { selectedId = if (selectedId == item.id) null else item.id },
                     onOpenAttachment = ::openAttachment,
+                    onAskCatalog = {
+                        replyToId = item.id
+                        editingId = null
+                        selectedId = null
+                        messageText = "Hi, I have a question about ${item.catalogCard?.title ?: "this item"}."
+                    },
+                    onOrderCatalog = { scope.launch { controller.orderCatalogCard(item) } },
                 )
             }
         }
@@ -606,11 +618,16 @@ private fun MessageBubble(
     mine: Boolean,
     senderLabel: String?,
     selected: Boolean,
+    commerceActionsEnabled: Boolean,
+    canAskCatalog: Boolean,
+    canOrderCatalog: Boolean,
     onSelect: () -> Unit,
     onOpenAttachment: (ChatAttachment) -> Unit,
+    onAskCatalog: () -> Unit,
+    onOrderCatalog: () -> Unit,
 ) {
     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = if (mine) Arrangement.End else Arrangement.Start) {
-        Card(onClick = onSelect, modifier = Modifier.fillMaxWidth(0.78f)) {
+        Card(onClick = onSelect, modifier = Modifier.fillMaxWidth(0.82f)) {
             Column(Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 if (senderLabel != null) Text(senderLabel, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold)
                 if (selected) Text("Selected", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.SemiBold)
@@ -621,7 +638,39 @@ private fun MessageBubble(
                 if (message.isDeleted) {
                     Text("Message deleted", fontStyle = FontStyle.Italic)
                 } else {
-                    if (message.body.isNotBlank()) Text(message.body)
+                    message.catalogCard?.let { card ->
+                        Card(modifier = Modifier.fillMaxWidth()) {
+                            Column(Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                Text(card.businessName, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold)
+                                Text(card.title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                                if (card.description.isNotBlank()) Text(card.description, maxLines = 3)
+                                Text(card.priceAmount?.let { "${card.currency} $it" } ?: "Ask price", fontWeight = FontWeight.SemiBold)
+                                val stockText = if (card.kind == "product" && card.stockQty != null) " · stock ${card.stockQty}" else ""
+                                Text("${card.kind} · ${card.availability}$stockText", style = MaterialTheme.typography.bodySmall)
+                                if (canAskCatalog || canOrderCatalog) {
+                                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                        if (canAskCatalog) {
+                                            OutlinedButton(onClick = onAskCatalog, enabled = commerceActionsEnabled) { Text("Ask") }
+                                        }
+                                        if (canOrderCatalog) {
+                                            Button(onClick = onOrderCatalog, enabled = commerceActionsEnabled) { Text("Order") }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    message.orderCard?.let { card ->
+                        Card(modifier = Modifier.fillMaxWidth()) {
+                            Column(Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                                Text("Order", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold)
+                                Text(card.itemTitle, fontWeight = FontWeight.Bold)
+                                Text("Qty ${card.quantity} · ${card.totalAmount?.let { "${card.currency} $it" } ?: "Ask price"}")
+                                Text(card.status.replace('_', ' ').replaceFirstChar { it.uppercase() }, fontWeight = FontWeight.SemiBold)
+                            }
+                        }
+                    }
+                    if (message.body.isNotBlank() && message.catalogCard == null && message.orderCard == null) Text(message.body)
                     message.attachments.forEach { attachment ->
                         val isVoice = attachment.contentType.startsWith("audio/")
                         Card(modifier = Modifier.fillMaxWidth()) {
