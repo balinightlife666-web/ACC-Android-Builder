@@ -53,6 +53,37 @@ data class UploadTicket(
     val uploadPath: String,
 )
 
+data class CatalogMessageCard(
+    val catalogItemId: String?,
+    val sellerId: String,
+    val businessName: String,
+    val kind: String,
+    val title: String,
+    val description: String,
+    val priceAmount: Long?,
+    val currency: String,
+    val availability: String,
+    val stockQty: Int?,
+    val imagePath: String?,
+)
+
+data class OrderMessageCard(
+    val orderId: String,
+    val buyerId: String,
+    val sellerId: String,
+    val status: String,
+    val itemTitle: String,
+    val quantity: Int,
+    val totalAmount: Long?,
+    val currency: String,
+)
+
+data class OrderDraftResult(
+    val orderId: String,
+    val status: String,
+    val message: ChatMessage,
+)
+
 data class ChatMessage(
     val id: String,
     val conversationId: String,
@@ -67,6 +98,8 @@ data class ChatMessage(
     val replyTo: ReplyPreview?,
     val reactions: List<ReactionSummary>,
     val attachments: List<ChatAttachment>,
+    val catalogCard: CatalogMessageCard?,
+    val orderCard: OrderMessageCard?,
 )
 
 data class ChatConversation(

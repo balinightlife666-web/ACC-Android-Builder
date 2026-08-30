@@ -127,7 +127,7 @@ private fun HomeScreen(controller: AuthController) {
         when (tabs[selected].label) {
             "Chats" -> ChatHubScreen(session, Modifier.padding(padding))
             "Communities" -> PlaceholderScreen("Communities", Modifier.padding(padding))
-            "Business" -> BusinessHubScreen(controller, Modifier.padding(padding))
+            "Business" -> BusinessCommerceHubScreen(controller, Modifier.padding(padding))
             "Activity" -> PlaceholderScreen("Activity", Modifier.padding(padding))
             else -> MeScreen(controller, Modifier.padding(padding))
         }

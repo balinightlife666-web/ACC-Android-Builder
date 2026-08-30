@@ -5,6 +5,8 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
+from app.commerce.schemas import CatalogCardResponse, OrderCardResponse
+
 
 class UserPreview(BaseModel):
     id: str
@@ -99,6 +101,8 @@ class MessageResponse(BaseModel):
     reply_to: ReplyPreview | None = None
     reactions: list[ReactionSummary] = Field(default_factory=list)
     attachments: list[AttachmentResponse] = Field(default_factory=list)
+    catalog_card: CatalogCardResponse | None = None
+    order_card: OrderCardResponse | None = None
 
 
 class GroupPreview(BaseModel):

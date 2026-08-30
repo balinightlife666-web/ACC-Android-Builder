@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 
 from app.chat.models import Conversation, ConversationMember, Message, MessageAttachment, MessageReaction, MessageReceipt
 from app.chat.schemas import AttachmentResponse, ConversationResponse, GroupPreview, MessageResponse, ReactionSummary, ReplyPreview, UserPreview
+from app.commerce.service import serialize_catalog_card, serialize_order_card
 from app.groups.models import GroupMemberRole, GroupProfile
 from app.identity.models import User
 
@@ -89,6 +90,8 @@ def serialize_message(message: Message, viewer_id: str) -> MessageResponse:
         ),
         reactions=reaction_summary(message, viewer_id),
         attachments=[] if deleted else attachment_summary(message),
+        catalog_card=(serialize_catalog_card(message.catalog_card) if not deleted and message.catalog_card is not None else None),
+        order_card=(serialize_order_card(message.order_card) if not deleted and message.order_card is not None else None),
     )
 
 
@@ -157,6 +160,8 @@ def create_message(
     body: str,
     reply_to_id: str | None = None,
     attachment_ids: list[str] | None = None,
+    *,
+    commit: bool = True,
 ) -> tuple[Message, bool]:
     existing = db.scalar(
         select(Message).where(
@@ -172,6 +177,29 @@ def create_message(
         reply_to = db.get(Message, reply_to_id)
         if reply_to is None or reply_to.conversation_id != conversation.id:
             raise ValueError("reply target not found")
+
+    order_context = None
+    clean_body = body.strip()
+    if reply_to is not None and clean_body.upper() in {"ORDER", "PESAN"}:
+        from app.business.models import CatalogItem
+        from app.commerce.models import MessageCatalogCard
+
+        card = db.get(MessageCatalogCard, reply_to.id)
+        if card is not None:
+            if conversation.kind != "direct":
+                raise ValueError("orders must be created in a direct chat")
+            if card.seller_id == sender_id:
+                raise ValueError("seller cannot order own catalog item")
+            item = db.get(CatalogItem, card.catalog_item_id) if card.catalog_item_id else None
+            if item is None or not item.is_active or item.owner_id != card.seller_id:
+                raise ValueError("catalog item is no longer available")
+            if item.availability != "available":
+                raise ValueError("catalog item is not available")
+            if item.kind == "product" and item.stock_qty is not None and item.stock_qty < 1:
+                raise ValueError("catalog item is out of stock")
+            total_text = f" · {item.currency} {item.price_amount:,}" if item.price_amount is not None else ""
+            clean_body = f"🧾 Order draft · {item.title} ×1{total_text}"
+            order_context = (card, item)
 
     requested_attachment_ids = list(attachment_ids or [])
     if len(requested_attachment_ids) != len(set(requested_attachment_ids)):
@@ -197,13 +225,53 @@ def create_message(
         conversation_id=conversation.id,
         sender_id=sender_id,
         client_message_id=client_message_id,
-        body=body.strip(),
+        body=clean_body,
         reply_to_id=reply_to.id if reply_to else None,
     )
     conversation.updated_at = datetime.now(UTC)
     db.add(message)
     db.add(conversation)
     db.flush()
+
+    if order_context is not None:
+        from app.commerce.models import MessageOrderCard, OrderDraft, OrderDraftItem
+
+        card, item = order_context
+        order = OrderDraft(
+            conversation_id=conversation.id,
+            buyer_id=sender_id,
+            seller_id=card.seller_id,
+            status="draft",
+            note="",
+        )
+        db.add(order)
+        db.flush()
+        db.add(
+            OrderDraftItem(
+                order_id=order.id,
+                catalog_item_id=item.id,
+                source_message_id=reply_to.id if reply_to else None,
+                kind=item.kind,
+                title=item.title,
+                unit_price_amount=item.price_amount,
+                currency=item.currency,
+                quantity=1,
+                image_attachment_id=item.image_attachment_id,
+            )
+        )
+        db.add(
+            MessageOrderCard(
+                message_id=message.id,
+                order_id=order.id,
+                buyer_id=sender_id,
+                seller_id=card.seller_id,
+                status="draft",
+                item_title=item.title,
+                quantity=1,
+                total_amount=item.price_amount,
+                currency=item.currency,
+            )
+        )
 
     for attachment in attachments:
         attachment.message_id = message.id
@@ -216,6 +284,9 @@ def create_message(
     for member_id in member_ids:
         if member_id != sender_id:
             db.add(MessageReceipt(message_id=message.id, user_id=member_id))
-    db.commit()
-    db.refresh(message)
+    if commit:
+        db.commit()
+        db.refresh(message)
+    else:
+        db.flush()
     return message, True

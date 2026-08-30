@@ -136,10 +136,13 @@ class ChatApi(
         )
     }
 
-    suspend fun downloadAttachment(accessToken: String, attachment: ChatAttachment): ByteArray = withContext(Dispatchers.IO) {
+    suspend fun downloadAttachment(accessToken: String, attachment: ChatAttachment): ByteArray =
+        downloadBytes(accessToken, attachment.downloadPath, attachment.contentType)
+
+    suspend fun downloadBytes(accessToken: String, path: String, accept: String = "*/*"): ByteArray = withContext(Dispatchers.IO) {
         val request = Request.Builder()
-            .url(absoluteUrl(attachment.downloadPath))
-            .header("Accept", attachment.contentType)
+            .url(absoluteUrl(path))
+            .header("Accept", accept)
             .header("Authorization", "Bearer $accessToken")
             .get()
             .build()
@@ -147,11 +150,9 @@ class ChatApi(
             if (!response.isSuccessful) {
                 val text = response.body?.string().orEmpty()
                 val detail = runCatching { JSONObject(text).optString("detail") }.getOrNull()
-                throw ApiException(detail?.takeIf { it.isNotBlank() } ?: "Attachment download failed (${response.code})", response.code)
+                throw ApiException(detail?.takeIf { it.isNotBlank() } ?: "Download failed (${response.code})", response.code)
             }
-            val bytes = response.body?.bytes() ?: error("Attachment response is empty")
-            if (bytes.isEmpty()) error("Attachment response is empty")
-            bytes
+            response.body?.bytes()?.takeIf { it.isNotEmpty() } ?: error("Download response is empty")
         }
     }
 
@@ -167,6 +168,48 @@ class ChatApi(
         if (replyToId != null) payload.put("reply_to_id", replyToId)
         if (attachmentIds.isNotEmpty()) payload.put("attachment_ids", JSONArray(attachmentIds))
         parseMessage(JSONObject(request("POST", "/v1/conversations/$conversationId/messages", accessToken, payload)))
+    }
+
+    suspend fun shareCatalogCard(
+        accessToken: String,
+        conversationId: String,
+        clientMessageId: String,
+        catalogItemId: String,
+        body: String = "",
+    ): ChatMessage = withContext(Dispatchers.IO) {
+        val payload = JSONObject()
+            .put("client_message_id", clientMessageId)
+            .put("catalog_item_id", catalogItemId)
+            .put("body", body)
+        parseMessage(JSONObject(request("POST", "/v1/conversations/$conversationId/catalog-cards", accessToken, payload)))
+    }
+
+    suspend fun createOrderDraft(
+        accessToken: String,
+        conversationId: String,
+        catalogMessageId: String,
+        clientMessageId: String,
+        quantity: Int = 1,
+        note: String = "",
+    ): OrderDraftResult = withContext(Dispatchers.IO) {
+        val payload = JSONObject()
+            .put("client_message_id", clientMessageId)
+            .put("quantity", quantity)
+            .put("note", note)
+        val json = JSONObject(
+            request(
+                "POST",
+                "/v1/conversations/$conversationId/catalog-cards/$catalogMessageId/order",
+                accessToken,
+                payload,
+            )
+        )
+        val order = json.getJSONObject("order")
+        OrderDraftResult(
+            orderId = order.getString("id"),
+            status = order.optString("status", "draft"),
+            message = parseMessage(json.getJSONObject("message")),
+        )
     }
 
     suspend fun editMessage(accessToken: String, conversationId: String, messageId: String, body: String): ChatMessage = withContext(Dispatchers.IO) {
@@ -301,6 +344,8 @@ class ChatApi(
         val replyJson = json.optJSONObject("reply_to")
         val reactionsJson = json.optJSONArray("reactions") ?: JSONArray()
         val attachmentsJson = json.optJSONArray("attachments") ?: JSONArray()
+        val catalogJson = json.optJSONObject("catalog_card")
+        val orderJson = json.optJSONObject("order_card")
         return ChatMessage(
             id = json.getString("id"),
             conversationId = json.getString("conversation_id"),
@@ -320,8 +365,35 @@ class ChatApi(
                 ReactionSummary(item.getString("emoji"), item.getInt("count"), item.optBoolean("reacted_by_me", false))
             },
             attachments = List(attachmentsJson.length()) { index -> parseAttachment(attachmentsJson.getJSONObject(index)) },
+            catalogCard = catalogJson?.let(::parseCatalogCard),
+            orderCard = orderJson?.let(::parseOrderCard),
         )
     }
+
+    private fun parseCatalogCard(json: JSONObject) = CatalogMessageCard(
+        catalogItemId = json.optString("catalog_item_id").takeIf { it.isNotBlank() && it != "null" },
+        sellerId = json.getString("seller_id"),
+        businessName = json.getString("business_name"),
+        kind = json.getString("kind"),
+        title = json.getString("title"),
+        description = json.optString("description"),
+        priceAmount = if (json.isNull("price_amount")) null else json.getLong("price_amount"),
+        currency = json.optString("currency", "IDR"),
+        availability = json.optString("availability", "available"),
+        stockQty = if (json.isNull("stock_qty")) null else json.getInt("stock_qty"),
+        imagePath = json.optString("image_path").takeIf { it.isNotBlank() && it != "null" },
+    )
+
+    private fun parseOrderCard(json: JSONObject) = OrderMessageCard(
+        orderId = json.getString("order_id"),
+        buyerId = json.getString("buyer_id"),
+        sellerId = json.getString("seller_id"),
+        status = json.optString("status", "draft"),
+        itemTitle = json.getString("item_title"),
+        quantity = json.optInt("quantity", 1),
+        totalAmount = if (json.isNull("total_amount")) null else json.getLong("total_amount"),
+        currency = json.optString("currency", "IDR"),
+    )
 
     private fun parseAttachment(json: JSONObject): ChatAttachment = ChatAttachment(
         id = json.getString("id"),

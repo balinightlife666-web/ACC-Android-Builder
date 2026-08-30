@@ -212,8 +212,29 @@ class ChatController(
         runCatching { syncConversations() }
     }
 
+    suspend fun orderCatalogCard(message: ChatMessage, quantity: Int = 1): OrderDraftResult? = runBusyResult {
+        val conversation = activeConversation ?: error("Conversation is not open")
+        if (conversation.kind != "direct") error("Orders must be created in a direct chat")
+        if (message.catalogCard == null) error("Catalog card is unavailable")
+        val result = api.createOrderDraft(
+            accessToken = session.accessToken,
+            conversationId = conversation.id,
+            catalogMessageId = message.id,
+            clientMessageId = UUID.randomUUID().toString(),
+            quantity = quantity,
+        )
+        local.cacheMessage(result.message)
+        upsertMessage(result.message)
+        syncConversations()
+        result
+    }
+
     suspend fun downloadAttachment(attachment: ChatAttachment): ByteArray? = runBusyResult {
         api.downloadAttachment(session.accessToken, attachment)
+    }
+
+    suspend fun downloadCommerceImage(path: String): ByteArray? = runBusyResult {
+        api.downloadBytes(session.accessToken, path, "image/*")
     }
 
     suspend fun retryPending() = runBusy {
@@ -283,6 +304,8 @@ class ChatController(
             replyTo = replyPreview,
             reactions = emptyList(),
             attachments = attachments,
+            catalogCard = null,
+            orderCard = null,
         )
     }
 
