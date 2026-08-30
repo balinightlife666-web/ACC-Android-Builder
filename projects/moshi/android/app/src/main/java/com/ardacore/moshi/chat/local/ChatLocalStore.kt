@@ -5,6 +5,7 @@ import com.ardacore.moshi.chat.ChatAttachment
 import com.ardacore.moshi.chat.ChatConversation
 import com.ardacore.moshi.chat.ChatMessage
 import com.ardacore.moshi.chat.ChatUser
+import com.ardacore.moshi.chat.GroupPreview
 import com.ardacore.moshi.chat.ReactionSummary
 import com.ardacore.moshi.chat.ReplyPreview
 import okhttp3.RequestBody
@@ -121,6 +122,8 @@ class ChatLocalStore(context: Context) {
         return ContentUriRequestBody(appContext, uriText, contentType, expectedSize)
     }
 
+    fun readPendingAttachment(item: OutboxMessageEntity): RequestBody = pendingAttachmentBody(item)
+
     private fun messageEntity(item: ChatMessage) = CachedMessageEntity(
         id = item.id,
         conversationId = item.conversationId,
@@ -133,8 +136,15 @@ class ChatLocalStore(context: Context) {
         .put("id", item.id)
         .put("kind", item.kind)
         .put("peer", item.peer?.let(::userToJson) ?: JSONObject.NULL)
+        .put("group", item.group?.let(::groupToJson) ?: JSONObject.NULL)
         .put("latest_message", item.latestMessage?.let(::messageToJson) ?: JSONObject.NULL)
         .put("unread_count", item.unreadCount)
+
+    private fun groupToJson(item: GroupPreview): JSONObject = JSONObject()
+        .put("title", item.title)
+        .put("description", item.description)
+        .put("my_role", item.myRole)
+        .put("member_count", item.memberCount)
 
     private fun messageToJson(item: ChatMessage): JSONObject {
         val reactions = JSONArray()
@@ -187,13 +197,24 @@ class ChatLocalStore(context: Context) {
         .put("body", item.body)
         .put("is_deleted", item.isDeleted)
 
-    private fun parseConversation(json: JSONObject): ChatConversation = ChatConversation(
-        id = json.getString("id"),
-        kind = json.getString("kind"),
-        peer = json.optJSONObject("peer")?.let(::parseUser),
-        latestMessage = json.optJSONObject("latest_message")?.let(::parseMessage),
-        unreadCount = json.optInt("unread_count", 0),
-    )
+    private fun parseConversation(json: JSONObject): ChatConversation {
+        val groupJson = json.optJSONObject("group")
+        return ChatConversation(
+            id = json.getString("id"),
+            kind = json.getString("kind"),
+            peer = json.optJSONObject("peer")?.let(::parseUser),
+            group = groupJson?.let {
+                GroupPreview(
+                    title = it.getString("title"),
+                    description = it.optString("description"),
+                    myRole = it.optString("my_role", "member"),
+                    memberCount = it.optInt("member_count", 1),
+                )
+            },
+            latestMessage = json.optJSONObject("latest_message")?.let(::parseMessage),
+            unreadCount = json.optInt("unread_count", 0),
+        )
+    }
 
     private fun parseUser(json: JSONObject): ChatUser = ChatUser(
         id = json.getString("id"),

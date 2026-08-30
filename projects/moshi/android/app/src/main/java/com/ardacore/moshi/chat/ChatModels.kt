@@ -7,6 +7,19 @@ data class ChatUser(
     val businessMode: Boolean,
 )
 
+data class GroupPreview(
+    val title: String,
+    val description: String,
+    val myRole: String,
+    val memberCount: Int,
+)
+
+data class GroupMember(
+    val user: ChatUser,
+    val role: String,
+    val joinedAt: String,
+)
+
 data class ReplyPreview(
     val id: String,
     val senderId: String,
@@ -60,6 +73,7 @@ data class ChatConversation(
     val id: String,
     val kind: String,
     val peer: ChatUser?,
+    val group: GroupPreview?,
     val latestMessage: ChatMessage?,
     val unreadCount: Int,
 )

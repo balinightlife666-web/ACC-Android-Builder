@@ -36,6 +36,51 @@ class ChatApi(
         parseConversation(JSONObject(request("POST", "/v1/conversations/direct", accessToken, JSONObject().put("username", username))))
     }
 
+    suspend fun createGroup(accessToken: String, title: String, usernames: List<String>): ChatConversation = withContext(Dispatchers.IO) {
+        val members = JSONArray()
+        usernames.forEach { members.put(it.trim().removePrefix("@")) }
+        val payload = JSONObject()
+            .put("title", title.trim())
+            .put("usernames", members)
+        parseConversation(JSONObject(request("POST", "/v1/groups", accessToken, payload)))
+    }
+
+    suspend fun groupMembers(accessToken: String, groupId: String): List<GroupMember> = withContext(Dispatchers.IO) {
+        val array = JSONArray(request("GET", "/v1/groups/$groupId/members", accessToken = accessToken))
+        List(array.length()) { index -> parseGroupMember(array.getJSONObject(index)) }
+    }
+
+    suspend fun addGroupMember(accessToken: String, groupId: String, username: String): GroupMember = withContext(Dispatchers.IO) {
+        parseGroupMember(
+            JSONObject(
+                request(
+                    "POST",
+                    "/v1/groups/$groupId/members",
+                    accessToken,
+                    JSONObject().put("username", username.trim().removePrefix("@")),
+                )
+            )
+        )
+    }
+
+    suspend fun updateGroupRole(accessToken: String, groupId: String, memberId: String, role: String): GroupMember = withContext(Dispatchers.IO) {
+        parseGroupMember(
+            JSONObject(
+                request(
+                    "PATCH",
+                    "/v1/groups/$groupId/members/$memberId/role",
+                    accessToken,
+                    JSONObject().put("role", role),
+                )
+            )
+        )
+    }
+
+    suspend fun removeGroupMember(accessToken: String, groupId: String, memberId: String) = withContext(Dispatchers.IO) {
+        request("DELETE", "/v1/groups/$groupId/members/$memberId", accessToken)
+        Unit
+    }
+
     suspend fun conversations(accessToken: String): List<ChatConversation> = withContext(Dispatchers.IO) {
         parseConversations(request("GET", "/v1/conversations", accessToken = accessToken))
     }
@@ -151,8 +196,8 @@ class ChatApi(
         onClosed: () -> Unit,
     ): WebSocket {
         val wsBase = when {
-            baseUrl.startsWith("https://") -> "wss://${baseUrl.removePrefix("https://")}" 
-            baseUrl.startsWith("http://") -> "ws://${baseUrl.removePrefix("http://")}" 
+            baseUrl.startsWith("https://") -> "wss://${baseUrl.removePrefix("https://")}"
+            baseUrl.startsWith("http://") -> "ws://${baseUrl.removePrefix("http://")}"
             else -> baseUrl
         }
         val token = URLEncoder.encode(accessToken, StandardCharsets.UTF_8.toString())
@@ -227,12 +272,29 @@ class ChatApi(
         return List(array.length()) { index -> parseMessage(array.getJSONObject(index)) }
     }
 
-    private fun parseConversation(json: JSONObject): ChatConversation = ChatConversation(
-        id = json.getString("id"),
-        kind = json.getString("kind"),
-        peer = json.optJSONObject("peer")?.let(::parseUser),
-        latestMessage = json.optJSONObject("latest_message")?.let(::parseMessage),
-        unreadCount = json.optInt("unread_count", 0),
+    private fun parseConversation(json: JSONObject): ChatConversation {
+        val groupJson = json.optJSONObject("group")
+        return ChatConversation(
+            id = json.getString("id"),
+            kind = json.getString("kind"),
+            peer = json.optJSONObject("peer")?.let(::parseUser),
+            group = groupJson?.let {
+                GroupPreview(
+                    title = it.getString("title"),
+                    description = it.optString("description"),
+                    myRole = it.optString("my_role", "member"),
+                    memberCount = it.optInt("member_count", 1),
+                )
+            },
+            latestMessage = json.optJSONObject("latest_message")?.let(::parseMessage),
+            unreadCount = json.optInt("unread_count", 0),
+        )
+    }
+
+    private fun parseGroupMember(json: JSONObject): GroupMember = GroupMember(
+        user = parseUser(json.getJSONObject("user")),
+        role = json.optString("role", "member"),
+        joinedAt = json.optString("joined_at"),
     )
 
     fun parseMessage(json: JSONObject): ChatMessage {
