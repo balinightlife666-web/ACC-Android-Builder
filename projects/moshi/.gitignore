@@ -6,6 +6,8 @@ __pycache__/
 backend/moshi.db
 backend/*.db
 backend/moshi_uploads/
+backend/moshi-alpha-uploads/
+backend/.alpha-smoke-jwt
 
 # Android
 .gradle/
@@ -15,6 +17,7 @@ local.properties
 
 # Secrets / deployment credentials
 .env
+.env.alpha
 backend/.env
 *.jks
 *.keystore
