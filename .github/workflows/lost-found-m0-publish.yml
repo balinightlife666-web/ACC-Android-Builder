@@ -20,7 +20,7 @@ concurrency:
 jobs:
   publish:
     if: github.event_name != 'issues' || startsWith(github.event.issue.title, 'LOST FOUND M0 PUBLISH')
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     timeout-minutes: 15
     env:
       PROJECT_DIR: lost-and-found-night-shift
