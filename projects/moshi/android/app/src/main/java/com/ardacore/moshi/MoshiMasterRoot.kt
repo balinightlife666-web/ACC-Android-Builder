@@ -198,7 +198,8 @@ private fun MasterHome(auth: AuthController) {
                             selected = selected == index,
                             onClick = { selected = index },
                             icon = { Icon(tab.icon, contentDescription = tab.label) },
-                            label = { Text(tab.label) },
+                            label = null,
+                            alwaysShowLabel = false,
                         )
                     }
                 }
@@ -310,10 +311,14 @@ private fun MasterMe(auth: AuthController, modifier: Modifier) {
                     Text("Username", color = MaterialTheme.colorScheme.onSurfaceVariant)
                     Text("@${user.username}", fontWeight = FontWeight.SemiBold)
                 }
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
                     Text("Push notifications", color = MaterialTheme.colorScheme.onSurfaceVariant)
                     Text(
-                        if (pushConfigured) "Configured" else "Not configured in this alpha",
+                        if (pushConfigured) "On" else "Off",
                         fontWeight = FontWeight.SemiBold,
                     )
                 }
