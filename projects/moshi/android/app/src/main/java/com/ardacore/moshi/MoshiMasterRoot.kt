@@ -50,6 +50,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import com.ardacore.moshi.auth.AuthController
+import com.ardacore.moshi.push.PushTokenRegistrar
 import kotlinx.coroutines.launch
 
 @Composable
@@ -85,12 +86,20 @@ private fun MasterAuth(auth: AuthController) {
     var displayName by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
 
-    Column(Modifier.fillMaxSize().padding(horizontal = 24.dp, vertical = 40.dp), verticalArrangement = Arrangement.Center) {
+    Column(
+        Modifier.fillMaxSize().padding(horizontal = 24.dp, vertical = 40.dp),
+        verticalArrangement = Arrangement.Center,
+    ) {
         MoshiAvatar("M", 68)
         Spacer(Modifier.height(18.dp))
         Text("MOSHI", style = MaterialTheme.typography.displaySmall, fontWeight = FontWeight.Black)
-        Text("Your people. Your spaces. Your business.", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(
+            "Your people. Your spaces. Your business.",
+            style = MaterialTheme.typography.titleMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
         Spacer(Modifier.height(28.dp))
+
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             if (mode == MasterAuthMode.Login) {
                 Button(onClick = { mode = MasterAuthMode.Login; auth.clearError() }) { Text("Login") }
@@ -100,24 +109,43 @@ private fun MasterAuth(auth: AuthController) {
                 Button(onClick = { mode = MasterAuthMode.Register; auth.clearError() }) { Text("Create account") }
             }
         }
+
         Spacer(Modifier.height(20.dp))
-        OutlinedTextField(username, { username = it }, Modifier.fillMaxWidth(), label = { Text("Username") }, singleLine = true, enabled = !auth.busy)
+        OutlinedTextField(
+            value = username,
+            onValueChange = { username = it },
+            modifier = Modifier.fillMaxWidth(),
+            label = { Text("Username") },
+            singleLine = true,
+            enabled = !auth.busy,
+        )
         if (mode == MasterAuthMode.Register) {
             Spacer(Modifier.height(10.dp))
-            OutlinedTextField(displayName, { displayName = it }, Modifier.fillMaxWidth(), label = { Text("Display name") }, singleLine = true, enabled = !auth.busy)
+            OutlinedTextField(
+                value = displayName,
+                onValueChange = { displayName = it },
+                modifier = Modifier.fillMaxWidth(),
+                label = { Text("Display name") },
+                singleLine = true,
+                enabled = !auth.busy,
+            )
         }
         Spacer(Modifier.height(10.dp))
         OutlinedTextField(
-            password,
-            { password = it },
-            Modifier.fillMaxWidth(),
+            value = password,
+            onValueChange = { password = it },
+            modifier = Modifier.fillMaxWidth(),
             label = { Text("Password") },
             singleLine = true,
             enabled = !auth.busy,
             visualTransformation = PasswordVisualTransformation(),
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
         )
-        auth.error?.let { Text(it, color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(top = 10.dp)) }
+
+        auth.error?.let {
+            Text(it, color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(top = 10.dp))
+        }
+
         Spacer(Modifier.height(18.dp))
         Button(
             onClick = {
@@ -127,7 +155,8 @@ private fun MasterAuth(auth: AuthController) {
                 }
             },
             modifier = Modifier.fillMaxWidth(),
-            enabled = !auth.busy && username.isNotBlank() && password.isNotBlank() && (mode == MasterAuthMode.Login || displayName.isNotBlank()),
+            enabled = !auth.busy && username.isNotBlank() && password.isNotBlank() &&
+                (mode == MasterAuthMode.Login || displayName.isNotBlank()),
         ) {
             if (auth.busy) CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
             else Text(if (mode == MasterAuthMode.Register) "Create MOSHI account" else "Continue")
@@ -148,25 +177,30 @@ private fun MasterHome(auth: AuthController) {
         MasterTab("Me", Icons.Rounded.Person),
     )
     var selected by remember { mutableIntStateOf(0) }
+    var immersive by remember { mutableStateOf(false) }
+
+    LaunchedEffect(selected) { immersive = false }
 
     Scaffold(
         bottomBar = {
-            NavigationBar {
-                tabs.forEachIndexed { index, tab ->
-                    NavigationBarItem(
-                        selected = selected == index,
-                        onClick = { selected = index },
-                        icon = { Icon(tab.icon, contentDescription = tab.label) },
-                        label = { Text(tab.label) },
-                    )
+            if (!immersive) {
+                NavigationBar {
+                    tabs.forEachIndexed { index, tab ->
+                        NavigationBarItem(
+                            selected = selected == index,
+                            onClick = { selected = index },
+                            icon = { Icon(tab.icon, contentDescription = tab.label) },
+                            label = { Text(tab.label) },
+                        )
+                    }
                 }
             }
         },
     ) { padding ->
         val modifier = Modifier.padding(padding)
         when (selected) {
-            0 -> MoshiChatsScreen(session, modifier)
-            1 -> CommunityHubScreen(session, modifier)
+            0 -> MoshiChatsScreen(session, modifier, onImmersiveChanged = { immersive = it })
+            1 -> CommunityHubScreen(session, modifier, onImmersiveChanged = { immersive = it })
             2 -> BusinessCommerceHubScreen(auth, modifier)
             3 -> ActivityHubScreen(session, modifier)
             else -> MasterMe(auth, modifier)
@@ -177,54 +211,112 @@ private fun MasterHome(auth: AuthController) {
 @Composable
 private fun MasterMe(auth: AuthController, modifier: Modifier) {
     val scope = rememberCoroutineScope()
+    val context = LocalContext.current
     val user = auth.session?.user ?: return
+    val pushConfigured = remember { PushTokenRegistrar.isFirebaseConfigured(context.applicationContext) }
     var editing by remember { mutableStateOf(false) }
     var displayName by remember(user.displayName) { mutableStateOf(user.displayName) }
 
-    Column(modifier.fillMaxSize().padding(18.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+    Column(
+        modifier.fillMaxSize().padding(horizontal = 16.dp, vertical = 14.dp),
+        verticalArrangement = Arrangement.spacedBy(14.dp),
+    ) {
         Text("Me", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Black)
+
         Card(modifier = Modifier.fillMaxWidth()) {
-            Row(Modifier.fillMaxWidth().padding(16.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+            Row(
+                Modifier.fillMaxWidth().padding(16.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(14.dp),
+            ) {
                 MoshiAvatar(user.displayName.take(1).uppercase(), 58)
                 Column(modifier = Modifier.weight(1f)) {
                     Text(user.displayName, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
                     Text("@${user.username}", color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    Text(if (user.businessMode) "Business Mode" else "Personal account", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
+                    Text(
+                        if (user.businessMode) "Business Mode" else "Personal account",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.primary,
+                    )
                 }
             }
         }
 
         Card(modifier = Modifier.fillMaxWidth()) {
             Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Text("Profile", fontWeight = FontWeight.Bold)
                 if (editing) {
-                    OutlinedTextField(displayName, { displayName = it }, Modifier.fillMaxWidth(), label = { Text("Display name") }, singleLine = true)
+                    OutlinedTextField(
+                        value = displayName,
+                        onValueChange = { displayName = it },
+                        modifier = Modifier.fillMaxWidth(),
+                        label = { Text("Display name") },
+                        singleLine = true,
+                    )
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Button(onClick = { scope.launch { auth.updateDisplayName(displayName); if (auth.error == null) editing = false } }, enabled = !auth.busy && displayName.isNotBlank()) { Text("Save") }
+                        Button(
+                            onClick = {
+                                scope.launch {
+                                    auth.updateDisplayName(displayName)
+                                    if (auth.error == null) editing = false
+                                }
+                            },
+                            enabled = !auth.busy && displayName.isNotBlank(),
+                        ) { Text("Save") }
                         TextButton(onClick = { editing = false; displayName = user.displayName }) { Text("Cancel") }
                     }
                 } else {
-                    OutlinedButton(onClick = { editing = true }) { Text("Edit profile") }
+                    OutlinedButton(onClick = { editing = true }) { Text("Edit display name") }
                 }
+
                 HorizontalDivider()
-                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
+
+                Row(
+                    Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                ) {
                     Column(modifier = Modifier.weight(1f)) {
                         Text("Business Mode", fontWeight = FontWeight.SemiBold)
-                        Text("Catalog, orders and CRM stay inside this same account.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text(
+                            "Catalog, orders and CRM use this same account.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
                     }
-                    Switch(checked = user.businessMode, onCheckedChange = { enabled -> scope.launch { auth.setBusinessMode(enabled) } }, enabled = !auth.busy)
+                    Switch(
+                        checked = user.businessMode,
+                        onCheckedChange = { enabled -> scope.launch { auth.setBusinessMode(enabled) } },
+                        enabled = !auth.busy,
+                    )
                 }
             }
         }
 
         Card(modifier = Modifier.fillMaxWidth()) {
-            Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text("Privacy & account", fontWeight = FontWeight.Bold)
-                Text("Profile privacy, devices, sessions and notification controls live here in the finished MOSHI settings surface.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text("Account", fontWeight = FontWeight.Bold)
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                    Text("Username", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text("@${user.username}", fontWeight = FontWeight.SemiBold)
+                }
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                    Text("Push notifications", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(
+                        if (pushConfigured) "Configured" else "Not configured in this alpha",
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                }
             }
         }
 
         auth.error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
-        OutlinedButton(onClick = { scope.launch { auth.logout() } }, enabled = !auth.busy, modifier = Modifier.fillMaxWidth()) { Text("Log out") }
+
+        OutlinedButton(
+            onClick = { scope.launch { auth.logout() } },
+            enabled = !auth.busy,
+            modifier = Modifier.fillMaxWidth(),
+        ) { Text("Log out") }
     }
 }
 
@@ -234,6 +326,11 @@ private fun MoshiAvatar(label: String, sizeDp: Int) {
         modifier = Modifier.size(sizeDp.dp).background(MaterialTheme.colorScheme.primaryContainer, CircleShape),
         contentAlignment = Alignment.Center,
     ) {
-        Text(label, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Black, color = MaterialTheme.colorScheme.primary)
+        Text(
+            label,
+            style = MaterialTheme.typography.headlineMedium,
+            fontWeight = FontWeight.Black,
+            color = MaterialTheme.colorScheme.primary,
+        )
     }
 }
