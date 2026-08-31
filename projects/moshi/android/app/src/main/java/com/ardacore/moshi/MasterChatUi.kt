@@ -365,7 +365,7 @@ private fun MasterDirectList(controller: ChatController, modifier: Modifier) {
                     }
                     Button(
                         onClick = {
-                            listStateStore.moveToFolder(target.id, folderInput.ifBlank { null })
+                            listStateStore.moveToFolder(target.id, folderInput.takeIf { it.isNotBlank() })
                             reloadListState()
                             closeActions()
                         },
