@@ -25,6 +25,7 @@ class ChatController(
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
     private var socket: WebSocket? = null
     private var reconnectJob: Job? = null
+    private var reconnectAttempt = 0
     private var stopped = false
 
     var conversations: List<ChatConversation> by mutableStateOf(emptyList())
@@ -41,12 +42,15 @@ class ChatController(
         private set
     var error: String? by mutableStateOf(null)
         private set
+    var realtimeStatus: String by mutableStateOf("connecting")
+        private set
 
     suspend fun start() {
         stopped = false
+        realtimeStatus = "connecting"
         conversations = local.conversations()
         runCatching { syncConversations() }
-            .onFailure { failure -> if (conversations.isEmpty()) error = failure.message ?: "MOSHI is offline" }
+            .onFailure { if (conversations.isEmpty()) error = "MOSHI is offline. We'll reconnect automatically." }
         retryOutboxInternal()
         connectRealtime()
     }
@@ -169,7 +173,7 @@ class ChatController(
         )
         upsertMessage(optimistic)
         val pending = local.pending().firstOrNull { it.clientMessageId == clientMessageId }
-        if (pending != null && !attemptPending(pending)) error = "Message queued. MOSHI will retry when connected."
+        if (pending != null && !attemptPending(pending)) error = "Message saved offline. MOSHI will send it when connected."
         runCatching { syncConversations() }
     }
 
@@ -215,7 +219,7 @@ class ChatController(
         upsertMessage(optimistic)
         val pending = local.pending().firstOrNull { it.clientMessageId == clientMessageId }
         if (pending != null && !attemptPending(pending)) {
-            error = "Attachment queued. MOSHI will retry when connected."
+            error = "Attachment saved offline. MOSHI will send it when connected."
         }
         runCatching { syncConversations() }
     }
@@ -276,6 +280,7 @@ class ChatController(
 
     fun stop() {
         stopped = true
+        realtimeStatus = "offline"
         reconnectJob?.cancel()
         reconnectJob = null
         socket?.close(1000, "MOSHI screen closed")
@@ -383,12 +388,15 @@ class ChatController(
 
     private fun connectRealtime() {
         if (stopped || socket != null) return
+        realtimeStatus = "connecting"
         socket = api.openRealtime(
             accessToken = session.accessToken,
             onOpen = {
                 scope.launch {
                     reconnectJob?.cancel()
                     reconnectJob = null
+                    reconnectAttempt = 0
+                    realtimeStatus = "online"
                     error = null
                     retryOutboxInternal()
                     runCatching { syncConversations() }
@@ -399,11 +407,11 @@ class ChatController(
                 }
             },
             onEvent = { event -> scope.launch { handleEvent(event) } },
-            onFailure = { failure ->
+            onFailure = {
                 scope.launch {
                     socket = null
                     if (!stopped) {
-                        error = failure.message ?: "Realtime disconnected"
+                        realtimeStatus = "offline"
                         scheduleReconnect()
                     }
                 }
@@ -411,7 +419,10 @@ class ChatController(
             onClosed = {
                 scope.launch {
                     socket = null
-                    if (!stopped) scheduleReconnect()
+                    if (!stopped) {
+                        realtimeStatus = "offline"
+                        scheduleReconnect()
+                    }
                 }
             },
         )
@@ -419,8 +430,16 @@ class ChatController(
 
     private fun scheduleReconnect() {
         if (stopped || reconnectJob?.isActive == true) return
+        val delayMs = when (reconnectAttempt.coerceAtMost(3)) {
+            0 -> 2_000L
+            1 -> 5_000L
+            2 -> 10_000L
+            else -> 30_000L
+        }
+        reconnectAttempt += 1
         reconnectJob = scope.launch {
-            delay(5_000)
+            delay(delayMs)
+            reconnectJob = null
             connectRealtime()
         }
     }
@@ -467,7 +486,7 @@ class ChatController(
         try {
             block()
         } catch (t: Throwable) {
-            error = t.message ?: "MOSHI chat request failed"
+            error = userFacingError(t)
         } finally {
             busy = false
         }
@@ -480,10 +499,27 @@ class ChatController(
         return try {
             block()
         } catch (t: Throwable) {
-            error = t.message ?: "MOSHI chat request failed"
+            error = userFacingError(t)
             null
         } finally {
             busy = false
+        }
+    }
+
+    private fun userFacingError(t: Throwable): String {
+        val raw = t.message.orEmpty()
+        return when {
+            raw.contains("401") || raw.contains("403") || raw.contains("forbidden", ignoreCase = true) ->
+                "This action isn't available right now."
+            raw.contains("timeout", ignoreCase = true) ||
+                raw.contains("failed to connect", ignoreCase = true) ||
+                raw.contains("connection", ignoreCase = true) ||
+                raw.contains("network", ignoreCase = true) ->
+                "Connection problem. MOSHI will keep trying."
+            raw.contains("HTTP", ignoreCase = true) ->
+                "MOSHI couldn't complete that request."
+            raw.isBlank() -> "MOSHI couldn't complete that request."
+            else -> raw.take(180)
         }
     }
 }
