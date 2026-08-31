@@ -31,6 +31,7 @@ import androidx.compose.material.icons.rounded.Send
 import androidx.compose.material.icons.rounded.StopCircle
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -54,7 +55,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import com.ardacore.moshi.auth.AuthSession
-import com.ardacore.moshi.chat.ChatAttachment
 import com.ardacore.moshi.chat.ChatController
 import com.ardacore.moshi.chat.ChatConversation
 import com.ardacore.moshi.chat.ChatMessage
@@ -64,6 +64,9 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
+import java.time.Instant
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
 
 private const val MASTER_MAX_ATTACHMENT_BYTES = 20L * 1024L * 1024L
 
@@ -94,11 +97,8 @@ fun MoshiChatsScreen(
     val inDirectChat = controller.activeConversation?.kind == "direct"
     LaunchedEffect(inDirectChat) { onImmersiveChanged(inDirectChat) }
 
-    if (inDirectChat) {
-        MasterDirectConversation(controller, session, modifier)
-    } else {
-        MasterDirectList(controller, modifier)
-    }
+    if (inDirectChat) MasterDirectConversation(controller, session, modifier)
+    else MasterDirectList(controller, modifier)
 }
 
 @Composable
@@ -228,7 +228,12 @@ private fun MasterConversationRow(conversation: ChatConversation, onClick: () ->
         ) {
             MasterInitialAvatar(peer.displayName)
             Column(modifier = Modifier.weight(1f)) {
-                Text(peer.displayName, fontWeight = FontWeight.SemiBold)
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                    Text(peer.displayName, fontWeight = FontWeight.SemiBold)
+                    latest?.createdAt?.let {
+                        Text(masterChatListTime(it), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                }
                 Text(preview, maxLines = 1, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             if (conversation.unreadCount > 0) {
@@ -324,22 +329,6 @@ private fun MasterDirectConversation(controller: ChatController, session: AuthSe
         }
     }
 
-    fun openAttachment(attachment: ChatAttachment) {
-        if (attachment.status != "ready" || attachment.downloadPath.isBlank()) return
-        attachmentBusy = true
-        localError = null
-        scope.launch {
-            try {
-                val bytes = controller.downloadAttachment(attachment) ?: return@launch
-                withContext(Dispatchers.IO) { openDownloadedAttachment(context.applicationContext, attachment, bytes) }
-            } catch (t: Throwable) {
-                localError = t.message ?: "Could not open attachment"
-            } finally {
-                attachmentBusy = false
-            }
-        }
-    }
-
     val photoPicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         if (uri != null) queuePicked(uri, "image")
     }
@@ -371,11 +360,11 @@ private fun MasterDirectConversation(controller: ChatController, session: AuthSe
         ) {
             items(controller.messages, key = { it.id }) { item ->
                 MasterMessageBubble(
+                    accessToken = session.accessToken,
                     message = item,
                     mine = item.senderId == session.user.id,
                     selected = selectedId == item.id,
                     onSelect = { selectedId = if (selectedId == item.id) null else item.id },
-                    onOpenAttachment = ::openAttachment,
                     onAsk = {
                         replyId = item.id
                         selectedId = null
@@ -507,16 +496,22 @@ private fun MasterDirectConversation(controller: ChatController, session: AuthSe
 
 @Composable
 private fun MasterMessageBubble(
+    accessToken: String,
     message: ChatMessage,
     mine: Boolean,
     selected: Boolean,
     onSelect: () -> Unit,
-    onOpenAttachment: (ChatAttachment) -> Unit,
     onAsk: () -> Unit,
     onOrder: () -> Unit,
 ) {
     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = if (mine) Arrangement.End else Arrangement.Start) {
-        Card(onClick = onSelect, modifier = Modifier.fillMaxWidth(0.84f)) {
+        Card(
+            onClick = onSelect,
+            modifier = Modifier.fillMaxWidth(0.84f),
+            colors = CardDefaults.cardColors(
+                containerColor = if (mine) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant,
+            ),
+        ) {
             Column(
                 Modifier.padding(horizontal = 10.dp, vertical = 8.dp),
                 verticalArrangement = Arrangement.spacedBy(5.dp),
@@ -565,22 +560,7 @@ private fun MasterMessageBubble(
                     if (message.body.isNotBlank()) Text(message.body)
 
                     message.attachments.forEach { attachment ->
-                        Card(modifier = Modifier.fillMaxWidth()) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth().padding(horizontal = 10.dp, vertical = 7.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                            ) {
-                                val isVoice = attachment.contentType.startsWith("audio/")
-                                val label = if (isVoice) "Voice note" else attachment.fileName
-                                Text(label, modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodySmall)
-                                if (attachment.status == "ready" && attachment.downloadPath.isNotBlank()) {
-                                    TextButton(onClick = { onOpenAttachment(attachment) }) { Text(if (isVoice) "Play" else "Open") }
-                                } else {
-                                    Text(attachment.status, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                }
-                            }
-                        }
+                        MoshiMessageAttachment(accessToken = accessToken, attachment = attachment)
                     }
 
                     if (message.reactions.isNotEmpty()) {
@@ -588,10 +568,11 @@ private fun MasterMessageBubble(
                     }
                 }
 
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
                     if (message.editedAt != null && !message.isDeleted) {
                         Text("edited", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
+                    Text(masterMessageTime(message.createdAt), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     if (mine) Text(message.state, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
@@ -681,3 +662,18 @@ private fun masterReadAttachment(context: Context, uri: Uri, kind: String): Mast
     val contentType = resolver.getType(uri) ?: if (kind == "image") "image/jpeg" else "application/octet-stream"
     return MasterPickedAttachment(kind, displayName.take(160), contentType, size, uri.toString())
 }
+
+private fun masterMessageTime(value: String): String = runCatching {
+    DateTimeFormatter.ofPattern("HH:mm")
+        .withZone(ZoneId.systemDefault())
+        .format(Instant.parse(value))
+}.getOrDefault("")
+
+private fun masterChatListTime(value: String): String = runCatching {
+    val instant = Instant.parse(value)
+    val zone = ZoneId.systemDefault()
+    val date = instant.atZone(zone).toLocalDate()
+    val today = java.time.LocalDate.now(zone)
+    if (date == today) DateTimeFormatter.ofPattern("HH:mm").withZone(zone).format(instant)
+    else DateTimeFormatter.ofPattern("dd/MM").withZone(zone).format(instant)
+}.getOrDefault("")
