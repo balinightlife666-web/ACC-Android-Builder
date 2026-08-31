@@ -21,8 +21,8 @@ android {
         applicationId = "com.ardacore.moshi"
         minSdk = 26
         targetSdk = 35
-        versionCode = 10
-        versionName = "0.4.0-alpha.8-rc1"
+        versionCode = 11
+        versionName = "0.4.0-alpha.8-rc2"
     }
 
     buildFeatures {
