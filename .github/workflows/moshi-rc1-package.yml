@@ -1,5 +1,6 @@
 name: MOSHI RC1 Package
 
+# RC1 package trigger after consolidated source + release-lint QC passed.
 on:
   push:
     branches:
