@@ -1,0 +1,46 @@
+name: MOSHI Alpha 7 Unsigned Export
+
+on:
+  push:
+    branches:
+      - fix/moshi-compose-scope-alpha
+    paths:
+      - .github/workflows/moshi-alpha7-unsigned-export.yml
+
+permissions:
+  contents: read
+
+jobs:
+  export:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: android-actions/setup-android@v3
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.10.2'
+      - name: Package Alpha 7 release
+        working-directory: projects/moshi/android
+        run: gradle :app:packageRelease --stacktrace -PMOSHI_API_BASE_URL="https://america-assignments-donors-seo.trycloudflare.com"
+      - name: Align APK and stage signer
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p dist
+          APK="projects/moshi/android/app/build/outputs/apk/release/app-release-unsigned.apk"
+          BUILD_TOOLS="$(find "$ANDROID_HOME/build-tools" -mindepth 1 -maxdepth 1 -type d | sort -V | tail -1)"
+          test -f "$APK"
+          "$BUILD_TOOLS/zipalign" -p -f 4 "$APK" dist/MOSHI-alpha7-aligned-unsigned.apk
+          "$BUILD_TOOLS/zipalign" -c -v 4 dist/MOSHI-alpha7-aligned-unsigned.apk
+          cp "$BUILD_TOOLS/lib/apksigner.jar" dist/apksigner.jar
+          sha256sum dist/MOSHI-alpha7-aligned-unsigned.apk dist/apksigner.jar > dist/SHA256SUMS.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: MOSHI-alpha7-unsigned-export
+          path: dist/
+          retention-days: 7
