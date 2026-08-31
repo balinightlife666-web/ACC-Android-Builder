@@ -8,7 +8,10 @@ import android.net.Uri
 import android.provider.OpenableColumns
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -20,6 +23,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.ArrowBack
@@ -29,6 +33,7 @@ import androidx.compose.material.icons.rounded.Mic
 import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material.icons.rounded.Send
 import androidx.compose.material.icons.rounded.StopCircle
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -59,6 +64,7 @@ import com.ardacore.moshi.chat.ChatController
 import com.ardacore.moshi.chat.ChatConversation
 import com.ardacore.moshi.chat.ChatMessage
 import com.ardacore.moshi.chat.ChatUser
+import com.ardacore.moshi.chat.local.ChatListStateStore
 import com.ardacore.moshi.chat.local.ChatLocalStore
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -104,9 +110,46 @@ fun MoshiChatsScreen(
 @Composable
 private fun MasterDirectList(controller: ChatController, modifier: Modifier) {
     val scope = rememberCoroutineScope()
+    val context = LocalContext.current.applicationContext
+    val listStateStore = remember { ChatListStateStore(context) }
     var query by remember { mutableStateOf("") }
     var searchOpen by remember { mutableStateOf(false) }
-    val direct = controller.conversations.filter { it.kind == "direct" }
+    var viewMode by remember { mutableStateOf("all") }
+    var archivedIds by remember { mutableStateOf(listStateStore.archived()) }
+    var hiddenIds by remember { mutableStateOf(listStateStore.hidden()) }
+    var pinnedIds by remember { mutableStateOf(listStateStore.pinned()) }
+    var folderAssignments by remember { mutableStateOf(listStateStore.folderAssignments()) }
+    var actionTarget by remember { mutableStateOf<ChatConversation?>(null) }
+    var folderInput by remember { mutableStateOf("") }
+
+    fun reloadListState() {
+        archivedIds = listStateStore.archived()
+        hiddenIds = listStateStore.hidden()
+        pinnedIds = listStateStore.pinned()
+        folderAssignments = listStateStore.folderAssignments()
+    }
+
+    fun closeActions() {
+        actionTarget = null
+        folderInput = ""
+    }
+
+    val allDirect = controller.conversations.filter { it.kind == "direct" }
+    val archivedCount = allDirect.count { it.id in archivedIds && it.id !in hiddenIds }
+    val hiddenCount = allDirect.count { it.id in hiddenIds }
+    val folderNames = folderAssignments.values.distinct().sortedBy { it.lowercase() }
+    val baseDirect = when {
+        viewMode == "archived" -> allDirect.filter { it.id in archivedIds && it.id !in hiddenIds }
+        viewMode == "hidden" -> allDirect.filter { it.id in hiddenIds }
+        viewMode.startsWith("folder:") -> {
+            val folder = viewMode.removePrefix("folder:")
+            allDirect.filter {
+                folderAssignments[it.id] == folder && it.id !in archivedIds && it.id !in hiddenIds
+            }
+        }
+        else -> allDirect.filter { it.id !in archivedIds && it.id !in hiddenIds }
+    }
+    val direct = baseDirect.filter { it.id in pinnedIds } + baseDirect.filterNot { it.id in pinnedIds }
 
     Column(
         modifier = modifier.fillMaxSize().padding(horizontal = 16.dp, vertical = 14.dp),
@@ -119,10 +162,50 @@ private fun MasterDirectList(controller: ChatController, modifier: Modifier) {
         ) {
             Column {
                 Text("MOSHI", style = MaterialTheme.typography.headlineLarge, fontWeight = FontWeight.Black)
-                Text("Chats", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                Text(
+                    when {
+                        viewMode == "archived" -> "Archived"
+                        viewMode == "hidden" -> "Hidden chats"
+                        viewMode.startsWith("folder:") -> viewMode.removePrefix("folder:")
+                        else -> "Chats"
+                    },
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
+                )
+                if (controller.realtimeStatus != "online") {
+                    Text(
+                        if (controller.realtimeStatus == "connecting") "Connecting…" else "Offline · reconnecting automatically",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
             }
-            IconButton(onClick = { searchOpen = !searchOpen; if (!searchOpen) controller.clearError() }) {
-                Icon(Icons.Rounded.Search, contentDescription = "Find people")
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                if (viewMode != "all") {
+                    TextButton(onClick = { viewMode = "all" }) { Text("All chats") }
+                }
+                IconButton(onClick = { searchOpen = !searchOpen; if (!searchOpen) controller.clearError() }) {
+                    Icon(Icons.Rounded.Search, contentDescription = "Find people")
+                }
+            }
+        }
+
+        if (viewMode == "all" && folderNames.isNotEmpty()) {
+            Row(
+                modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
+                folderNames.forEach { folder ->
+                    OutlinedButton(onClick = { viewMode = "folder:$folder" }) {
+                        Text(folder, maxLines = 1, style = MaterialTheme.typography.labelMedium)
+                    }
+                }
+            }
+        }
+
+        if (viewMode == "all" && archivedCount > 0) {
+            TextButton(onClick = { viewMode = "archived" }) {
+                Text("Archived ($archivedCount)")
             }
         }
 
@@ -140,7 +223,17 @@ private fun MasterDirectList(controller: ChatController, modifier: Modifier) {
                     singleLine = true,
                 )
                 Button(
-                    onClick = { scope.launch { controller.search(query) } },
+                    onClick = {
+                        val value = query.trim()
+                        if (value.equals("#hidden", ignoreCase = true)) {
+                            viewMode = "hidden"
+                            query = ""
+                            searchOpen = false
+                            controller.clearError()
+                        } else {
+                            scope.launch { controller.search(value) }
+                        }
+                    },
                     enabled = query.isNotBlank() && !controller.busy,
                 ) { Text("Find") }
             }
@@ -158,32 +251,130 @@ private fun MasterDirectList(controller: ChatController, modifier: Modifier) {
         }
 
         controller.error?.let {
-            Card(modifier = Modifier.fillMaxWidth()) {
-                Row(
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Text(it, modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
-                    TextButton(onClick = { scope.launch { controller.loadConversations() } }) { Text("Retry") }
-                    TextButton(onClick = controller::clearError) { Text("Dismiss") }
-                }
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    it,
+                    modifier = Modifier.weight(1f),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                TextButton(onClick = controller::clearError) { Text("Dismiss") }
             }
         }
 
-        if (direct.isEmpty()) {
+        if (viewMode == "hidden" && hiddenCount == 0) {
             Card(modifier = Modifier.fillMaxWidth()) {
                 Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Text("No chats yet", fontWeight = FontWeight.Bold)
-                    Text("Search a username to start a private conversation.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text("No hidden chats", fontWeight = FontWeight.Bold)
+                    Text("Long-press a chat and choose Hide to move it here.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
+        } else if (direct.isEmpty()) {
+            Card(modifier = Modifier.fillMaxWidth()) {
+                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text(
+                        when {
+                            viewMode == "archived" -> "No archived chats"
+                            viewMode.startsWith("folder:") -> "This folder is empty"
+                            else -> "No chats yet"
+                        },
+                        fontWeight = FontWeight.Bold,
+                    )
+                    Text(
+                        when {
+                            viewMode == "archived" -> "Archived chats will appear here."
+                            viewMode.startsWith("folder:") -> "Long-press a chat to move it into this folder."
+                            else -> "Search a username to start a private conversation."
+                        },
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
                 }
             }
         } else {
             LazyColumn(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 items(direct, key = { it.id }) { conversation ->
-                    MasterConversationRow(conversation) { controller.openConversation(conversation) }
+                    MasterConversationRow(
+                        conversation = conversation,
+                        pinned = conversation.id in pinnedIds,
+                        folderName = folderAssignments[conversation.id],
+                        onClick = { controller.openConversation(conversation) },
+                        onLongClick = {
+                            actionTarget = conversation
+                            folderInput = folderAssignments[conversation.id].orEmpty()
+                        },
+                    )
                 }
             }
         }
+    }
+
+    actionTarget?.let { target ->
+        val targetName = target.peer?.displayName ?: "Chat"
+        val isArchived = target.id in archivedIds
+        val isHidden = target.id in hiddenIds
+        val isPinned = target.id in pinnedIds
+        AlertDialog(
+            onDismissRequest = ::closeActions,
+            title = { Text(targetName) },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    TextButton(
+                        onClick = {
+                            listStateStore.setPinned(target.id, !isPinned)
+                            reloadListState()
+                            closeActions()
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                    ) { Text(if (isPinned) "Unpin chat" else "Pin chat") }
+                    TextButton(
+                        onClick = {
+                            listStateStore.setArchived(target.id, !isArchived)
+                            reloadListState()
+                            closeActions()
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                    ) { Text(if (isArchived) "Unarchive" else "Archive") }
+                    TextButton(
+                        onClick = {
+                            listStateStore.setHidden(target.id, !isHidden)
+                            reloadListState()
+                            closeActions()
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                    ) { Text(if (isHidden) "Unhide chat" else "Hide chat") }
+                    OutlinedTextField(
+                        value = folderInput,
+                        onValueChange = { folderInput = it },
+                        modifier = Modifier.fillMaxWidth(),
+                        label = { Text("Folder") },
+                        placeholder = { Text("Personal, Work, Business…") },
+                        singleLine = true,
+                    )
+                    if (folderNames.isNotEmpty()) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+                            horizontalArrangement = Arrangement.spacedBy(4.dp),
+                        ) {
+                            folderNames.forEach { folder ->
+                                TextButton(onClick = { folderInput = folder }) { Text(folder, maxLines = 1) }
+                            }
+                        }
+                    }
+                    Button(
+                        onClick = {
+                            listStateStore.moveToFolder(target.id, folderInput.ifBlank { null })
+                            reloadListState()
+                            closeActions()
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                    ) { Text(if (folderInput.isBlank()) "Remove from folder" else "Move to folder") }
+                }
+            },
+            confirmButton = { TextButton(onClick = ::closeActions) { Text("Done") } },
+        )
     }
 }
 
@@ -205,8 +396,15 @@ private fun MasterUserResult(user: ChatUser, onClick: () -> Unit) {
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
-private fun MasterConversationRow(conversation: ChatConversation, onClick: () -> Unit) {
+private fun MasterConversationRow(
+    conversation: ChatConversation,
+    pinned: Boolean,
+    folderName: String?,
+    onClick: () -> Unit,
+    onLongClick: () -> Unit,
+) {
     val peer = conversation.peer ?: return
     val latest = conversation.latestMessage
     val preview = when {
@@ -220,7 +418,9 @@ private fun MasterConversationRow(conversation: ChatConversation, onClick: () ->
         else -> "Message"
     }
 
-    Card(onClick = onClick, modifier = Modifier.fillMaxWidth()) {
+    Card(
+        modifier = Modifier.fillMaxWidth().combinedClickable(onClick = onClick, onLongClick = onLongClick),
+    ) {
         Row(
             Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 11.dp),
             verticalAlignment = Alignment.CenterVertically,
@@ -234,7 +434,11 @@ private fun MasterConversationRow(conversation: ChatConversation, onClick: () ->
                         Text(masterChatListTime(it), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
-                Text(preview, maxLines = 1, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                val prefix = buildString {
+                    if (pinned) append("Pinned · ")
+                    if (!folderName.isNullOrBlank()) append("$folderName · ")
+                }
+                Text(prefix + preview, maxLines = 1, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             if (conversation.unreadCount > 0) {
                 Box(
@@ -293,7 +497,7 @@ private fun MasterDirectConversation(controller: ChatController, session: AuthSe
                 runCatching { context.contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION) }
                 val picked = withContext(Dispatchers.IO) { masterReadAttachment(context, uri, kind) }
                 controller.sendAttachment(body, replyTo, picked.kind, picked.name, picked.contentType, picked.size, picked.uri)
-                if (controller.error == null || controller.error?.contains("queued", ignoreCase = true) == true) {
+                if (controller.error == null || controller.error?.contains("offline", ignoreCase = true) == true) {
                     text = ""
                     replyId = null
                 }
@@ -317,7 +521,7 @@ private fun MasterDirectConversation(controller: ChatController, session: AuthSe
         scope.launch {
             try {
                 controller.sendAttachment(body, replyTo, "file", file.name, "audio/mp4", file.length(), Uri.fromFile(file).toString())
-                if (controller.error == null || controller.error?.contains("queued", ignoreCase = true) == true) {
+                if (controller.error == null || controller.error?.contains("offline", ignoreCase = true) == true) {
                     text = ""
                     replyId = null
                 }
@@ -349,6 +553,13 @@ private fun MasterDirectConversation(controller: ChatController, session: AuthSe
                 Text(peer?.displayName ?: "Chat", fontWeight = FontWeight.Bold)
                 peer?.let {
                     Text("@${it.username}", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+                if (controller.realtimeStatus != "online") {
+                    Text(
+                        if (controller.realtimeStatus == "connecting") "Connecting…" else "Offline",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
                 }
             }
         }
@@ -417,7 +628,7 @@ private fun MasterDirectConversation(controller: ChatController, session: AuthSe
             }
         }
 
-        controller.error?.let { Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall) }
+        controller.error?.let { Text(it, color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodySmall) }
         localError?.let { Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall) }
 
         if (hasQueued) {
