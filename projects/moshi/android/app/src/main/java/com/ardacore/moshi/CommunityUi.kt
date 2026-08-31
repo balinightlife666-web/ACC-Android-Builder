@@ -206,13 +206,15 @@ private fun CommunityCard(conversation: ChatConversation, onClick: () -> Unit) {
     val group = conversation.group ?: return
     val latest = conversation.latestMessage
     val preview = when {
-        latest == null -> "# general"
+        latest == null -> "general"
         latest.isDeleted -> "Message deleted"
         latest.body.isNotBlank() -> latest.body
         latest.attachments.firstOrNull()?.contentType?.startsWith("audio/") == true -> "Voice note"
         latest.attachments.isNotEmpty() -> "Attachment · ${latest.attachments.first().fileName}"
-        else -> "# general"
+        else -> "general"
     }
+    val memberLabel = if (group.memberCount == 1) "1 member" else "${group.memberCount} members"
+    val roleLabel = group.myRole.replaceFirstChar { it.uppercase() }
 
     Card(onClick = onClick, modifier = Modifier.fillMaxWidth()) {
         Row(
@@ -237,7 +239,7 @@ private fun CommunityCard(conversation: ChatConversation, onClick: () -> Unit) {
                     Icon(Icons.Rounded.Tag, contentDescription = null, modifier = Modifier.size(14.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
                     Text(preview, maxLines = 1, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
-                Text("${group.memberCount} members · ${group.myRole}", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text("$memberLabel · $roleLabel", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             if (conversation.unreadCount > 0) {
                 Box(
