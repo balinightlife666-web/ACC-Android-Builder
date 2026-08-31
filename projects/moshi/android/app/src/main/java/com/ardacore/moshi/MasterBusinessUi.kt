@@ -82,8 +82,8 @@ fun MasterBusinessScreen(auth: AuthController, modifier: Modifier = Modifier) {
 
     Column(modifier = modifier.fillMaxSize()) {
         Column(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 14.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp),
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 10.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -104,13 +104,23 @@ fun MasterBusinessScreen(auth: AuthController, modifier: Modifier = Modifier) {
             if (session.user.businessMode) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
                 ) {
                     BusinessSection.entries.forEach { item ->
                         if (section == item) {
-                            Button(onClick = { section = item }, modifier = Modifier.weight(1f)) { Text(item.label) }
+                            Button(
+                                onClick = { section = item },
+                                modifier = Modifier.weight(1f).height(40.dp),
+                            ) {
+                                Text(item.label, style = MaterialTheme.typography.labelMedium, maxLines = 1)
+                            }
                         } else {
-                            OutlinedButton(onClick = { section = item }, modifier = Modifier.weight(1f)) { Text(item.label) }
+                            OutlinedButton(
+                                onClick = { section = item },
+                                modifier = Modifier.weight(1f).height(40.dp),
+                            ) {
+                                Text(item.label, style = MaterialTheme.typography.labelMedium, maxLines = 1)
+                            }
                         }
                     }
                 }
