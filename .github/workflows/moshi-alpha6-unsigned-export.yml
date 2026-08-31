@@ -27,23 +27,22 @@ jobs:
       - name: Package unsigned Alpha.6 release
         working-directory: projects/moshi/android
         run: gradle :app:packageRelease --stacktrace -PMOSHI_API_BASE_URL="https://america-assignments-donors-seo.trycloudflare.com"
-      - name: Stage unsigned APK and Android signing tools
+      - name: Align unsigned APK and stage signer
         shell: bash
         run: |
           set -euo pipefail
           mkdir -p dist
           APK="projects/moshi/android/app/build/outputs/apk/release/app-release-unsigned.apk"
           test -f "$APK"
-          cp "$APK" dist/MOSHI-alpha6-unsigned.apk
           BUILD_TOOLS="$(find "$ANDROID_HOME/build-tools" -mindepth 1 -maxdepth 1 -type d | sort -V | tail -1)"
           test -f "$BUILD_TOOLS/lib/apksigner.jar"
           test -x "$BUILD_TOOLS/zipalign"
+          "$BUILD_TOOLS/zipalign" -p -f 4 "$APK" dist/MOSHI-alpha6-aligned-unsigned.apk
+          "$BUILD_TOOLS/zipalign" -c -v 4 dist/MOSHI-alpha6-aligned-unsigned.apk
           cp "$BUILD_TOOLS/lib/apksigner.jar" dist/apksigner.jar
-          cp "$BUILD_TOOLS/zipalign" dist/zipalign
-          chmod +x dist/zipalign
-          sha256sum dist/MOSHI-alpha6-unsigned.apk dist/apksigner.jar dist/zipalign > dist/SHA256SUMS.txt
+          sha256sum dist/MOSHI-alpha6-aligned-unsigned.apk dist/apksigner.jar > dist/SHA256SUMS.txt
       - uses: actions/upload-artifact@v4
         with:
-          name: MOSHI-alpha6-unsigned-export
+          name: MOSHI-alpha6-aligned-unsigned-export
           path: dist/
           retention-days: 7
