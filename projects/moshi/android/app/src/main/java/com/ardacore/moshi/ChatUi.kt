@@ -236,10 +236,13 @@ private fun ConversationScreen(controller: ChatController, me: MoshiUser, modifi
     val editing = controller.messages.firstOrNull { it.id == editingId }
     val hasQueued = controller.messages.any { it.state == "queued" }
 
-    val latestMessageId = controller.messages.lastOrNull()?.id
-    LaunchedEffect(conversation.id, latestMessageId) {
-        if (controller.messages.isNotEmpty()) {
-            messageListState.animateScrollToItem(controller.messages.lastIndex)
+    val messageCount = controller.messages.size
+    val latestMessage = controller.messages.lastOrNull()
+    val latestMessageRevision = latestMessage?.let { it.id + ":" + it.createdAt + ":" + it.state }
+    LaunchedEffect(conversation.id, messageCount, latestMessageRevision) {
+        if (messageCount > 0) {
+            androidx.compose.runtime.withFrameNanos { }
+            messageListState.scrollToItem(messageCount - 1)
         }
     }
 
