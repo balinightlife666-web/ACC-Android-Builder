@@ -24,10 +24,10 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.10.2'
-      - name: Build unsigned Alpha.6 release
+      - name: Package unsigned Alpha.6 release
         working-directory: projects/moshi/android
-        run: gradle :app:assembleRelease --stacktrace -PMOSHI_API_BASE_URL="https://america-assignments-donors-seo.trycloudflare.com"
-      - name: Stage unsigned APK and Android signer
+        run: gradle :app:packageRelease --stacktrace -PMOSHI_API_BASE_URL="https://america-assignments-donors-seo.trycloudflare.com"
+      - name: Stage unsigned APK and Android signing tools
         shell: bash
         run: |
           set -euo pipefail
@@ -37,8 +37,11 @@ jobs:
           cp "$APK" dist/MOSHI-alpha6-unsigned.apk
           BUILD_TOOLS="$(find "$ANDROID_HOME/build-tools" -mindepth 1 -maxdepth 1 -type d | sort -V | tail -1)"
           test -f "$BUILD_TOOLS/lib/apksigner.jar"
+          test -x "$BUILD_TOOLS/zipalign"
           cp "$BUILD_TOOLS/lib/apksigner.jar" dist/apksigner.jar
-          sha256sum dist/MOSHI-alpha6-unsigned.apk dist/apksigner.jar > dist/SHA256SUMS.txt
+          cp "$BUILD_TOOLS/zipalign" dist/zipalign
+          chmod +x dist/zipalign
+          sha256sum dist/MOSHI-alpha6-unsigned.apk dist/apksigner.jar dist/zipalign > dist/SHA256SUMS.txt
       - uses: actions/upload-artifact@v4
         with:
           name: MOSHI-alpha6-unsigned-export
