@@ -6,6 +6,8 @@
 
     <application
         android:allowBackup="false"
+        android:icon="@drawable/moshi_logo"
+        android:roundIcon="@drawable/moshi_logo"
         android:label="MOSHI"
         android:supportsRtl="true"
         android:theme="@style/Theme.Moshi">

@@ -60,7 +60,11 @@ class ChatController(
         searchResults = if (query.isBlank()) emptyList() else api.searchUsers(session.accessToken, query.trim())
     }
 
-    suspend fun startDirect(user: ChatUser) {
+    fun startDirect(user: ChatUser) {
+        scope.launch { startDirectInternal(user) }
+    }
+
+    private suspend fun startDirectInternal(user: ChatUser) {
         val conversation = runBusyResult { api.createDirect(session.accessToken, user.username) } ?: return
         activeConversation = conversation
         groupMembers = emptyList()
@@ -88,7 +92,11 @@ class ChatController(
         }
     }
 
-    suspend fun openConversation(conversation: ChatConversation) {
+    fun openConversation(conversation: ChatConversation) {
+        scope.launch { openConversationInternal(conversation) }
+    }
+
+    private suspend fun openConversationInternal(conversation: ChatConversation) {
         activeConversation = conversation
         messages = local.messages(conversation.id)
         groupMembers = emptyList()
