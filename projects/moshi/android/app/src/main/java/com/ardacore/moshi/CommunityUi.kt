@@ -33,6 +33,7 @@ import androidx.compose.material.icons.rounded.StopCircle
 import androidx.compose.material.icons.rounded.Tag
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -56,7 +57,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import com.ardacore.moshi.auth.AuthSession
-import com.ardacore.moshi.chat.ChatAttachment
 import com.ardacore.moshi.chat.ChatController
 import com.ardacore.moshi.chat.ChatConversation
 import com.ardacore.moshi.chat.ChatMessage
@@ -66,6 +66,9 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
+import java.time.Instant
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
 
 private const val COMMUNITY_MAX_ATTACHMENT_BYTES = 20L * 1024L * 1024L
 
@@ -96,11 +99,8 @@ fun CommunityHubScreen(
     val inCommunity = controller.activeConversation?.kind == "group"
     LaunchedEffect(inCommunity) { onImmersiveChanged(inCommunity) }
 
-    if (inCommunity) {
-        CommunityConversationScreen(controller, session, modifier)
-    } else {
-        CommunityListScreen(controller, modifier)
-    }
+    if (inCommunity) CommunityConversationScreen(controller, session, modifier)
+    else CommunityListScreen(controller, modifier)
 }
 
 @Composable
@@ -227,7 +227,12 @@ private fun CommunityCard(conversation: ChatConversation, onClick: () -> Unit) {
                 Text(group.title.take(1).uppercase(), fontWeight = FontWeight.Black, color = MaterialTheme.colorScheme.primary)
             }
             Column(modifier = Modifier.weight(1f)) {
-                Text(group.title, fontWeight = FontWeight.Bold)
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                    Text(group.title, fontWeight = FontWeight.Bold)
+                    latest?.createdAt?.let {
+                        Text(communityListTime(it), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                }
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                     Icon(Icons.Rounded.Tag, contentDescription = null, modifier = Modifier.size(14.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
                     Text(preview, maxLines = 1, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -267,6 +272,7 @@ private fun CommunityConversationScreen(controller: ChatController, session: Aut
 
     LaunchedEffect(
         conversation.id,
+        membersVisible,
         controller.messages.size,
         controller.messages.lastOrNull()?.id,
         controller.messages.lastOrNull()?.state,
@@ -323,22 +329,6 @@ private fun CommunityConversationScreen(controller: ChatController, session: Aut
         }
     }
 
-    fun openAttachment(attachment: ChatAttachment) {
-        if (attachment.status != "ready" || attachment.downloadPath.isBlank()) return
-        attachmentBusy = true
-        localError = null
-        scope.launch {
-            try {
-                val bytes = controller.downloadAttachment(attachment) ?: return@launch
-                withContext(Dispatchers.IO) { openDownloadedAttachment(context.applicationContext, attachment, bytes) }
-            } catch (t: Throwable) {
-                localError = t.message ?: "Could not open attachment"
-            } finally {
-                attachmentBusy = false
-            }
-        }
-    }
-
     val photoPicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         if (uri != null) queuePicked(uri, "image")
     }
@@ -379,12 +369,12 @@ private fun CommunityConversationScreen(controller: ChatController, session: Aut
             ) {
                 items(controller.messages, key = { it.id }) { item ->
                     CommunityMessageBubble(
+                        accessToken = session.accessToken,
                         message = item,
                         mine = item.senderId == session.user.id,
                         senderLabel = controller.groupMembers.firstOrNull { it.user.id == item.senderId }?.user?.displayName,
                         selected = selectedId == item.id,
                         onSelect = { selectedId = if (selectedId == item.id) null else item.id },
-                        onOpenAttachment = ::openAttachment,
                     )
                 }
             }
@@ -516,11 +506,9 @@ private fun CommunityMembersPanel(controller: ChatController, myUserId: String, 
     val canAdd = group.myRole == "admin" || group.myRole == "moderator"
 
     Column(modifier = modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-            Column {
-                Text("Members", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-                Text("Your role: ${group.myRole}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
+        Column {
+            Text("Members", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+            Text("Your role: ${group.myRole}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
 
         if (canAdd) {
@@ -547,12 +535,7 @@ private fun CommunityMembersPanel(controller: ChatController, myUserId: String, 
 
         LazyColumn(verticalArrangement = Arrangement.spacedBy(6.dp)) {
             items(controller.groupMembers, key = { it.user.id }) { member ->
-                CommunityMemberCard(
-                    controller = controller,
-                    member = member,
-                    myUserId = myUserId,
-                    actorRole = group.myRole,
-                )
+                CommunityMemberCard(controller, member, myUserId, group.myRole)
             }
         }
     }
@@ -599,18 +582,9 @@ private fun CommunityMemberCard(
 
             if (actorRole == "admin" && !isMe) {
                 Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                    TextButton(
-                        onClick = { scope.launch { controller.setGroupRole(member, "member") } },
-                        enabled = !controller.busy && member.role != "member",
-                    ) { Text("Member") }
-                    TextButton(
-                        onClick = { scope.launch { controller.setGroupRole(member, "moderator") } },
-                        enabled = !controller.busy && member.role != "moderator",
-                    ) { Text("Moderator") }
-                    TextButton(
-                        onClick = { scope.launch { controller.setGroupRole(member, "admin") } },
-                        enabled = !controller.busy && member.role != "admin",
-                    ) { Text("Admin") }
+                    TextButton(onClick = { scope.launch { controller.setGroupRole(member, "member") } }, enabled = !controller.busy && member.role != "member") { Text("Member") }
+                    TextButton(onClick = { scope.launch { controller.setGroupRole(member, "moderator") } }, enabled = !controller.busy && member.role != "moderator") { Text("Moderator") }
+                    TextButton(onClick = { scope.launch { controller.setGroupRole(member, "admin") } }, enabled = !controller.busy && member.role != "admin") { Text("Admin") }
                 }
             }
         }
@@ -619,15 +593,21 @@ private fun CommunityMemberCard(
 
 @Composable
 private fun CommunityMessageBubble(
+    accessToken: String,
     message: ChatMessage,
     mine: Boolean,
     senderLabel: String?,
     selected: Boolean,
     onSelect: () -> Unit,
-    onOpenAttachment: (ChatAttachment) -> Unit,
 ) {
     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = if (mine) Arrangement.End else Arrangement.Start) {
-        Card(onClick = onSelect, modifier = Modifier.fillMaxWidth(0.86f)) {
+        Card(
+            onClick = onSelect,
+            modifier = Modifier.fillMaxWidth(0.86f),
+            colors = CardDefaults.cardColors(
+                containerColor = if (mine) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant,
+            ),
+        ) {
             Column(
                 Modifier.padding(horizontal = 10.dp, vertical = 8.dp),
                 verticalArrangement = Arrangement.spacedBy(5.dp),
@@ -648,34 +628,28 @@ private fun CommunityMessageBubble(
                 if (message.isDeleted) {
                     Text("Message deleted", fontStyle = FontStyle.Italic, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 } else {
-                    if (message.catalogCard != null) {
-                        Text("Catalog · ${message.catalogCard.title}", fontWeight = FontWeight.Bold)
-                        message.catalogCard.description.takeIf { it.isNotBlank() }?.let { Text(it, style = MaterialTheme.typography.bodySmall) }
+                    message.catalogCard?.let { card ->
+                        Card(modifier = Modifier.fillMaxWidth()) {
+                            Column(Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                Text(card.businessName, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
+                                Text(card.title, fontWeight = FontWeight.Bold)
+                                if (card.description.isNotBlank()) Text(card.description, style = MaterialTheme.typography.bodySmall)
+                                Text(card.priceAmount?.let { "${card.currency} $it" } ?: "Ask price", style = MaterialTheme.typography.bodySmall)
+                            }
+                        }
                     }
                     if (message.body.isNotBlank()) Text(message.body)
                     message.attachments.forEach { attachment ->
-                        Card(modifier = Modifier.fillMaxWidth()) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth().padding(horizontal = 10.dp, vertical = 7.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                            ) {
-                                val isVoice = attachment.contentType.startsWith("audio/")
-                                Text(if (isVoice) "Voice note" else attachment.fileName, modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodySmall)
-                                if (attachment.status == "ready" && attachment.downloadPath.isNotBlank()) {
-                                    TextButton(onClick = { onOpenAttachment(attachment) }) { Text(if (isVoice) "Play" else "Open") }
-                                } else {
-                                    Text(attachment.status, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                }
-                            }
-                        }
+                        MoshiMessageAttachment(accessToken = accessToken, attachment = attachment)
                     }
                     if (message.reactions.isNotEmpty()) {
                         Text(message.reactions.joinToString("  ") { "${it.emoji} ${it.count}" }, style = MaterialTheme.typography.labelSmall)
                     }
                 }
 
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
                     if (message.editedAt != null && !message.isDeleted) Text("edited", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(communityMessageTime(message.createdAt), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     if (mine) Text(message.state, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
@@ -754,3 +728,16 @@ private fun communityReadAttachment(context: Context, uri: Uri, kind: String): C
     val contentType = resolver.getType(uri) ?: if (kind == "image") "image/jpeg" else "application/octet-stream"
     return CommunityPickedAttachment(kind, displayName.take(160), contentType, size, uri.toString())
 }
+
+private fun communityMessageTime(value: String): String = runCatching {
+    DateTimeFormatter.ofPattern("HH:mm").withZone(ZoneId.systemDefault()).format(Instant.parse(value))
+}.getOrDefault("")
+
+private fun communityListTime(value: String): String = runCatching {
+    val instant = Instant.parse(value)
+    val zone = ZoneId.systemDefault()
+    val date = instant.atZone(zone).toLocalDate()
+    val today = java.time.LocalDate.now(zone)
+    if (date == today) DateTimeFormatter.ofPattern("HH:mm").withZone(zone).format(instant)
+    else DateTimeFormatter.ofPattern("dd/MM").withZone(zone).format(instant)
+}.getOrDefault("")
