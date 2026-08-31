@@ -18,6 +18,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -51,10 +52,15 @@ fun MoshiMessageAttachment(
     var loading by remember(attachment.id) { mutableStateOf(false) }
     var error by remember(attachment.id) { mutableStateOf<String?>(null) }
     var imageBytes by remember(attachment.id, attachment.status) { mutableStateOf<ByteArray?>(null) }
+    var imageError by remember(attachment.id) { mutableStateOf<String?>(null) }
+    var imageAttempt by remember(attachment.id) { mutableIntStateOf(0) }
 
-    LaunchedEffect(accessToken, attachment.id, attachment.status, attachment.downloadPath) {
+    LaunchedEffect(accessToken, attachment.id, attachment.status, attachment.downloadPath, imageAttempt) {
         if (ready && isImage && imageBytes == null) {
-            imageBytes = runCatching { api.downloadAttachment(accessToken, attachment) }.getOrNull()
+            imageError = null
+            runCatching { api.downloadAttachment(accessToken, attachment) }
+                .onSuccess { imageBytes = it }
+                .onFailure { imageError = it.message ?: "Could not load photo" }
         }
     }
 
@@ -87,17 +93,31 @@ fun MoshiMessageAttachment(
                     val bitmap = remember(imageBytes) {
                         imageBytes?.let { BitmapFactory.decodeByteArray(it, 0, it.size) }
                     }
-                    if (bitmap != null) {
-                        Image(
-                            bitmap = bitmap.asImageBitmap(),
-                            contentDescription = attachment.fileName,
-                            modifier = Modifier.fillMaxWidth().height(180.dp),
-                            contentScale = ContentScale.Crop,
-                        )
-                    } else if (ready) {
-                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            CircularProgressIndicator(strokeWidth = 2.dp)
-                            Text("Loading photo…", style = MaterialTheme.typography.bodySmall)
+                    when {
+                        bitmap != null -> {
+                            Image(
+                                bitmap = bitmap.asImageBitmap(),
+                                contentDescription = attachment.fileName,
+                                modifier = Modifier.fillMaxWidth().height(180.dp),
+                                contentScale = ContentScale.Crop,
+                            )
+                        }
+                        imageError != null -> {
+                            Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                                Text(
+                                    imageError ?: "Could not load photo",
+                                    modifier = Modifier.weight(1f),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.error,
+                                )
+                                TextButton(onClick = { imageAttempt += 1 }) { Text("Retry") }
+                            }
+                        }
+                        ready -> {
+                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                CircularProgressIndicator(strokeWidth = 2.dp)
+                                Text("Loading photo…", style = MaterialTheme.typography.bodySmall)
+                            }
                         }
                     }
                     Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
@@ -138,6 +158,15 @@ private fun InlineVoiceNote(accessToken: String, api: ChatApi, attachment: ChatA
     var loading by remember(attachment.id) { mutableStateOf(false) }
     var error by remember(attachment.id) { mutableStateOf<String?>(null) }
 
+    val cachedFile = remember(attachment.id, attachment.fileName) {
+        val dir = File(context.cacheDir, "moshi-voice-playback").apply { mkdirs() }
+        val safe = attachment.fileName
+            .replace(Regex("[^A-Za-z0-9._-]"), "_")
+            .take(100)
+            .ifBlank { "voice.m4a" }
+        File(dir, "${attachment.id.take(16)}-$safe")
+    }
+
     DisposableEffect(attachment.id) {
         onDispose {
             runCatching { player?.stop() }
@@ -163,11 +192,11 @@ private fun InlineVoiceNote(accessToken: String, api: ChatApi, attachment: ChatA
         error = null
         scope.launch {
             try {
-                val bytes = api.downloadAttachment(accessToken, attachment)
-                val file = withContext(Dispatchers.IO) {
-                    val dir = File(context.cacheDir, "moshi-voice-playback").apply { mkdirs() }
-                    val safe = attachment.fileName.replace(Regex("[^A-Za-z0-9._-]"), "_").take(100).ifBlank { "voice.m4a" }
-                    File(dir, "${attachment.id.take(16)}-$safe").apply { writeBytes(bytes) }
+                val file = if (cachedFile.isFile && cachedFile.length() > 0L) {
+                    cachedFile
+                } else {
+                    val bytes = api.downloadAttachment(accessToken, attachment)
+                    withContext(Dispatchers.IO) { cachedFile.apply { writeBytes(bytes) } }
                 }
                 val mediaPlayer = MediaPlayer().apply {
                     setDataSource(file.absolutePath)
