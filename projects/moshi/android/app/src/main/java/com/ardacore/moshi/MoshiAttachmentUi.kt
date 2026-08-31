@@ -29,8 +29,8 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.ardacore.moshi.chat.ChatApi
 import com.ardacore.moshi.chat.ChatAttachment
-import com.ardacore.moshi.chat.ChatController
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -38,12 +38,13 @@ import java.io.File
 
 @Composable
 fun MoshiMessageAttachment(
-    controller: ChatController,
+    accessToken: String,
     attachment: ChatAttachment,
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current.applicationContext
     val scope = rememberCoroutineScope()
+    val api = remember { ChatApi() }
     val ready = attachment.status == "ready" && attachment.downloadPath.isNotBlank()
     val isVoice = attachment.contentType.startsWith("audio/")
     val isImage = attachment.kind == "image" || attachment.contentType.startsWith("image/")
@@ -51,9 +52,9 @@ fun MoshiMessageAttachment(
     var error by remember(attachment.id) { mutableStateOf<String?>(null) }
     var imageBytes by remember(attachment.id, attachment.status) { mutableStateOf<ByteArray?>(null) }
 
-    LaunchedEffect(attachment.id, attachment.status, attachment.downloadPath) {
+    LaunchedEffect(accessToken, attachment.id, attachment.status, attachment.downloadPath) {
         if (ready && isImage && imageBytes == null) {
-            imageBytes = controller.downloadAttachment(attachment)
+            imageBytes = runCatching { api.downloadAttachment(accessToken, attachment) }.getOrNull()
         }
     }
 
@@ -63,7 +64,7 @@ fun MoshiMessageAttachment(
         error = null
         scope.launch {
             try {
-                val bytes = imageBytes ?: controller.downloadAttachment(attachment) ?: return@launch
+                val bytes = imageBytes ?: api.downloadAttachment(accessToken, attachment)
                 withContext(Dispatchers.IO) {
                     openDownloadedAttachment(context, attachment, bytes)
                 }
@@ -81,7 +82,7 @@ fun MoshiMessageAttachment(
             verticalArrangement = Arrangement.spacedBy(5.dp),
         ) {
             when {
-                isVoice -> InlineVoiceNote(controller, attachment)
+                isVoice -> InlineVoiceNote(accessToken, api, attachment)
                 isImage -> {
                     val bitmap = remember(imageBytes) {
                         imageBytes?.let { BitmapFactory.decodeByteArray(it, 0, it.size) }
@@ -128,7 +129,7 @@ fun MoshiMessageAttachment(
 }
 
 @Composable
-private fun InlineVoiceNote(controller: ChatController, attachment: ChatAttachment) {
+private fun InlineVoiceNote(accessToken: String, api: ChatApi, attachment: ChatAttachment) {
     val context = LocalContext.current.applicationContext
     val scope = rememberCoroutineScope()
     val ready = attachment.status == "ready" && attachment.downloadPath.isNotBlank()
@@ -162,7 +163,7 @@ private fun InlineVoiceNote(controller: ChatController, attachment: ChatAttachme
         error = null
         scope.launch {
             try {
-                val bytes = controller.downloadAttachment(attachment) ?: error("Voice note is unavailable")
+                val bytes = api.downloadAttachment(accessToken, attachment)
                 val file = withContext(Dispatchers.IO) {
                     val dir = File(context.cacheDir, "moshi-voice-playback").apply { mkdirs() }
                     val safe = attachment.fileName.replace(Regex("[^A-Za-z0-9._-]"), "_").take(100).ifBlank { "voice.m4a" }
