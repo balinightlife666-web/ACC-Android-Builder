@@ -1,5 +1,6 @@
 package com.ardacore.moshi
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -36,6 +37,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -178,8 +180,14 @@ private fun MasterHome(auth: AuthController) {
     )
     var selected by remember { mutableIntStateOf(0) }
     var immersive by remember { mutableStateOf(false) }
+    var screenGeneration by remember { mutableIntStateOf(0) }
 
     LaunchedEffect(selected) { immersive = false }
+
+    BackHandler(enabled = immersive) {
+        immersive = false
+        screenGeneration += 1
+    }
 
     Scaffold(
         bottomBar = {
@@ -198,12 +206,14 @@ private fun MasterHome(auth: AuthController) {
         },
     ) { padding ->
         val modifier = Modifier.padding(padding)
-        when (selected) {
-            0 -> MoshiChatsScreen(session, modifier, onImmersiveChanged = { immersive = it })
-            1 -> CommunityHubScreen(session, modifier, onImmersiveChanged = { immersive = it })
-            2 -> BusinessCommerceHubScreen(auth, modifier)
-            3 -> ActivityHubScreen(session, modifier)
-            else -> MasterMe(auth, modifier)
+        key(selected, screenGeneration) {
+            when (selected) {
+                0 -> MoshiChatsScreen(session, modifier, onImmersiveChanged = { immersive = it })
+                1 -> CommunityHubScreen(session, modifier, onImmersiveChanged = { immersive = it })
+                2 -> BusinessCommerceHubScreen(auth, modifier)
+                3 -> ActivityHubScreen(session, modifier)
+                else -> MasterMe(auth, modifier)
+            }
         }
     }
 }
