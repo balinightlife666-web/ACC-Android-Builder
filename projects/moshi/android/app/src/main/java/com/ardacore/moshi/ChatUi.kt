@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.HorizontalDivider
@@ -222,6 +223,7 @@ private fun ConversationScreen(controller: ChatController, me: MoshiUser, modifi
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
     val conversation = controller.activeConversation ?: return
+    val messageListState = rememberLazyListState()
     var messageText by remember(conversation.id) { mutableStateOf("") }
     var selectedId by remember(conversation.id) { mutableStateOf<String?>(null) }
     var replyToId by remember(conversation.id) { mutableStateOf<String?>(null) }
@@ -233,6 +235,13 @@ private fun ConversationScreen(controller: ChatController, me: MoshiUser, modifi
     val replyingTo = controller.messages.firstOrNull { it.id == replyToId }
     val editing = controller.messages.firstOrNull { it.id == editingId }
     val hasQueued = controller.messages.any { it.state == "queued" }
+
+    val latestMessageId = controller.messages.lastOrNull()?.id
+    LaunchedEffect(conversation.id, latestMessageId) {
+        if (controller.messages.isNotEmpty()) {
+            messageListState.animateScrollToItem(controller.messages.lastIndex)
+        }
+    }
 
     fun sendPicked(uri: Uri, kind: String) {
         attachmentBusy = true
@@ -354,7 +363,7 @@ private fun ConversationScreen(controller: ChatController, me: MoshiUser, modifi
             HorizontalDivider(Modifier.padding(vertical = 8.dp))
         }
 
-        LazyColumn(modifier = Modifier.weight(1f).fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        LazyColumn(state = messageListState, modifier = Modifier.weight(1f).fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             items(controller.messages, key = { it.id }) { item ->
                 val mine = item.senderId == me.id
                 val senderLabel = if (conversation.group != null && !mine) {
