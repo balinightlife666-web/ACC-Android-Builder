@@ -165,7 +165,7 @@ private fun MasterHome(auth: AuthController) {
     ) { padding ->
         val modifier = Modifier.padding(padding)
         when (selected) {
-            0 -> ChatHubScreen(session, modifier)
+            0 -> MoshiChatsScreen(session, modifier)
             1 -> CommunityHubScreen(session, modifier)
             2 -> BusinessCommerceHubScreen(auth, modifier)
             3 -> ActivityHubScreen(session, modifier)
