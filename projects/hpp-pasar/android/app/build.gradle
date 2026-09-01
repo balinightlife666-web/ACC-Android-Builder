@@ -18,3 +18,7 @@ android {
         buildConfig true
     }
 }
+
+dependencies {
+    implementation 'androidx.appcompat:appcompat:1.8.0'
+}
