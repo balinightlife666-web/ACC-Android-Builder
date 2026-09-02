@@ -1,9 +1,9 @@
 {
   "status": "PUBLISHED",
   "event": "schedule",
-  "runId": "33656239711",
-  "sourceHead": "ba23f00ee68994c0f05dc8a8484ac2ad5ac1f3a1",
-  "bbyaRelevantCommit": "56b194785669052ab46c11a324175586856c650a",
+  "runId": "33659099041",
+  "sourceHead": "287a5bebfaba7f39133fb8520e14c4162d685524",
+  "bbyaRelevantCommit": "c7fb674ed08cbfb12540a3922d8688aced42284a",
   "changed": "true",
-  "recordedAt": "2026-09-02T16:39:32Z"
+  "recordedAt": "2026-09-02T17:07:26Z"
 }
