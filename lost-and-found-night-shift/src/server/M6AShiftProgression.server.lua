@@ -12,6 +12,7 @@ local VERSION = ShiftProgressionConfig.Version
 local boundPlayers = setmetatable({}, { __mode = "k" })
 local boundLeaderstats = setmetatable({}, { __mode = "k" })
 local boundXP = setmetatable({}, { __mode = "k" })
+local revisions = setmetatable({}, { __mode = "k" })
 
 local function apply(player, xpValue)
     if not player or not player.Parent then return end
@@ -31,6 +32,10 @@ local function apply(player, xpValue)
     for _, entry in ipairs(ShiftProgressionConfig.Levels) do
         player:SetAttribute("LostFoundMilestoneL" .. tostring(entry.level), snapshot.xp >= entry.minXP)
     end
+
+    revisions[player] = (revisions[player] or 0) + 1
+    -- Written last so clients never render a partially-updated progression snapshot.
+    player:SetAttribute("LostFoundProgressionRevision", revisions[player])
 end
 
 local function bindXP(player, xpValue)
