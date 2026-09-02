@@ -107,6 +107,12 @@ local previousLevel = nil
 local initialized = false
 local flashToken = 0
 
+local function normalMilestoneText()
+    local maxLevel = player:GetAttribute("LostFoundShiftMaxLevel") == true
+    local nextMilestone = tostring(player:GetAttribute("LostFoundShiftNextMilestone") or "PUNCAK TERCAPAI")
+    return maxLevel and "Puncak Night Shift tercapai" or ("Target berikut: " .. nextMilestone)
+end
+
 local function flashLevelUp(level)
     flashToken += 1
     local token = flashToken
@@ -114,9 +120,8 @@ local function flashLevelUp(level)
     milestone.Text = "PROMOSI SHIFT • LEVEL " .. tostring(level)
     task.delay(2.2, function()
         if token ~= flashToken then return end
-        local nextMilestone = tostring(player:GetAttribute("LostFoundShiftNextMilestone") or "PUNCAK TERCAPAI")
         milestone.TextColor3 = Color3.fromRGB(159, 172, 190)
-        milestone.Text = "Target berikut: " .. nextMilestone
+        milestone.Text = normalMilestoneText()
     end)
 end
 
@@ -133,7 +138,6 @@ local function refresh()
     local nextXP = math.max(floorXP, math.floor(tonumber(player:GetAttribute("LostFoundShiftNextXP")) or floorXP))
     local progress = math.clamp(tonumber(player:GetAttribute("LostFoundShiftProgress")) or 0, 0, 1)
     local maxLevel = player:GetAttribute("LostFoundShiftMaxLevel") == true
-    local nextMilestone = tostring(player:GetAttribute("LostFoundShiftNextMilestone") or "PUNCAK TERCAPAI")
 
     panel.Visible = true
     title.Text = "SHIFT " .. tostring(level) .. " • " .. shiftTitle
@@ -144,7 +148,7 @@ local function refresh()
     }):Play()
 
     if not initialized then
-        milestone.Text = maxLevel and "Puncak Night Shift tercapai" or ("Target berikut: " .. nextMilestone)
+        milestone.Text = normalMilestoneText()
         previousLevel = level
         initialized = true
     elseif previousLevel and level > previousLevel then
@@ -152,23 +156,10 @@ local function refresh()
         flashLevelUp(level)
     else
         previousLevel = level
-        milestone.Text = maxLevel and "Puncak Night Shift tercapai" or ("Target berikut: " .. nextMilestone)
+        milestone.TextColor3 = Color3.fromRGB(159, 172, 190)
+        milestone.Text = normalMilestoneText()
     end
 end
 
-local watched = {
-    "LostFoundShiftLevel",
-    "LostFoundShiftTitle",
-    "LostFoundShiftXP",
-    "LostFoundShiftFloorXP",
-    "LostFoundShiftNextXP",
-    "LostFoundShiftProgress",
-    "LostFoundShiftNextMilestone",
-    "LostFoundShiftMaxLevel",
-}
-
-for _, attributeName in ipairs(watched) do
-    player:GetAttributeChangedSignal(attributeName):Connect(refresh)
-end
-
+player:GetAttributeChangedSignal("LostFoundProgressionRevision"):Connect(refresh)
 refresh()
