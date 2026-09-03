@@ -22,7 +22,7 @@ jobs:
     timeout-minutes: 15
     env:
       SOURCE_REPO: ardarawk-cloud/ACC-Roblox-maps
-      SOURCE_SHA: fb9667f9d1ff144e31d4e17a2e5adc05b9ee1e89
+      SOURCE_SHA: d42271534e0f6f4142dc0c931c31981b264bf1ed
       UNIVERSE_ID: '10745325613'
       PLACE_ID: '80994730522893'
       ROBLOX_API_KEY: ${{ secrets.ROCKET_RACOON_PUBLISH }}
@@ -33,16 +33,16 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Checkout locked Becak E-Bike V3 source
+      - name: Checkout locked Becak E-Bike V3.2 source
         uses: actions/checkout@v4
         with:
           repository: ardarawk-cloud/ACC-Roblox-maps
-          ref: fb9667f9d1ff144e31d4e17a2e5adc05b9ee1e89
+          ref: d42271534e0f6f4142dc0c931c31981b264bf1ed
           token: ${{ secrets.ACC_ROBLOX_MAPS_READ_TOKEN }}
           path: becak-source
           fetch-depth: 1
 
-      - name: Preflight locked target and V3 source
+      - name: Preflight locked target and V3.2 source
         shell: bash
         run: |
           set -euo pipefail
@@ -54,23 +54,27 @@ jobs:
           test -s becak-source/maps/becak-e-bike/place.rbxlx
           grep -Fq 'ACC_BecakWorldV3' becak-source/maps/becak-e-bike/city.realism.architecture.server.lua
           grep -Fq 'BecakWorldV3VisualAuthority' becak-source/maps/becak-e-bike/city.realism.architecture.server.lua
+          grep -Fq "BecakPassengerCompartmentPosition','FRONT" becak-source/maps/becak-e-bike/masterplan.vehicle.server.lua
+          grep -Fq "BecakDriverPosition','BEHIND_PASSENGER" becak-source/maps/becak-e-bike/masterplan.vehicle.server.lua
+          grep -Fq "ACC_BecakUILocation','RIGHT_TOP" becak-source/maps/becak-e-bike/mobile.safearea.client.lua
+          grep -Fq "BecakTrafficRealScaleRemesh','v3.2" becak-source/maps/becak-e-bike/traffic.npc.server.lua
           grep -Fq 'ACC_BecakVehicleRealism' becak-source/maps/becak-e-bike/vehicle.realism.server.lua
           grep -Fq 'ACC_BecakVehicleGeometryRealism' becak-source/maps/becak-e-bike/vehicle.geometry.realism.server.lua
-          echo "BECAK V3 SOURCE LOCK PASS source=$actual"
+          echo "BECAK V3.2 SOURCE LOCK PASS source=$actual"
 
-      - name: Migrate proven v36 place to Nusakarya V3
+      - name: Migrate proven v38 place to Nusakarya V3.2
         shell: bash
         run: |
           set -euo pipefail
           node scripts/becak-v3-rocket-patch.js becak-source
 
-      - name: Apply V3.1 road-clearance hotfix
+      - name: Preserve V3.1 road-clearance hotfix
         shell: bash
         run: |
           set -euo pipefail
           node scripts/becak-v31-road-clearance-patch.js becak-source
 
-      - name: Validate patched Becak V3.1 place
+      - name: Validate patched Becak V3.2 place
         shell: bash
         run: |
           set -euo pipefail
@@ -81,21 +85,28 @@ jobs:
           grep -q 'BecakEBike_Runtime' "$place"
           grep -q 'BecakEBike_Client' "$place"
           grep -q 'BecakEBike_DriverPhone' "$place"
+          grep -q 'BecakEBike_MobileSafeArea' "$place"
+          grep -q 'BecakEBike_TrafficNPC' "$place"
+          grep -q 'BecakEBike_VehicleMasterplan' "$place"
+          grep -q 'BecakEBike_VehicleRealism' "$place"
+          grep -q 'BecakEBike_VehicleGeometryRealism' "$place"
           grep -q 'ACC_BecakWorldV3' "$place"
           grep -q 'BecakWorldV3VisualAuthority' "$place"
           grep -q 'BecakWorldV3LegacyVisibleShells' "$place"
           grep -q 'BecakEBike_CityRealismArchitecture' "$place"
-          grep -q 'BecakEBike_VehicleRealism' "$place"
-          grep -q 'BecakEBike_VehicleGeometryRealism' "$place"
+          grep -q "BecakPassengerCompartmentPosition','FRONT" "$place"
+          grep -q "BecakDriverPosition','BEHIND_PASSENGER" "$place"
+          grep -q "ACC_BecakUILocation','RIGHT_TOP" "$place"
+          grep -q "BecakTrafficRealScaleRemesh','v3.2" "$place"
           grep -q 'BecakEBike_V31RoadClearance' "$place"
           grep -q "ACC_BecakRoadClearanceHotfix','v3.1" "$place"
           sha=$(sha256sum "$place" | awk '{print $1}')
           echo "PLACE_FILE=$place" >> "$GITHUB_ENV"
           echo "PLACE_BYTES=$bytes" >> "$GITHUB_ENV"
           echo "PLACE_SHA256=$sha" >> "$GITHUB_ENV"
-          echo "BECAK V3.1 PLACE PASS bytes=$bytes sha256=$sha"
+          echo "BECAK V3.2 PLACE PASS bytes=$bytes sha256=$sha"
 
-      - name: Publish Becak E-Bike V3.1 LIVE via Rocket Racoon
+      - name: Publish Becak E-Bike V3.2 LIVE via Rocket Racoon
         shell: bash
         run: |
           set -euo pipefail
@@ -114,7 +125,7 @@ jobs:
           echo "PUBLISHED_VERSION=$version" >> "$GITHUB_ENV"
           echo "ROBLOX PUBLISH PASS version=$version"
 
-      - name: Persist Becak V3.1 Rocket Racoon receipt
+      - name: Persist Becak V3.2 Rocket Racoon receipt
         shell: bash
         run: |
           set -euo pipefail
@@ -122,7 +133,7 @@ jobs:
           jq -n \
             --arg status 'LIVE_PUBLISHED' \
             --arg project 'BECAK E-BIKE' \
-            --arg mode 'NUSAKARYA_V3_1_ROAD_CLEARANCE_ROCKET_RACOON' \
+            --arg mode 'NUSAKARYA_V3_2_REAL_SCALE_TOPRIGHT_ROCKET_RACOON' \
             --arg sourceRepo "$SOURCE_REPO" \
             --arg sourceCommit "$SOURCE_SHA" \
             --arg universeId "$UNIVERSE_ID" \
@@ -132,13 +143,13 @@ jobs:
             --arg placeSha256 "$PLACE_SHA256" \
             --arg runId "$GITHUB_RUN_ID" \
             --arg publishedAt "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
-            '{status:$status,project:$project,mode:$mode,sourceRepo:$sourceRepo,sourceCommit:$sourceCommit,universeId:$universeId,placeId:$placeId,versionNumber:($versionNumber|tonumber),placeBytes:($placeBytes|tonumber),placeSha256:$placeSha256,runId:$runId,publishedAt:$publishedAt,note:"Becak E-Bike Nusakarya V3.1 road-clearance hotfix published from Bali Night Life publisher using ROCKET_RACOON_PUBLISH."}' \
+            '{status:$status,project:$project,mode:$mode,sourceRepo:$sourceRepo,sourceCommit:$sourceCommit,universeId:$universeId,placeId:$placeId,versionNumber:($versionNumber|tonumber),placeBytes:($placeBytes|tonumber),placeSha256:$placeSha256,runId:$runId,publishedAt:$publishedAt,note:"Becak E-Bike Nusakarya V3.2 real-scale vehicle + top-right launcher published from Bali Night Life publisher using ROCKET_RACOON_PUBLISH; V3.1 road clearance preserved."}' \
             > deploy-status/becak-e-bike-v3-rocket-racoon.json
           cat deploy-status/becak-e-bike-v3-rocket-racoon.json
 
           git config user.name 'Becak E-Bike Publish Bot'
           git config user.email 'actions@users.noreply.github.com'
           git add deploy-status/becak-e-bike-v3-rocket-racoon.json
-          git commit -m "Record Becak E-Bike V3.1 publish v${PUBLISHED_VERSION} [skip ci]"
+          git commit -m "Record Becak E-Bike V3.2 publish v${PUBLISHED_VERSION} [skip ci]"
           git pull --rebase origin main
           git push origin HEAD:main
