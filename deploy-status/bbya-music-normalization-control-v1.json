@@ -1,0 +1,33 @@
+{
+  "status": "APPROVED_PERMISSION_NOT_PROVEN",
+  "scope": "BBYA_MUSIC_MANAGER_CONTROLLED_TEST_ONLY",
+  "track": "BBYA NORM CONTROL 125",
+  "source": {
+    "kind": "generated_original_test_tones",
+    "copyrightClean": true,
+    "sha256": "915454e001ccbc838cd7a01b7964357c8eb5bc565fa3bf479f450636d09bcf8a",
+    "durationSeconds": 30.0,
+    "sampleRateHz": 48000
+  },
+  "processing": {
+    "authority": "EXPERIMENTAL_CANDIDATE_NOT_FINAL",
+    "speedFactor": 1.25,
+    "playbackSpeed": 0.8,
+    "method": "ffmpeg asetrate + aresample",
+    "processedSha256": "aa756051551c29864e118af4a575e5e2e2aa91bc9296ec65c483c978c84d7198",
+    "processedDurationSeconds": 24.024
+  },
+  "roblox": {
+    "uploader": "AM_STUDIO_AUDIO_CADANGAN_02",
+    "operationPath": "operations/830f2dfa-dbac-452a-9f8b-35620f8faea0",
+    "assetId": "76079541645488",
+    "moderationState": "Approved",
+    "permissionUniverseId": "10762005984",
+    "permissionHttp": "403",
+    "permissionOk": false,
+    "productionUniverseTargeted": false
+  },
+  "workflowRun": "33730069678",
+  "sourceCommit": "29d14e53fa4687289f333b9365a268ac30a6b4cf",
+  "recordedAtUtc": "2026-09-03T07:53:01.437957+00:00"
+}
