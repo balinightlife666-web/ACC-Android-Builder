@@ -1,0 +1,72 @@
+name: MOSHI RC2 Package
+
+# One package run for the consolidated post-QC candidate.
+on:
+  push:
+    branches:
+      - moshi/final-alpha-v01
+    paths:
+      - '.github/workflows/moshi-rc2-package.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  package:
+    runs-on: ubuntu-22.04
+    env:
+      MOSHI_RC_API_BASE_URL: https://america-assignments-donors-seo.trycloudflare.com
+    defaults:
+      run:
+        working-directory: projects/moshi/android
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Verify current Alpha backend endpoint
+        run: |
+          set -euo pipefail
+          curl --fail --silent --show-error --max-time 20 "$MOSHI_RC_API_BASE_URL/health" >/tmp/moshi-health.txt
+          cat /tmp/moshi-health.txt
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: android-actions/setup-android@v3
+
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.10.2'
+
+      - name: Build release unsigned APK
+        run: gradle :app:assembleRelease --stacktrace -PMOSHI_API_BASE_URL="$MOSHI_RC_API_BASE_URL"
+
+      - name: Align APK and export signing tool
+        run: |
+          set -euo pipefail
+          BUILD_TOOLS="$(find "$ANDROID_HOME/build-tools" -mindepth 1 -maxdepth 1 -type d | sort -V | tail -1)"
+          "$BUILD_TOOLS/zipalign" -f -p 4 \
+            app/build/outputs/apk/release/app-release-unsigned.apk \
+            /tmp/MOSHI-alpha8-RC2-aligned-unsigned.apk
+          cp "$BUILD_TOOLS/lib/apksigner.jar" /tmp/apksigner.jar
+          sha256sum /tmp/MOSHI-alpha8-RC2-aligned-unsigned.apk >/tmp/MOSHI-alpha8-RC2-aligned-unsigned.sha256
+          {
+            echo 'product=MOSHI'
+            echo 'channel=internal-alpha-rc'
+            echo 'version=0.4.0-alpha.8-rc2'
+            echo 'versionCode=11'
+            echo "commit=${GITHUB_SHA}"
+            echo "api_base_url=${MOSHI_RC_API_BASE_URL}"
+            echo 'signing=unsigned-aligned; sign locally with MOSHI Internal Alpha key'
+          } >/tmp/MOSHI-alpha8-RC2-build.txt
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: MOSHI-alpha8-RC2-signing-kit
+          path: |
+            /tmp/MOSHI-alpha8-RC2-aligned-unsigned.apk
+            /tmp/MOSHI-alpha8-RC2-aligned-unsigned.sha256
+            /tmp/MOSHI-alpha8-RC2-build.txt
+            /tmp/apksigner.jar
+          retention-days: 7
