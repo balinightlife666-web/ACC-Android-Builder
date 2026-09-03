@@ -1,0 +1,332 @@
+name: BBYA Music Controlled MANIS V1
+
+on:
+  push:
+    branches:
+      - 'feat/bbya-music-manager-mvp'
+    paths:
+      - '.github/workflows/bbya-music-controlled-manis-v1.yml'
+      - '.bbya-music-controlled-manis-trigger'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: bbya-music-controlled-manis-v1
+  cancel-in-progress: false
+
+jobs:
+  controlled-manis:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      DRIVE_FILE_ID: '1Wj0DHxZzlMj_qVIywQ_wzkwga2Zntb3P'
+      ORIGINAL_SHA256: '6446f570652df9651057bb646c4202b1e185f115224b4ec0e206b4ba31d371a4'
+      TRACK_TITLE: 'MANIS'
+      TEST_UNIVERSE_ID: '10762005984'
+      SPEED_FACTOR: '1.25'
+      PLAYBACK_SPEED: '0.8'
+      AUDIO_KEY: ${{ secrets.ROBLOX_PUBLISH_CADANGAN_AUDII_01 }}
+
+    steps:
+      - name: Checkout development authority
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install audio and Drive tools
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq ffmpeg
+          python3 -m pip install --quiet gdown
+
+      - name: Download exact MANIS source and verify
+        id: source
+        shell: bash
+        run: |
+          set -euo pipefail
+          raw="$RUNNER_TEMP/MANIS.source.mp3"
+          rm -f "$raw"
+          if gdown "https://drive.google.com/uc?id=${DRIVE_FILE_ID}" -O "$raw"; then
+            echo 'DRIVE_DOWNLOAD_METHOD=gdown'
+          else
+            rm -f "$raw"
+            curl -fL --retry 2 --retry-delay 2 \
+              --connect-timeout 20 --max-time 120 \
+              "https://drive.usercontent.google.com/download?id=${DRIVE_FILE_ID}&export=download&confirm=t" \
+              -o "$raw"
+            echo 'DRIVE_DOWNLOAD_METHOD=direct'
+          fi
+          [[ -s "$raw" ]] || { echo SOURCE_DOWNLOAD_EMPTY; exit 20; }
+          actual=$(sha256sum "$raw" | awk '{print $1}')
+          [[ "$actual" == "$ORIGINAL_SHA256" ]] || { echo "SOURCE_SHA256_MISMATCH expected=$ORIGINAL_SHA256 actual=$actual"; exit 21; }
+          duration=$(ffprobe -v error -show_entries format=duration -of default=nw=1:nk=1 "$raw" | head -n1)
+          sample_rate=$(ffprobe -v error -select_streams a:0 -show_entries stream=sample_rate -of default=nw=1:nk=1 "$raw" | head -n1)
+          codec=$(ffprobe -v error -select_streams a:0 -show_entries stream=codec_name -of default=nw=1:nk=1 "$raw" | head -n1)
+          echo "path=$raw" >> "$GITHUB_OUTPUT"
+          echo "duration=$duration" >> "$GITHUB_OUTPUT"
+          echo "sample_rate=$sample_rate" >> "$GITHUB_OUTPUT"
+          echo "codec=$codec" >> "$GITHUB_OUTPUT"
+          echo "SOURCE_OK codec=$codec sample_rate=$sample_rate duration=$duration sha256=$actual"
+
+      - name: Preprocess reversible speed candidate
+        id: process
+        shell: bash
+        env:
+          RAW_PATH: ${{ steps.source.outputs.path }}
+          SAMPLE_RATE: ${{ steps.source.outputs.sample_rate }}
+        run: |
+          set -euo pipefail
+          processed="$RUNNER_TEMP/MANIS.s${SPEED_FACTOR}.mp3"
+          ffmpeg -y -hide_banner -loglevel error -i "$RAW_PATH" \
+            -map 0:a:0 -vn \
+            -af "asetrate=${SAMPLE_RATE}*${SPEED_FACTOR},aresample=${SAMPLE_RATE}" \
+            -ac 2 -codec:a libmp3lame -b:a 192k "$processed"
+          [[ -s "$processed" ]] || { echo PROCESSED_AUDIO_MISSING; exit 30; }
+          sha=$(sha256sum "$processed" | awk '{print $1}')
+          duration=$(ffprobe -v error -show_entries format=duration -of default=nw=1:nk=1 "$processed" | head -n1)
+          python3 - "$SPEED_FACTOR" "$PLAYBACK_SPEED" "${{ steps.source.outputs.duration }}" "$duration" <<'PY'
+          import sys
+          s=float(sys.argv[1]); p=float(sys.argv[2]); original=float(sys.argv[3]); processed=float(sys.argv[4])
+          if abs(p - (1.0/s)) > 1e-6:
+              raise SystemExit('INVERSE_PLAYBACK_SPEED_MISMATCH')
+          expected=original/s
+          if abs(processed-expected) > 1.5:
+              raise SystemExit(f'PROCESSED_DURATION_OUT_OF_RANGE expected={expected} actual={processed}')
+          print(f'NORMALIZATION_MATH_PASS speedFactor={s} playbackSpeed={p} expectedProcessedDuration={expected:.3f} actualProcessedDuration={processed:.3f}')
+          PY
+          echo "path=$processed" >> "$GITHUB_OUTPUT"
+          echo "sha256=$sha" >> "$GITHUB_OUTPUT"
+          echo "duration=$duration" >> "$GITHUB_OUTPUT"
+
+      - name: Introspect Roblox uploader authority
+        id: key
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ -n "${AUDIO_KEY:-}" ]] || { echo AUDIO_KEY_MISSING; exit 40; }
+          tmp=$(mktemp)
+          code=$(curl -sS -o "$tmp" -w '%{http_code}' -X POST \
+            'https://apis.roblox.com/api-keys/v1/introspect' \
+            -H 'Content-Type: application/json' \
+            --data "{\"apiKey\":\"$AUDIO_KEY\"}")
+          [[ "$code" == '200' ]] || { echo "INTROSPECT_HTTP_$code"; cat "$tmp"; exit 41; }
+          python3 - "$tmp" "$GITHUB_OUTPUT" <<'PY'
+          import json,sys
+          d=json.load(open(sys.argv[1],encoding='utf-8'))
+          scopes=d.get('scopes') or []
+          asset=any(s.get('name')=='asset' and {'read','write'}.issubset(set(s.get('operations') or [])) for s in scopes)
+          perm=any(s.get('name')=='asset-permissions:write' or (s.get('name')=='asset-permissions' and 'write' in (s.get('operations') or [])) for s in scopes)
+          uid=d.get('authorizedUserId')
+          if d.get('expired') is True or d.get('enabled') is False or not uid or not asset or not perm:
+              raise SystemExit('AUDIO_KEY_AUTHORITY_FAILED')
+          with open(sys.argv[2],'a',encoding='utf-8') as f:
+              f.write(f'authorized_user_id={uid}\n')
+          print('UPLOADER_AUTHORITY_PASS')
+          PY
+          rm -f "$tmp"
+
+      - name: Create exactly one Roblox audio asset
+        id: upload
+        shell: bash
+        env:
+          AUDIO_PATH: ${{ steps.process.outputs.path }}
+          AUTHORIZED_USER_ID: ${{ steps.key.outputs.authorized_user_id }}
+        run: |
+          set -euo pipefail
+          request=$(python3 - <<'PY'
+          import json,os
+          print(json.dumps({
+            'assetType':'Audio',
+            'displayName':os.environ['TRACK_TITLE'][:50],
+            'description':f"BBYA Music controlled TEST; reversible normalization S={os.environ['SPEED_FACTOR']}",
+            'creationContext':{'creator':{'userId':str(os.environ['AUTHORIZED_USER_ID'])}}
+          },separators=(',',':')))
+          PY
+          )
+          code=$(curl -sS --location \
+            --output "$RUNNER_TEMP/create-response.json" \
+            --write-out '%{http_code}' \
+            'https://apis.roblox.com/assets/v1/assets' \
+            --header "x-api-key: $AUDIO_KEY" \
+            --form-string "request=$request" \
+            --form "fileContent=@${AUDIO_PATH};type=audio/mpeg")
+          echo "CREATE_HTTP=$code"
+          [[ "$code" -ge 200 && "$code" -lt 300 ]] || { cat "$RUNNER_TEMP/create-response.json"; exit 50; }
+          python3 - "$RUNNER_TEMP/create-response.json" "$GITHUB_OUTPUT" <<'PY'
+          import json,sys
+          d=json.load(open(sys.argv[1],encoding='utf-8'))
+          path=d.get('path')
+          if not path or not path.startswith('operations/'):
+              raise SystemExit(f'UPLOAD_OPERATION_PATH_MISSING: {d}')
+          with open(sys.argv[2],'a',encoding='utf-8') as f: f.write(f'operation_path={path}\n')
+          print(f'UPLOAD_OPERATION={path}')
+          PY
+
+      - name: Poll operation through final Asset ID
+        id: operation
+        shell: bash
+        env:
+          OPERATION_PATH: ${{ steps.upload.outputs.operation_path }}
+        run: |
+          set -euo pipefail
+          op_id="${OPERATION_PATH#operations/}"
+          out="$RUNNER_TEMP/operation-response.json"
+          for attempt in $(seq 1 36); do
+            code=$(curl -sS -o "$out" -w '%{http_code}' \
+              -H "x-api-key: $AUDIO_KEY" \
+              "https://apis.roblox.com/assets/v1/operations/${op_id}")
+            [[ "$code" -ge 200 && "$code" -lt 300 ]] || { echo "OPERATION_HTTP_$code"; cat "$out"; exit 60; }
+            done_flag=$(jq -r '.done // false' "$out")
+            [[ "$done_flag" == 'true' ]] && break
+            [[ "$attempt" -lt 36 ]] || { echo OPERATION_TIMEOUT; exit 61; }
+            sleep 5
+          done
+          python3 - "$out" "$GITHUB_OUTPUT" <<'PY'
+          import json,sys
+          d=json.load(open(sys.argv[1],encoding='utf-8'))
+          if d.get('error'): raise SystemExit(f"ROBLOX_OPERATION_ERROR: {d['error']}")
+          r=d.get('response') or {}
+          aid=str(r.get('assetId') or '')
+          if not aid: raise SystemExit(f'FINAL_ASSET_ID_MISSING: {d}')
+          mod=str((r.get('moderationResult') or {}).get('moderationState') or 'UNKNOWN')
+          with open(sys.argv[2],'a',encoding='utf-8') as f:
+              f.write(f'asset_id={aid}\nmoderation={mod}\n')
+          print(f'FINAL_ASSET_ID={aid} moderation={mod}')
+          PY
+
+      - name: Wait for final moderation state
+        id: moderation
+        shell: bash
+        env:
+          ASSET_ID: ${{ steps.operation.outputs.asset_id }}
+          INITIAL_STATE: ${{ steps.operation.outputs.moderation }}
+        run: |
+          set -euo pipefail
+          state="$INITIAL_STATE"
+          out="$RUNNER_TEMP/asset-response.json"
+          for attempt in $(seq 1 32); do
+            upper=$(printf '%s' "$state" | tr '[:lower:]' '[:upper:]')
+            if [[ "$upper" == *APPROVED* || "$upper" == *REJECTED* || "$upper" == *DENIED* || "$upper" == *FAILED* ]]; then break; fi
+            code=$(curl -sS -o "$out" -w '%{http_code}' \
+              -H "x-api-key: $AUDIO_KEY" \
+              "https://apis.roblox.com/assets/v1/assets/${ASSET_ID}?readMask=moderationResult,state,displayName")
+            if [[ "$code" == '200' ]]; then
+              state=$(jq -r '.moderationResult.moderationState // "UNKNOWN"' "$out")
+            fi
+            [[ "$attempt" -lt 32 ]] || break
+            sleep 15
+          done
+          echo "state=$state" >> "$GITHUB_OUTPUT"
+          echo "FINAL_MODERATION_STATE=$state"
+
+      - name: Grant use permission to Music UI TEST only
+        id: permission
+        if: contains(steps.moderation.outputs.state, 'Approved') || contains(steps.moderation.outputs.state, 'APPROVED')
+        shell: bash
+        env:
+          ASSET_ID: ${{ steps.operation.outputs.asset_id }}
+        run: |
+          set -euo pipefail
+          payload=$(python3 - <<'PY'
+          import json,os
+          print(json.dumps({
+            'subjectType':'Universe',
+            'subjectId':os.environ['TEST_UNIVERSE_ID'],
+            'action':'Use',
+            'requests':[{'assetId':int(os.environ['ASSET_ID'])}]
+          },separators=(',',':')))
+          PY
+          )
+          out="$RUNNER_TEMP/permission-response.json"
+          code=$(curl -sS -o "$out" -w '%{http_code}' -X PATCH \
+            'https://apis.roblox.com/asset-permissions-api/v1/assets/permissions' \
+            -H "x-api-key: $AUDIO_KEY" \
+            -H 'Content-Type: application/json-patch+json' \
+            --data "$payload")
+          ok=false
+          if [[ "$code" == '200' || "$code" == '201' || "$code" == '204' ]]; then ok=true; fi
+          if [[ -s "$out" ]] && jq -e --arg aid "$ASSET_ID" '.successAssetIds // [] | map(tostring) | index($aid)' "$out" >/dev/null 2>&1; then ok=true; fi
+          echo "http=$code" >> "$GITHUB_OUTPUT"
+          echo "ok=$ok" >> "$GITHUB_OUTPUT"
+          echo "TEST_PERMISSION_HTTP=$code ok=$ok universe=$TEST_UNIVERSE_ID"
+          [[ "$ok" == 'true' ]] || { cat "$out" || true; exit 70; }
+
+      - name: Persist controlled test receipt
+        if: always() && steps.operation.outputs.asset_id != ''
+        shell: bash
+        env:
+          ASSET_ID: ${{ steps.operation.outputs.asset_id }}
+          MODERATION: ${{ steps.moderation.outputs.state || steps.operation.outputs.moderation }}
+          PERMISSION_HTTP: ${{ steps.permission.outputs.http }}
+          PERMISSION_OK: ${{ steps.permission.outputs.ok }}
+          ORIGINAL_DURATION: ${{ steps.source.outputs.duration }}
+          PROCESSED_DURATION: ${{ steps.process.outputs.duration }}
+          PROCESSED_SHA256: ${{ steps.process.outputs.sha256 }}
+          OPERATION_PATH: ${{ steps.upload.outputs.operation_path }}
+        run: |
+          set -euo pipefail
+          mkdir -p deploy-status
+          python3 - <<'PY'
+          import json,os,datetime
+          state=(os.environ.get('MODERATION') or 'UNKNOWN').upper()
+          permission=(os.environ.get('PERMISSION_OK') or '').lower()=='true'
+          if 'REJECT' in state or 'DENIED' in state or 'FAILED' in state:
+              status='MODERATION_REJECTED'
+          elif 'APPROVED' in state and permission:
+              status='ASSET_READY_FOR_TEST_RUNTIME'
+          elif 'APPROVED' in state:
+              status='APPROVED_PERMISSION_NOT_PROVEN'
+          else:
+              status='MODERATION_PENDING'
+          receipt={
+            'status':status,
+            'track':'MANIS',
+            'source':{
+              'driveFileId':os.environ['DRIVE_FILE_ID'],
+              'sha256':os.environ['ORIGINAL_SHA256'],
+              'durationSeconds':float(os.environ['ORIGINAL_DURATION'])
+            },
+            'processing':{
+              'authority':'EXPERIMENTAL_CANDIDATE_NOT_FINAL',
+              'speedFactor':float(os.environ['SPEED_FACTOR']),
+              'playbackSpeed':float(os.environ['PLAYBACK_SPEED']),
+              'method':'ffmpeg asetrate + aresample',
+              'processedSha256':os.environ['PROCESSED_SHA256'],
+              'processedDurationSeconds':float(os.environ['PROCESSED_DURATION'])
+            },
+            'roblox':{
+              'operationPath':os.environ['OPERATION_PATH'],
+              'assetId':os.environ['ASSET_ID'],
+              'moderationState':os.environ.get('MODERATION') or 'UNKNOWN',
+              'permissionUniverseId':os.environ['TEST_UNIVERSE_ID'],
+              'permissionHttp':os.environ.get('PERMISSION_HTTP') or None,
+              'permissionOk':permission
+            },
+            'workflowRun':os.environ['GITHUB_RUN_ID'],
+            'sourceCommit':os.environ['GITHUB_SHA'],
+            'recordedAtUtc':datetime.datetime.now(datetime.timezone.utc).isoformat()
+          }
+          open('deploy-status/bbya-music-controlled-manis-v1.json','w',encoding='utf-8').write(json.dumps(receipt,indent=2,ensure_ascii=False)+'\n')
+          print(json.dumps(receipt,indent=2))
+          PY
+          git config user.name 'BBYA Music Controlled Test'
+          git config user.email 'actions@users.noreply.github.com'
+          git add deploy-status/bbya-music-controlled-manis-v1.json
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m 'Record BBYA Music MANIS controlled upload receipt [skip ci]'
+          git pull --rebase origin feat/bbya-music-manager-mvp
+          git push origin HEAD:feat/bbya-music-manager-mvp
+
+      - name: Final gate
+        if: always()
+        shell: bash
+        run: |
+          echo "assetId=${{ steps.operation.outputs.asset_id }}"
+          echo "moderation=${{ steps.moderation.outputs.state || steps.operation.outputs.moderation }}"
+          echo "testPermission=${{ steps.permission.outputs.ok }}"
+          echo "speedFactor=$SPEED_FACTOR playbackSpeed=$PLAYBACK_SPEED"
+          echo 'Production universe was not targeted by this workflow.'
