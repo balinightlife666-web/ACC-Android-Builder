@@ -1,0 +1,47 @@
+plugins {
+    id 'com.android.application'
+}
+
+def bbyaKeystorePath = System.getenv('BBYA_KEYSTORE_PATH')
+
+android {
+    namespace 'com.acc.bbyamusic'
+    compileSdk 36
+
+    defaultConfig {
+        applicationId 'com.acc.bbyamusic'
+        minSdk 26
+        targetSdk 36
+        versionCode 11
+        versionName '0.3.10-underground-sync-pilot'
+    }
+
+    signingConfigs {
+        bbyaStableDebug {
+            if (bbyaKeystorePath) {
+                storeFile file(bbyaKeystorePath)
+            }
+            storePassword 'android'
+            keyAlias 'androiddebugkey'
+            keyPassword 'android'
+        }
+    }
+
+    buildTypes {
+        debug {
+            if (bbyaKeystorePath) {
+                signingConfig signingConfigs.bbyaStableDebug
+            }
+            versionNameSuffix '-debug'
+        }
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}

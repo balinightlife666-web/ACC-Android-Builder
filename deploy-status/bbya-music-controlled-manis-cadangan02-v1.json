@@ -1,0 +1,31 @@
+{
+  "status": "MODERATION_REJECTED",
+  "scope": "BBYA_MUSIC_MANAGER_CONTROLLED_TEST_ONLY",
+  "track": "MANIS",
+  "source": {
+    "driveFileId": "1Wj0DHxZzlMj_qVIywQ_wzkwga2Zntb3P",
+    "sha256": "6446f570652df9651057bb646c4202b1e185f115224b4ec0e206b4ba31d371a4",
+    "durationSeconds": 148.8
+  },
+  "processing": {
+    "authority": "EXPERIMENTAL_CANDIDATE_NOT_FINAL",
+    "speedFactor": 1.25,
+    "playbackSpeed": 0.8,
+    "method": "ffmpeg asetrate + aresample",
+    "processedSha256": "8afffb6f69dc80d30b641a45b53f0c16d1cd7213b7e34b670a8162e2b75e181a",
+    "processedDurationSeconds": 119.04
+  },
+  "roblox": {
+    "uploader": "AM_STUDIO_AUDIO_CADANGAN_02",
+    "operationPath": "operations/19577704-f779-422e-bcd3-3841838bcfe7",
+    "assetId": "119725108305608",
+    "moderationState": "Rejected",
+    "permissionUniverseId": "10762005984",
+    "permissionHttp": null,
+    "permissionOk": false,
+    "productionUniverseTargeted": false
+  },
+  "workflowRun": "33729541700",
+  "sourceCommit": "f7e797528f8e8b7617c0c58b87b23cb849a7aa13",
+  "recordedAtUtc": "2026-09-03T07:46:19.195112+00:00"
+}
