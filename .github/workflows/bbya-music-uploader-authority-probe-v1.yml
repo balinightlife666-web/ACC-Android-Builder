@@ -1,0 +1,79 @@
+name: BBYA Music Uploader Authority Probe V1
+
+on:
+  push:
+    branches:
+      - 'feat/bbya-music-manager-mvp'
+    paths:
+      - '.github/workflows/bbya-music-uploader-authority-probe-v1.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  authority-probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      KEY_PRIMARY: ${{ secrets.ROBLOX_PUBLISH_CADANGAN_AUDII_01 }}
+      KEY_CADANGAN02: ${{ secrets.AM_STUDIO_AUDIO_CADANGAN_02 }}
+      KEY_PUBLISHER_V1: ${{ secrets.GUDANGPET88_AUDIO_UPLOADER }}
+    steps:
+      - name: Introspect existing audio authorities only
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json, os, subprocess, tempfile
+
+          keys = [
+              ('ROBLOX_PUBLISH_CADANGAN_AUDII_01', os.environ.get('KEY_PRIMARY','')),
+              ('AM_STUDIO_AUDIO_CADANGAN_02', os.environ.get('KEY_CADANGAN02','')),
+              ('GUDANGPET88_AUDIO_UPLOADER', os.environ.get('KEY_PUBLISHER_V1','')),
+          ]
+          results=[]
+          for label,key in keys:
+              if not key:
+                  results.append({'authority':label,'status':'SECRET_MISSING'})
+                  continue
+              p=subprocess.run([
+                  'curl','-sS','-X','POST','https://apis.roblox.com/api-keys/v1/introspect',
+                  '-H','Content-Type: application/json',
+                  '--data',json.dumps({'apiKey':key},separators=(',',':')),
+                  '--write-out','\n%{http_code}'
+              ],text=True,capture_output=True)
+              body,_,code=p.stdout.rpartition('\n')
+              try: http=int(code)
+              except: http=0
+              try: d=json.loads(body) if body.strip() else {}
+              except: d={}
+              scopes=d.get('scopes') or []
+              asset=any(s.get('name')=='asset' and {'read','write'}.issubset(set(s.get('operations') or [])) for s in scopes)
+              perm=any(s.get('name')=='asset-permissions:write' or (s.get('name')=='asset-permissions' and 'write' in (s.get('operations') or [])) for s in scopes)
+              results.append({
+                  'authority':label,
+                  'status':'PASS' if http==200 and d.get('enabled') is not False and d.get('expired') is not True and d.get('authorizedUserId') and asset else 'NOT_USABLE',
+                  'http':http,
+                  'authorizedUserId':str(d.get('authorizedUserId')) if d.get('authorizedUserId') is not None else None,
+                  'keyName':d.get('name'),
+                  'enabled':d.get('enabled'),
+                  'expired':d.get('expired'),
+                  'assetReadWrite':asset,
+                  'assetPermissionsWrite':perm,
+              })
+          print(json.dumps(results,indent=2))
+          usable=[r for r in results if r.get('status')=='PASS']
+          owners={r.get('authorizedUserId') for r in usable if r.get('authorizedUserId')}
+          print('USABLE_AUTHORITIES='+str(len(usable)))
+          print('DISTINCT_AUTHORIZED_USERS='+str(len(owners)))
+          if len(owners)==1 and owners:
+              print('ALL_USABLE_KEYS_SHARE_ONE_OWNER=true')
+          elif len(owners)>1:
+              print('ALL_USABLE_KEYS_SHARE_ONE_OWNER=false')
+          PY
+
+      - name: Safety statement
+        run: |
+          echo 'READ_ONLY_AUTHORITY_PROBE_COMPLETE'
+          echo 'No Roblox asset upload endpoint was called.'
