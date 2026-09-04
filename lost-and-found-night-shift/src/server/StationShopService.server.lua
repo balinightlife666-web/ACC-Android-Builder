@@ -1,5 +1,6 @@
--- LOST & FOUND: NIGHT SHIFT — M5-A Station Shop v1.
+-- LOST & FOUND: NIGHT SHIFT — M5-A Station Shop v1 + M6-B career gates.
 -- Server-authoritative Credits purchases/equips for persistent station cosmetics.
+-- M6-B only gates NEW acquisition by existing Shift Level; previously-owned skins remain equip-safe.
 -- Cosmetic only: no case, reward, drop, serial, trading or mystery behavior changes.
 
 local Players = game:GetService("Players")
@@ -7,6 +8,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local shared = ReplicatedStorage:WaitForChild("LostAndFoundShared")
 local StationSkinRegistry = require(shared:WaitForChild("StationSkinRegistry"))
+local CareerUnlockConfig = require(shared:WaitForChild("CareerUnlockConfig"))
 local PlayerDataStore = require(script.Parent:WaitForChild("PlayerDataStore"))
 local PersonalStationWorld = require(script.Parent:WaitForChild("PersonalStationWorld"))
 
@@ -40,6 +42,10 @@ local DECISION_COLORS = {
 
 local busy = {}
 
+local function shiftLevel(player)
+    return math.max(1, math.floor(tonumber(player:GetAttribute("LostFoundShiftLevel")) or 1))
+end
+
 local function creditsValue(player)
     local leaderstats = player:FindFirstChild("leaderstats")
     local credits = leaderstats and leaderstats:FindFirstChild("Credits")
@@ -63,6 +69,7 @@ local function publicEntries()
                 name = entry.name,
                 acquisition = entry.acquisition,
                 priceCredits = entry.priceCredits,
+                minShiftLevel = CareerUnlockConfig.RequiredLevelForSkin(entry.id),
             })
         end
     end
@@ -77,6 +84,8 @@ local function snapshot(player, message, code)
         code = code or "SYNC",
         message = message,
         credits = credits and credits.Value or 0,
+        shiftLevel = shiftLevel(player),
+        careerTier = player:GetAttribute("LostFoundCareerTier") or "ORIENTASI",
         equippedSkin = profile.equippedSkin,
         ownedSkins = profile.ownedSkins,
         entries = publicEntries(),
@@ -161,15 +170,27 @@ local function purchase(player, skinId)
         return { ok = false, code = "NOT_FOR_CREDITS", message = "This skin is not available for Credits." }
     end
 
-    local credits = creditsValue(player)
-    if not credits then
-        return { ok = false, code = "NO_CREDITS", message = "Credits are not ready yet." }
-    end
-
     local profile = PlayerDataStore.GetStationProfile(player.UserId)
     local owned = ownedSet(profile)
     if owned[skinId] then
         return { ok = false, code = "ALREADY_OWNED", message = "You already own this station skin.", snapshot = snapshot(player) }
+    end
+
+    local requiredLevel = CareerUnlockConfig.RequiredLevelForSkin(skinId)
+    local currentLevel = shiftLevel(player)
+    if currentLevel < requiredLevel then
+        return {
+            ok = false,
+            code = "LEVEL_LOCKED",
+            message = string.format("Requires Shift Level %d.", requiredLevel),
+            requiredLevel = requiredLevel,
+            shiftLevel = currentLevel,
+        }
+    end
+
+    local credits = creditsValue(player)
+    if not credits then
+        return { ok = false, code = "NO_CREDITS", message = "Credits are not ready yet." }
     end
 
     local price = math.max(0, math.floor(tonumber(skin.priceCredits) or 0))
@@ -216,6 +237,7 @@ local function equip(player, skinId)
         return { ok = false, code = "NOT_OWNED", message = "Buy this station skin first." }
     end
 
+    -- Grandfather rule: an already-owned skin is always equip-safe even if it predates M6-B level gates.
     if profile.equippedSkin == skinId then
         return snapshot(player, skin.name .. " is already equipped.", "EQUIPPED")
     end
