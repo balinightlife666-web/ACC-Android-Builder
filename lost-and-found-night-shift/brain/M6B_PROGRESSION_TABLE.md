@@ -9,12 +9,12 @@ Scope: Unlock & Career Tiers only
 | 2 | OPERATOR JUNIOR | OPERASIONAL | Skin Industrial Shift |
 | 3 | OPERATOR SHIFT | OPERASIONAL | Skin Retro Airport |
 | 4 | OPERATOR SENIOR | SENIOR | Skin Black Ops |
-| 5 | SPESIALIS KASUS | SENIOR | Akses pembelian Army Field |
-| 6 | PENGAWAS MALAM | SPESIALIS MALAM | Badge karier Pengawas Malam |
+| 5 | SPESIALIS KASUS | SPESIALIS | Akses pembelian Army Field |
+| 6 | PENGAWAS MALAM | PENGAWAS MALAM | Promosi karier: Pengawas Malam |
 | 7 | ANALIS INSIDEN | SPESIALIS MALAM | Akses pembelian Sakura Night |
-| 8 | SPESIALIS ARSIP | SPESIALIS MALAM | Bingkai prestise Arsip |
+| 8 | SPESIALIS ARSIP | ARSIP ELIT | Promosi karier: Arsip Elit |
 | 9 | PEMIMPIN SHIFT | KOMANDO SHIFT | Akses pembelian Street Graffiti |
-| 10 | MASTER NIGHT SHIFT | MASTER NIGHT SHIFT | Crest Master Night Shift |
+| 10 | MASTER NIGHT SHIFT | MASTER NIGHT SHIFT | Promosi karier: Master Night Shift |
 
 ## Hard locks
 
@@ -37,5 +37,9 @@ Scope: Unlock & Career Tiers only
 - ARMY_FIELD: Shift 5
 - SAKURA_NIGHT: Shift 7
 - STREET_GRAFFITI: Shift 9
+
+## Career presentation
+
+M6-B adds a compact career bar below the existing M6-A progression HUD. Career promotions at Shift 6, 8, and 10 are presentation/prestige rewards only and do not grant gameplay power.
 
 Deferred event/Robux catalog remains outside M6-B v1.

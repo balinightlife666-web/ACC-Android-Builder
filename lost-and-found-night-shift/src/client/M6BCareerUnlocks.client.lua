@@ -1,5 +1,5 @@
 -- LOST & FOUND: NIGHT SHIFT — M6-B Career Unlock UX
--- Adds promotion reward feedback and visually locks unowned Station Shop rows until required Shift Level.
+-- Adds persistent career-tier readability, promotion reward feedback, and Station Shop level gates.
 -- Server remains the authority for acquisition.
 
 local Players = game:GetService("Players")
@@ -25,10 +25,40 @@ gui.IgnoreGuiInset = false
 gui.DisplayOrder = 19
 gui.Parent = playerGui
 
+local careerBar = Instance.new("TextLabel")
+careerBar.Name = "CareerTierBar"
+careerBar.AnchorPoint = Vector2.new(0.5, 0)
+careerBar.Position = UDim2.new(0.5, 0, 0, 72)
+careerBar.Size = UDim2.new(0.78, 0, 0, 22)
+careerBar.BackgroundColor3 = Color3.fromRGB(17, 22, 30)
+careerBar.BackgroundTransparency = 0.10
+careerBar.BorderSizePixel = 0
+careerBar.TextColor3 = Color3.fromRGB(184, 195, 209)
+careerBar.Font = Enum.Font.GothamMedium
+careerBar.TextSize = 9
+careerBar.TextTruncate = Enum.TextTruncate.AtEnd
+careerBar.Text = "KARIER • ORIENTASI"
+careerBar.Parent = gui
+
+local barSize = Instance.new("UISizeConstraint")
+barSize.MinSize = Vector2.new(230, 22)
+barSize.MaxSize = Vector2.new(360, 22)
+barSize.Parent = careerBar
+
+local barCorner = Instance.new("UICorner")
+barCorner.CornerRadius = UDim.new(0, 7)
+barCorner.Parent = careerBar
+
+local barStroke = Instance.new("UIStroke")
+barStroke.Color = Color3.fromRGB(75, 90, 111)
+barStroke.Transparency = 0.42
+barStroke.Thickness = 1
+barStroke.Parent = careerBar
+
 local toast = Instance.new("TextLabel")
 toast.Name = "CareerUnlockToast"
 toast.AnchorPoint = Vector2.new(0.5, 0)
-toast.Position = UDim2.new(0.5, 0, 0, 76)
+toast.Position = UDim2.new(0.5, 0, 0, 98)
 toast.Size = UDim2.new(0.78, 0, 0, 34)
 toast.BackgroundColor3 = Color3.fromRGB(18, 23, 31)
 toast.BackgroundTransparency = 0.05
@@ -71,6 +101,12 @@ end
 
 local function refreshCareer()
     local level = math.max(1, math.floor(tonumber(player:GetAttribute("LostFoundShiftLevel")) or 1))
+    local snapshot = CareerUnlockConfig.GetForLevel(level)
+    if snapshot.maxLevel then
+        careerBar.Text = "KARIER • " .. snapshot.tier .. " • MAKS"
+    else
+        careerBar.Text = "KARIER • " .. snapshot.tier .. "  |  NEXT SHIFT " .. tostring(snapshot.nextRewardLevel) .. " • " .. tostring(snapshot.nextRewardLabel)
+    end
     if previousLevel and level > previousLevel then
         showReward(level)
     end
@@ -133,7 +169,10 @@ player:GetAttributeChangedSignal("LostFoundCareerRevision"):Connect(function()
     refreshCareer()
     refreshShopRows()
 end)
-player:GetAttributeChangedSignal("LostFoundShiftLevel"):Connect(refreshShopRows)
+player:GetAttributeChangedSignal("LostFoundShiftLevel"):Connect(function()
+    refreshCareer()
+    refreshShopRows()
+end)
 playerGui.ChildAdded:Connect(function(child)
     if child.Name == "LostAndFoundStationShop" then task.defer(hookShop) end
 end)

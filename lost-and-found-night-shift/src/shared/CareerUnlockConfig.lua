@@ -11,12 +11,12 @@ CareerUnlockConfig.Levels = {
     { level = 2,  tier = "OPERASIONAL",        rewardKey = "STATION_INDUSTRIAL",      rewardLabel = "Skin Industrial Shift", stationSkin = "INDUSTRIAL_SHIFT" },
     { level = 3,  tier = "OPERASIONAL",        rewardKey = "STATION_RETRO",           rewardLabel = "Skin Retro Airport", stationSkin = "RETRO_AIRPORT" },
     { level = 4,  tier = "SENIOR",             rewardKey = "STATION_BLACK_OPS",       rewardLabel = "Skin Black Ops", stationSkin = "BLACK_OPS" },
-    { level = 5,  tier = "SENIOR",             rewardKey = "THEME_ARMY",              rewardLabel = "Akses pembelian Army Field", stationSkin = "ARMY_FIELD" },
-    { level = 6,  tier = "SPESIALIS MALAM",    rewardKey = "BADGE_NIGHT_SUPERVISOR", rewardLabel = "Badge karier Pengawas Malam" },
+    { level = 5,  tier = "SPESIALIS",          rewardKey = "THEME_ARMY",              rewardLabel = "Akses pembelian Army Field", stationSkin = "ARMY_FIELD" },
+    { level = 6,  tier = "PENGAWAS MALAM",     rewardKey = "CAREER_NIGHT_SUPERVISOR", rewardLabel = "Promosi karier: Pengawas Malam" },
     { level = 7,  tier = "SPESIALIS MALAM",    rewardKey = "THEME_SAKURA",            rewardLabel = "Akses pembelian Sakura Night", stationSkin = "SAKURA_NIGHT" },
-    { level = 8,  tier = "SPESIALIS MALAM",    rewardKey = "ARCHIVE_PRESTIGE",        rewardLabel = "Bingkai prestise Arsip" },
+    { level = 8,  tier = "ARSIP ELIT",         rewardKey = "CAREER_ARCHIVE_ELITE",    rewardLabel = "Promosi karier: Arsip Elit" },
     { level = 9,  tier = "KOMANDO SHIFT",      rewardKey = "THEME_STREET",            rewardLabel = "Akses pembelian Street Graffiti", stationSkin = "STREET_GRAFFITI" },
-    { level = 10, tier = "MASTER NIGHT SHIFT", rewardKey = "MASTER_CREST",            rewardLabel = "Crest Master Night Shift" },
+    { level = 10, tier = "MASTER NIGHT SHIFT", rewardKey = "CAREER_MASTER",           rewardLabel = "Promosi karier: Master Night Shift" },
 }
 
 CareerUnlockConfig.AllUnlockKeys = {}
