@@ -159,21 +159,21 @@ end
 
 local function purchase(player, skinId)
     if player:GetAttribute("LostFoundPersistenceReady") ~= true then
-        return { ok = false, code = "NOT_READY", message = "Data pemain masih dimuat. Coba sebentar lagi." }
+        return { ok = false, code = "NOT_READY", message = "Persistence is not ready yet." }
     end
 
     local skin = StationSkinRegistry.Skins[skinId]
     if not skin then
-        return { ok = false, code = "INVALID_SKIN", message = "Skin stasiun tidak dikenal." }
+        return { ok = false, code = "INVALID_SKIN", message = "Unknown station skin." }
     end
     if skin.acquisition ~= "CREDITS" then
-        return { ok = false, code = "NOT_FOR_CREDITS", message = "Skin ini belum tersedia dengan Credits." }
+        return { ok = false, code = "NOT_FOR_CREDITS", message = "This skin is not available for Credits." }
     end
 
     local profile = PlayerDataStore.GetStationProfile(player.UserId)
     local owned = ownedSet(profile)
     if owned[skinId] then
-        return { ok = false, code = "ALREADY_OWNED", message = "Skin ini sudah kamu miliki.", snapshot = snapshot(player) }
+        return { ok = false, code = "ALREADY_OWNED", message = "You already own this station skin.", snapshot = snapshot(player) }
     end
 
     local requiredLevel = CareerUnlockConfig.RequiredLevelForSkin(skinId)
@@ -182,7 +182,7 @@ local function purchase(player, skinId)
         return {
             ok = false,
             code = "LEVEL_LOCKED",
-            message = string.format("Butuh Shift Level %d untuk membuka %s.", requiredLevel, skin.name),
+            message = string.format("Requires Shift Level %d.", requiredLevel),
             requiredLevel = requiredLevel,
             shiftLevel = currentLevel,
         }
@@ -190,7 +190,7 @@ local function purchase(player, skinId)
 
     local credits = creditsValue(player)
     if not credits then
-        return { ok = false, code = "NO_CREDITS", message = "Credits belum siap." }
+        return { ok = false, code = "NO_CREDITS", message = "Credits are not ready yet." }
     end
 
     local price = math.max(0, math.floor(tonumber(skin.priceCredits) or 0))
@@ -198,7 +198,7 @@ local function purchase(player, skinId)
         return {
             ok = false,
             code = "INSUFFICIENT_CREDITS",
-            message = "Credits belum cukup untuk membeli skin ini.",
+            message = "Not enough Credits.",
             needed = price,
             credits = credits.Value,
         }
@@ -212,34 +212,34 @@ local function purchase(player, skinId)
     local committed = PlayerDataStore.CommitStationProfile(player.UserId, nextProfile, credits.Value, price)
     if not committed then
         credits.Value += price
-        return { ok = false, code = "SAVE_FAILED", message = "Pembelian gagal disimpan. Credits dipulihkan." }
+        return { ok = false, code = "SAVE_FAILED", message = "Purchase could not be saved. Credits were restored." }
     end
 
     applyEquipped(player)
-    local data = snapshot(player, skin.name .. " dibeli dan langsung dipakai.", "PURCHASED")
+    local data = snapshot(player, skin.name .. " purchased and equipped.", "PURCHASED")
     update:FireClient(player, "PURCHASED", data)
     return data
 end
 
 local function equip(player, skinId)
     if player:GetAttribute("LostFoundPersistenceReady") ~= true then
-        return { ok = false, code = "NOT_READY", message = "Data pemain masih dimuat. Coba sebentar lagi." }
+        return { ok = false, code = "NOT_READY", message = "Persistence is not ready yet." }
     end
 
     local skin = StationSkinRegistry.Skins[skinId]
     if not skin then
-        return { ok = false, code = "INVALID_SKIN", message = "Skin stasiun tidak dikenal." }
+        return { ok = false, code = "INVALID_SKIN", message = "Unknown station skin." }
     end
 
     local profile = PlayerDataStore.GetStationProfile(player.UserId)
     local owned = ownedSet(profile)
     if not owned[skinId] then
-        return { ok = false, code = "NOT_OWNED", message = "Beli skin ini terlebih dahulu." }
+        return { ok = false, code = "NOT_OWNED", message = "Buy this station skin first." }
     end
 
     -- Grandfather rule: an already-owned skin is always equip-safe even if it predates M6-B level gates.
     if profile.equippedSkin == skinId then
-        return snapshot(player, skin.name .. " sudah dipakai.", "EQUIPPED")
+        return snapshot(player, skin.name .. " is already equipped.", "EQUIPPED")
     end
 
     local nextProfile = copyProfile(profile)
@@ -247,11 +247,11 @@ local function equip(player, skinId)
     local credits = creditsValue(player)
     local committed = PlayerDataStore.CommitStationProfile(player.UserId, nextProfile, credits and credits.Value or 0, 0)
     if not committed then
-        return { ok = false, code = "SAVE_FAILED", message = "Perubahan equip gagal disimpan." }
+        return { ok = false, code = "SAVE_FAILED", message = "Equip change could not be saved." }
     end
 
     applyEquipped(player)
-    local data = snapshot(player, skin.name .. " dipakai.", "EQUIPPED")
+    local data = snapshot(player, skin.name .. " equipped.", "EQUIPPED")
     update:FireClient(player, "EQUIPPED", data)
     return data
 end
@@ -262,13 +262,13 @@ request.OnServerInvoke = function(player, action, skinId)
 
     if action == "SYNC" then
         if player:GetAttribute("LostFoundPersistenceReady") ~= true then
-            return { ok = false, code = "NOT_READY", message = "Profil stasiun masih dimuat." }
+            return { ok = false, code = "NOT_READY", message = "Station profile is loading." }
         end
         return snapshot(player)
     end
 
     if busy[player.UserId] then
-        return { ok = false, code = "BUSY", message = "Toko sedang memproses permintaan sebelumnya." }
+        return { ok = false, code = "BUSY", message = "Station Shop is processing another request." }
     end
     busy[player.UserId] = true
 
@@ -278,13 +278,13 @@ request.OnServerInvoke = function(player, action, skinId)
         elseif action == "EQUIP" then
             return equip(player, skinId)
         end
-        return { ok = false, code = "INVALID_ACTION", message = "Aksi Toko Stasiun tidak dikenal." }
+        return { ok = false, code = "INVALID_ACTION", message = "Unknown Station Shop action." }
     end)
 
     busy[player.UserId] = nil
     if not ok then
         warn("[LOST FOUND] Station Shop request failed:", result)
-        return { ok = false, code = "SERVER_ERROR", message = "Toko Stasiun mengalami gangguan sementara." }
+        return { ok = false, code = "SERVER_ERROR", message = "Station Shop request failed safely." }
     end
     return result
 end
