@@ -1,0 +1,17 @@
+{
+  "status": "LIVE_PUBLISHED",
+  "project": "HANGAR EXCLUSIVE CLUB",
+  "mode": "FOUNDATION_V1_ROCKET_RACOON",
+  "sourceRepo": "ardarawk-cloud/ACC-Roblox-maps",
+  "sourceCommit": "35ae2f14b94805cf50d143f0c91fc5c98121a40a",
+  "universeId": "10745364913",
+  "placeId": "76001567401911",
+  "versionNumber": 4,
+  "rojoVersion": "7.7.0",
+  "placeBytes": 14620,
+  "placeSha256": "53912a154e74bd4f2f4a19cf8a0acbf55bc28ef7409fefee88e2d208af96cf1f",
+  "runId": "33952510158",
+  "publishedAt": "2026-09-05T07:25:36Z",
+  "previewUrl": "https://www.roblox.com/games/76001567401911",
+  "note": "Verified from Rocket Racoon publish run: Roblox Open Cloud HTTP 200 with versionNumber 4. Receipt persisted manually because post-publish git rebase failed on an unstaged chmod change."
+}
