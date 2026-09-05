@@ -86,3 +86,9 @@ jq -n \
 cat deploy-status/hangar-exclusive-club-foundation-v1.json
 
 echo "HANGAR_PUBLISHED_VERSION=$version" >> "${GITHUB_ENV:-/dev/null}"
+
+# The workflow may chmod this script before execution. Restore its tracked mode
+# so the receipt commit/rebase step does not fail on an unrelated dirty mode bit.
+if [[ -n "${GITHUB_WORKSPACE:-}" && -d "${GITHUB_WORKSPACE}/.git" ]]; then
+  git -C "$GITHUB_WORKSPACE" checkout -- scripts/publish-hangar-exclusive-club-v1.sh || true
+fi
