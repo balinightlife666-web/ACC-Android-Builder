@@ -14,15 +14,50 @@ android {
         versionName '0.4.0-sandbox-connect'
     }
 
+    def signingPath = System.getenv('AM_STUDIO_KEYSTORE_PATH')
+    def signingStorePassword = System.getenv('AM_STUDIO_KEYSTORE_PASSWORD')
+    def signingAlias = System.getenv('AM_STUDIO_KEY_ALIAS')
+    def signingKeyPassword = System.getenv('AM_STUDIO_KEY_PASSWORD')
+    def hasReleaseSigning = signingPath && signingStorePassword && signingAlias && signingKeyPassword
+
+    signingConfigs {
+        if (hasReleaseSigning) {
+            amStudioRelease {
+                storeFile file(signingPath)
+                storePassword signingStorePassword
+                keyAlias signingAlias
+                keyPassword signingKeyPassword
+                enableV1Signing true
+                enableV2Signing true
+            }
+        }
+    }
+
     buildTypes {
+        debug {
+            // Development CI only. Never publish this as an upgrade-safe user build.
+        }
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            if (hasReleaseSigning) {
+                signingConfig signingConfigs.amStudioRelease
+            }
         }
     }
 
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_17
         targetCompatibility JavaVersion.VERSION_17
+    }
+}
+
+// Fail closed whenever a signed release is explicitly requested without the permanent AM STUDIO key.
+gradle.taskGraph.whenReady { graph ->
+    def asksForRelease = graph.allTasks.any { task ->
+        task.path.endsWith(':assembleRelease') || task.path.endsWith(':bundleRelease')
+    }
+    if (asksForRelease && !hasReleaseSigning) {
+        throw new GradleException('AM STUDIO permanent signing credentials are required for release builds.')
     }
 }
