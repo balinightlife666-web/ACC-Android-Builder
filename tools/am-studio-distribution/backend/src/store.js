@@ -1,5 +1,6 @@
 import { canonicalRelease, applyEditablePatch, newId, nowIso, runPreflight, ReleaseStatus } from './domain.js';
 import { NullPersistence } from './persistence.js';
+import { RoyaltyLedger } from './royalty-ledger.js';
 
 export class MemoryStore {
   constructor(options = {}) {
@@ -7,6 +8,7 @@ export class MemoryStore {
     this.releases = new Map();
     this.assets = new Map();
     this.audit = [];
+    this.royaltyLedger = new RoyaltyLedger();
     this.restore(this.persistence.load());
   }
 
@@ -147,6 +149,53 @@ export class MemoryStore {
     return structuredClone(release);
   }
 
+  ingestRoyaltyLine(input = {}, actor = 'dev-user') {
+    const ownerId = text(input.ownerId) || actor;
+    const result = this.royaltyLedger.ingestRawLine({ ...input, ownerId });
+    this.record(
+      actor,
+      result.duplicate ? 'ROYALTY_LINE_DUPLICATE' : 'ROYALTY_LINE_INGESTED',
+      result.entry.id,
+      null,
+      result.entry.bucket,
+      { sourceRef: result.entry.sourceRef, currency: result.entry.currency, amountMinor: result.entry.amountMinor }
+    );
+    this.persist();
+    return result;
+  }
+
+  reconcileRoyalty(input = {}, actor = 'dev-user') {
+    const ownerId = text(input.ownerId) || actor;
+    const result = this.royaltyLedger.move({
+      ownerId,
+      currency: input.currency,
+      fromBucket: 'PENDING',
+      toBucket: 'AVAILABLE',
+      amountMinor: input.amountMinor,
+      sourceRef: input.sourceRef,
+      idempotencyKey: input.idempotencyKey,
+      metadata: input.metadata
+    });
+    this.record(
+      actor,
+      result.duplicate ? 'ROYALTY_RECONCILIATION_DUPLICATE' : 'ROYALTY_RECONCILED',
+      result.transferId,
+      'PENDING',
+      'AVAILABLE',
+      { ownerId, currency: input.currency, amountMinor: input.amountMinor, sourceRef: input.sourceRef }
+    );
+    this.persist();
+    return result;
+  }
+
+  getRoyaltyLedger(ownerId) {
+    return this.royaltyLedger.list(ownerId);
+  }
+
+  getWallet(ownerId) {
+    return this.royaltyLedger.wallet(ownerId);
+  }
+
   getAudit() {
     return this.audit.map(value => structuredClone(value));
   }
@@ -172,15 +221,18 @@ export class MemoryStore {
 
   snapshot() {
     return {
-      schemaVersion: 1,
+      schemaVersion: 2,
       releases: [...this.releases.values()],
       assets: [...this.assets.values()],
-      audit: this.audit
+      audit: this.audit,
+      royaltyLedger: this.royaltyLedger.snapshot()
     };
   }
 
   restore(snapshot) {
-    if (!snapshot || Number(snapshot.schemaVersion || 1) !== 1) return;
+    if (!snapshot) return;
+    const version = Number(snapshot.schemaVersion || 1);
+    if (![1, 2].includes(version)) return;
     for (const release of Array.isArray(snapshot.releases) ? snapshot.releases : []) {
       if (release?.id) this.releases.set(release.id, release);
     }
@@ -188,6 +240,7 @@ export class MemoryStore {
       if (asset?.id) this.assets.set(asset.id, asset);
     }
     this.audit = Array.isArray(snapshot.audit) ? snapshot.audit : [];
+    if (snapshot.royaltyLedger) this.royaltyLedger.restore(snapshot.royaltyLedger);
   }
 
   persist() {
