@@ -13,7 +13,7 @@ Phase: A — BACKEND-READY SANDBOX / PHYSICAL RUNTIME QC + PROVIDER ONBOARDING N
 - Verified APK source commit: `020fd8d301c2e88a85a7b92d827a177efec72e08`
 - Verified APK CI run: `34347864249` — PASS
 - Verified APK SHA-256: `1babe0385c1e50c7a3b14a0080e9358561fc1845abcb989e1ccc9ee3d392844b`
-- Latest provider/backend test run: `34348166322` — PASS
+- Latest backend/provider/deployment test run: `34348382833` — PASS
 
 ## Android implemented and CI-verified
 - Dedicated project isolated at `tools/am-studio-distribution`
@@ -48,6 +48,15 @@ Phase: A — BACKEND-READY SANDBOX / PHYSICAL RUNTIME QC + PROVIDER ONBOARDING N
 - Audit event stream for sensitive state changes
 - Stable coded error boundary
 - Automated tests for lifecycle, edit locks, preflight, auth, persistence restart, byte hashing, checksum rejection and provider isolation — PASS
+
+## Deployment foundation
+- Sandbox Dockerfile implemented
+- Configurable HOST/PORT binding
+- Persistent state/media paths defined for mounted volume
+- Android remains HTTPS-only; no cleartext workaround allowed
+- Deployment contract documented in `DEPLOYMENT.md`
+- Real public HTTPS sandbox host: NOT YET PROVISIONED
+- Current JSON/local-filesystem adapters remain DEV/SANDBOX only, not production persistence
 
 ## Provider strategy
 - First technical target: LabelGrid Engine API
@@ -91,9 +100,9 @@ Phase: A — BACKEND-READY SANDBOX / PHYSICAL RUNTIME QC + PROVIDER ONBOARDING N
 
 ## Next implementation order
 1. Physical Android v0.3 runtime QC.
-2. Deploy AM STUDIO backend behind a real HTTPS sandbox endpoint.
-3. Replace DEV auth/JSON/local media adapters with production identity + database + object storage adapters while preserving interfaces.
-4. Wire Android release wizard to the deployed AM STUDIO API and run real byte-upload E2E.
+2. Provision a real HTTPS sandbox host and deploy current container with provider disabled.
+3. Run Android -> AM STUDIO backend end-to-end upload against sandbox host.
+4. Replace DEV auth/JSON/local media adapters with production identity + database + object storage adapters while preserving interfaces.
 5. Commercial onboarding for LabelGrid Engine API + sandbox token/IP allowlist.
 6. Implement canonical AM STUDIO -> LabelGrid artist/label/track/release/DSP mapping.
 7. End-to-end LabelGrid sandbox release: assets -> validation/QC -> review -> distribution evidence.
