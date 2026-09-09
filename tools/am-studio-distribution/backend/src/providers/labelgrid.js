@@ -24,16 +24,60 @@ export class LabelGridAdapter {
     return this.request('GET', '/distro-outlets');
   }
 
+  async getGenres() {
+    return this.request('GET', '/genres');
+  }
+
+  async getLanguages() {
+    return this.request('GET', '/languages');
+  }
+
+  async getContributorRoles() {
+    return this.request('GET', '/contributor-roles');
+  }
+
+  async getTerritories() {
+    return this.request('GET', '/territories');
+  }
+
+  async createArtist(providerPayload) {
+    return this.request('POST', '/artists', providerPayload);
+  }
+
+  async createLabel(providerPayload) {
+    return this.request('POST', '/labels', providerPayload);
+  }
+
   async createRelease(providerPayload) {
     return this.request('POST', '/releases', providerPayload);
+  }
+
+  async updateRelease(providerReleaseId, providerPayload) {
+    return this.request('PATCH', `/releases/${id(providerReleaseId)}`, providerPayload);
   }
 
   async createTrack(providerPayload) {
     return this.request('POST', '/tracks', providerPayload);
   }
 
-  async getTrackUploadUrl(trackId, fileType) {
-    return this.request('POST', `/tracks/${id(trackId)}/files/${id(fileType)}/upload-url`, {});
+  async getTrackUploadUrl(trackId, fileType, filename) {
+    return this.request('POST', `/tracks/${id(trackId)}/files/${id(fileType)}/upload-url`, {
+      filename: safeFilename(filename)
+    });
+  }
+
+  async registerTrackFile(trackId, fileType, providerPayload) {
+    return this.request('PUT', `/tracks/${id(trackId)}/files/${id(fileType)}`, providerPayload);
+  }
+
+  async getReleaseUploadUrl(releaseId, assetType, filename) {
+    return this.request('POST', `/releases/${id(releaseId)}/files/${id(assetType)}/upload-url`, {
+      filename: safeFilename(filename)
+    });
+  }
+
+  async registerReleaseFile(releaseId, assetType, providerPayload) {
+    return this.request('PUT', `/releases/${id(releaseId)}/files/${id(assetType)}`, providerPayload);
   }
 
   async validateRelease(providerReleaseId) {
@@ -44,8 +88,20 @@ export class LabelGridAdapter {
     return this.request('GET', `/releases/${id(providerReleaseId)}/quality-report`);
   }
 
+  async refreshQualityReport(providerReleaseId) {
+    return this.request('POST', `/releases/${id(providerReleaseId)}/quality-report/refresh`, {});
+  }
+
+  async confirmReview(providerReleaseId) {
+    return this.request('POST', `/releases/${id(providerReleaseId)}/confirm-review`, {});
+  }
+
   async distribute(providerReleaseId) {
     return this.request('POST', `/releases/${id(providerReleaseId)}/distribute`, {});
+  }
+
+  async deliveryStatus(providerReleaseId) {
+    return this.request('GET', `/releases/${id(providerReleaseId)}/delivery-status`);
   }
 
   async takedownAll(providerReleaseId) {
@@ -54,6 +110,18 @@ export class LabelGridAdapter {
 
   async statements() {
     return this.request('GET', '/statements');
+  }
+
+  async statement(invoiceNumber) {
+    return this.request('GET', `/statements/${id(invoiceNumber)}`);
+  }
+
+  async royaltyBreakdown() {
+    return this.request('GET', '/royalties/breakdown');
+  }
+
+  async artificialStreams() {
+    return this.request('GET', '/royalties/artificial-streams');
   }
 
   async analyticsSummary() {
@@ -93,5 +161,13 @@ export class LabelGridAdapter {
 function id(value) {
   const clean = String(value || '').trim();
   if (!/^[A-Za-z0-9._-]+$/.test(clean)) throw coded('PROVIDER_ID_INVALID', 'Invalid provider resource id');
+  return clean;
+}
+
+function safeFilename(value) {
+  const clean = String(value || '').trim();
+  if (!clean || clean.length > 255 || !/^[a-zA-Z0-9\s\-_.()]+\.[a-zA-Z0-9]+$/.test(clean)) {
+    throw coded('PROVIDER_FILENAME_INVALID', 'Provider filename is invalid');
+  }
   return clean;
 }
