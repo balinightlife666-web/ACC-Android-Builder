@@ -1,0 +1,57 @@
+name: AM STUDIO Distribution APK
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - feat/am-studio-distribution-foundation
+    paths:
+      - 'tools/am-studio-distribution/**'
+      - '.github/workflows/am-studio-distribution-build.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: am-studio-distribution-apk
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.10.2'
+
+      - name: Build debug APK
+        working-directory: tools/am-studio-distribution
+        run: gradle :app:assembleDebug --stacktrace
+
+      - name: Stage artifact
+        run: |
+          set -euo pipefail
+          SRC='tools/am-studio-distribution/app/build/outputs/apk/debug/app-debug.apk'
+          test -f "$SRC"
+          mkdir -p dist
+          cp "$SRC" 'dist/AM-STUDIO-Distribution-v0.1.0-foundation.apk'
+          sha256sum 'dist/AM-STUDIO-Distribution-v0.1.0-foundation.apk' | tee 'dist/SHA256SUMS.txt'
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: AM-STUDIO-Distribution-v0.1.0-foundation
+          path: dist/*
+          if-no-files-found: error
