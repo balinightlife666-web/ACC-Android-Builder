@@ -32,9 +32,12 @@ import com.amstudio.distribution.network.ApiClient;
 import com.amstudio.distribution.network.BackendReleaseOrchestrator;
 import com.amstudio.distribution.network.SandboxConnectionStore;
 
+import org.json.JSONArray;
 import org.json.JSONObject;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 
@@ -90,7 +93,7 @@ public final class MainActivity extends Activity {
         copy.setOrientation(LinearLayout.VERTICAL);
         copy.setPadding(dp(12), 0, 0, 0);
         copy.addView(text("AM STUDIO", 18, TEXT, Typeface.BOLD));
-        copy.addView(text("MUSIC DISTRIBUTION • SANDBOX CONNECT", 9, MUTED, Typeface.BOLD));
+        copy.addView(text("MUSIC DISTRIBUTION • LEDGER READY", 9, MUTED, Typeface.BOLD));
         brand.addView(copy, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
 
         TextView badge = text(connectionStore.isConfigured() ? "CONNECTED" : "SANDBOX", 9,
@@ -123,7 +126,7 @@ public final class MainActivity extends Activity {
         LinearLayout page = pageColumn();
         page.addView(kicker("DISTRIBUTE • TRACK • EARN"));
         page.addView(title("Backend-ready music distribution."));
-        page.addView(body("AM STUDIO memisahkan APK, katalog canonical, backend, dan provider adapter. v0.4 dapat mengirim release package ke AM STUDIO sandbox melalui HTTPS."));
+        page.addView(body("AM STUDIO memisahkan APK, katalog canonical, backend, provider adapter, dan royalty ledger. v0.5 siap membaca wallet server-authoritative tanpa menghitung saldo di perangkat."));
 
         Button create = primaryButton("+ NEW RELEASE");
         create.setOnClickListener(v -> showNewRelease());
@@ -141,7 +144,7 @@ public final class MainActivity extends Activity {
         page.addView(infoCard("1. Prepare", "WAV/FLAC • square cover • metadata • credits • rights"));
         page.addView(infoCard("2. Upload", "APK → AM STUDIO HTTPS API → server-side SHA-256 verification"));
         page.addView(infoCard("3. Review", "Canonical preflight → READY_FOR_REVIEW → IN_REVIEW"));
-        page.addView(infoCard("4. Provider", "AM STUDIO backend → provider adapter → DSP (still commercially gated)"));
+        page.addView(infoCard("4. Reconcile", "Provider statement → PENDING ledger → AVAILABLE wallet → payout gates"));
 
         page.addView(sectionHeader("LATEST RELEASES"));
         if (releases.isEmpty()) page.addView(emptyCard("Belum ada release."));
@@ -169,7 +172,7 @@ public final class MainActivity extends Activity {
 
         ScrollView scroll = pageScroll();
         LinearLayout page = pageColumn();
-        page.addView(kicker("RELEASE WIZARD • v0.4"));
+        page.addView(kicker("RELEASE WIZARD • v0.5"));
         page.addView(title("Build & submit release"));
         page.addView(body("Local preflight dijalankan lebih dulu. Saat backend sandbox terhubung, APK menghitung checksum + exact byte size lalu upload langsung ke AM STUDIO API."));
 
@@ -292,7 +295,7 @@ public final class MainActivity extends Activity {
         page.addView(preflight, buttonLp());
         page.addView(save, buttonLp());
         page.addView(submit, buttonLp());
-        TextView warning = body("Provider DSP tetap DISABLED sampai akun/API provider resmi dikontrak dan sandbox evidence tersedia. Submit v0.4 hanya masuk AM STUDIO backend review.");
+        TextView warning = body("Provider DSP tetap DISABLED sampai akun/API provider resmi dikontrak dan sandbox evidence tersedia. Submit v0.5 hanya masuk AM STUDIO backend review.");
         warning.setTextColor(WARNING);
         warning.setPadding(0, dp(18), 0, dp(24));
         page.addView(warning);
@@ -304,14 +307,77 @@ public final class MainActivity extends Activity {
     private void showEarnings() {
         ScrollView scroll = pageScroll();
         LinearLayout page = pageColumn();
-        page.addView(kicker("ROYALTIES"));
+        page.addView(kicker("ROYALTIES • SERVER AUTHORITATIVE"));
         page.addView(title("Earnings"));
-        page.addView(metricWide("Rp0", "VERIFIED PAYABLE BALANCE"));
-        page.addView(infoCard("Gross royalties", "Rp0 • provider statement belum aktif"));
-        page.addView(infoCard("AM STUDIO fee", "Rp0 • billing engine belum diaktifkan"));
-        page.addView(infoCard("Artist payable", "Rp0 • append-only royalty ledger belum diaktifkan"));
-        page.addView(sectionHeader("INTEGRITY RULE"));
-        page.addView(emptyCard("Tidak ada saldo estimasi palsu. Nilai hanya akan muncul dari provider statement → reconciliation → ledger → split → payout."));
+        page.addView(body("Saldo hanya berasal dari append-only backend ledger. APK tidak menghitung royalti, fee, atau payout sendiri."));
+
+        LinearLayout headlineCard = card();
+        TextView availableValue = text("—", 28, TEXT, Typeface.BOLD);
+        TextView availableLabel = text("AVAILABLE", 10, MUTED, Typeface.BOLD);
+        headlineCard.addView(availableValue);
+        headlineCard.addView(availableLabel);
+        page.addView(headlineCard);
+
+        TextView walletDetail = body(connectionStore.isConfigured()
+                ? "Wallet belum dimuat. Tekan REFRESH FROM BACKEND."
+                : "Backend belum terhubung. Buka ACCOUNT untuk konfigurasi sandbox HTTPS session.");
+        walletDetail.setPadding(0, dp(10), 0, dp(10));
+        page.addView(walletDetail);
+
+        TextView ledgerState = body("Ledger entries: —");
+        ledgerState.setTextColor(MUTED);
+        page.addView(ledgerState);
+
+        Button refresh = primaryButton("REFRESH FROM BACKEND");
+        refresh.setEnabled(connectionStore.isConfigured());
+        refresh.setOnClickListener(v -> {
+            if (!connectionStore.isConfigured()) {
+                walletDetail.setText("Backend belum terhubung.");
+                walletDetail.setTextColor(WARNING);
+                return;
+            }
+            refresh.setEnabled(false);
+            walletDetail.setText("Loading verified wallet + ledger…");
+            walletDetail.setTextColor(ACCENT);
+
+            new Thread(() -> {
+                try {
+                    ApiClient api = new ApiClient(getContentResolver(), connectionStore.getBaseUrl(), connectionStore.getSessionToken());
+                    JSONObject walletResponse = api.getWallet();
+                    JSONObject ledgerResponse = api.getRoyaltyLedger();
+                    JSONObject wallet = walletResponse.optJSONObject("wallet");
+                    JSONObject currencies = wallet == null ? null : wallet.optJSONObject("currencies");
+                    JSONArray entries = ledgerResponse.optJSONArray("entries");
+                    String headline = availableHeadline(currencies);
+                    String detail = walletSummary(currencies);
+                    int count = entries == null ? 0 : entries.length();
+                    runOnUiThread(() -> {
+                        availableValue.setText(headline);
+                        walletDetail.setText(detail);
+                        walletDetail.setTextColor(detail.startsWith("No verified") ? MUTED : GREEN);
+                        ledgerState.setText("Ledger entries: " + count + " • append-only • backend verified");
+                        ledgerState.setTextColor(GREEN);
+                        refresh.setEnabled(true);
+                    });
+                } catch (Exception error) {
+                    runOnUiThread(() -> {
+                        walletDetail.setText("Wallet error: " + fallback(error.getMessage(), error.getClass().getSimpleName()));
+                        walletDetail.setTextColor(WARNING);
+                        ledgerState.setText("Ledger entries: unavailable");
+                        ledgerState.setTextColor(WARNING);
+                        refresh.setEnabled(true);
+                    });
+                }
+            }).start();
+        });
+        page.addView(refresh, buttonLp());
+
+        page.addView(sectionHeader("INTEGRITY RULES"));
+        page.addView(infoCard("PENDING", "Raw provider statement value; not withdrawable."));
+        page.addView(infoCard("AVAILABLE", "Reconciled ledger value; payout still gated by KYC/tax/payment/risk."));
+        page.addView(infoCard("HELD", "Value withheld for rights, fraud, dispute, tax, or compliance review."));
+        page.addView(infoCard("PAID", "Historical settled value; never rewritten into AVAILABLE."));
+        page.addView(emptyCard("No fixed AM STUDIO percentage is hard-coded here. Fees and splits must become explicit ledger entries after the configurable billing/split engine is implemented."));
         scroll.addView(page);
         swap(scroll);
     }
@@ -385,9 +451,10 @@ public final class MainActivity extends Activity {
         page.addView(clear, buttonLp());
 
         page.addView(sectionHeader("STATUS"));
-        page.addView(infoCard("App identity", "com.amstudio.distribution • 0.4.0-sandbox-connect"));
+        page.addView(infoCard("App identity", "com.amstudio.distribution • 0.5.0-ledger-ready"));
         page.addView(infoCard("Backend", connectionStore.getBaseUrl().isEmpty() ? "NOT CONFIGURED" : connectionStore.getBaseUrl()));
         page.addView(infoCard("Provider adapter", "LabelGrid target • DISABLED until commercial sandbox token"));
+        page.addView(infoCard("Royalty ledger", "APPEND-ONLY backend foundation • no device-side balance authority"));
         page.addView(infoCard("KYC / KYB", "NOT CONNECTED"));
         page.addView(infoCard("Payout", "NOT CONNECTED"));
         scroll.addView(page);
@@ -477,6 +544,48 @@ public final class MainActivity extends Activity {
         stores.setPadding(0, dp(8), 0, 0);
         card.addView(stores);
         return card;
+    }
+
+    private String availableHeadline(JSONObject currencies) {
+        if (currencies == null || currencies.length() == 0) return "0";
+        Iterator<String> keys = currencies.keys();
+        if (!keys.hasNext()) return "0";
+        String first = keys.next();
+        if (keys.hasNext()) return "MULTI";
+        JSONObject row = currencies.optJSONObject(first);
+        long available = row == null ? 0L : row.optLong("AVAILABLE", 0L);
+        return formatMinor(first, available);
+    }
+
+    private String walletSummary(JSONObject currencies) {
+        if (currencies == null || currencies.length() == 0) return "No verified royalties yet.";
+        StringBuilder out = new StringBuilder();
+        Iterator<String> keys = currencies.keys();
+        while (keys.hasNext()) {
+            String currency = keys.next();
+            JSONObject row = currencies.optJSONObject(currency);
+            if (row == null) continue;
+            if (out.length() > 0) out.append("\n");
+            out.append(currency)
+                    .append(" • Pending ").append(formatMinor(currency, row.optLong("PENDING", 0L)))
+                    .append(" • Available ").append(formatMinor(currency, row.optLong("AVAILABLE", 0L)))
+                    .append(" • Held ").append(formatMinor(currency, row.optLong("HELD", 0L)))
+                    .append(" • Paid ").append(formatMinor(currency, row.optLong("PAID", 0L)));
+        }
+        return out.length() == 0 ? "No verified royalties yet." : out.toString();
+    }
+
+    private String formatMinor(String currency, long amountMinor) {
+        int exponent = currencyExponent(currency);
+        BigDecimal value = BigDecimal.valueOf(amountMinor).movePointLeft(exponent);
+        return currency.toUpperCase(Locale.US) + " " + value.toPlainString();
+    }
+
+    private int currencyExponent(String currency) {
+        String code = currency == null ? "" : currency.toUpperCase(Locale.US);
+        if (code.equals("IDR") || code.equals("JPY") || code.equals("KRW")) return 0;
+        if (code.equals("BHD") || code.equals("KWD") || code.equals("OMR") || code.equals("JOD")) return 3;
+        return 2;
     }
 
     private LinearLayout metricCard(String value, String label) { LinearLayout c = card(); c.setPadding(dp(12), dp(14), dp(12), dp(14)); c.addView(text(value, 20, TEXT, Typeface.BOLD)); c.addView(text(label, 9, MUTED, Typeface.BOLD)); return c; }
