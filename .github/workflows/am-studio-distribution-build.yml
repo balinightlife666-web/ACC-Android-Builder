@@ -57,14 +57,14 @@ jobs:
           SRC='tools/am-studio-distribution/app/build/outputs/apk/debug/app-debug.apk'
           test -f "$SRC"
           mkdir -p dist
-          cp "$SRC" 'dist/AM-STUDIO-Distribution-v0.4.0-sandbox-connect-DEBUG.apk'
-          sha256sum 'dist/AM-STUDIO-Distribution-v0.4.0-sandbox-connect-DEBUG.apk' | tee 'dist/SHA256SUMS.txt'
+          cp "$SRC" 'dist/AM-STUDIO-Distribution-v0.5.0-ledger-ready-DEBUG.apk'
+          sha256sum 'dist/AM-STUDIO-Distribution-v0.5.0-ledger-ready-DEBUG.apk' | tee 'dist/SHA256SUMS.txt'
           printf '%s\n' 'DEBUG BUILD — NOT UPGRADE-SAFE / NOT FOR USER DISTRIBUTION' > 'dist/BUILD_CHANNEL.txt'
 
       - name: Upload debug APK
         uses: actions/upload-artifact@v4
         with:
-          name: AM-STUDIO-Distribution-v0.4.0-debug-ci
+          name: AM-STUDIO-Distribution-v0.5.0-debug-ci
           path: dist/*
           if-no-files-found: error
 
@@ -104,7 +104,7 @@ jobs:
       - name: Restore permanent AM STUDIO keystore
         run: |
           set -euo pipefail
-          KEYSTORE="$RUNNER_TEMP/am-studio-release.jks"
+          KEYSTORE="$RUNNER_TEMP/am-studio-release.p12"
           printf '%s' "$AM_STUDIO_KEYSTORE_B64" | base64 --decode > "$KEYSTORE"
           test -s "$KEYSTORE"
           chmod 600 "$KEYSTORE"
@@ -120,14 +120,14 @@ jobs:
           SRC='tools/am-studio-distribution/app/build/outputs/apk/release/app-release.apk'
           test -f "$SRC"
           mkdir -p dist
-          cp "$SRC" 'dist/AM-STUDIO-Distribution-v0.4.0-sandbox-connect-SIGNED.apk'
-          sha256sum 'dist/AM-STUDIO-Distribution-v0.4.0-sandbox-connect-SIGNED.apk' | tee 'dist/SHA256SUMS.txt'
-          keytool -printcert -jarfile 'dist/AM-STUDIO-Distribution-v0.4.0-sandbox-connect-SIGNED.apk' > 'dist/SIGNING_CERT.txt'
+          cp "$SRC" 'dist/AM-STUDIO-Distribution-v0.5.0-ledger-ready-SIGNED.apk'
+          sha256sum 'dist/AM-STUDIO-Distribution-v0.5.0-ledger-ready-SIGNED.apk' | tee 'dist/SHA256SUMS.txt'
+          keytool -printcert -jarfile 'dist/AM-STUDIO-Distribution-v0.5.0-ledger-ready-SIGNED.apk' > 'dist/SIGNING_CERT.txt'
           printf '%s\n' 'PERMANENT AM STUDIO SIGNED RELEASE — UPGRADE CHANNEL' > 'dist/BUILD_CHANNEL.txt'
 
       - name: Upload signed APK
         uses: actions/upload-artifact@v4
         with:
-          name: AM-STUDIO-Distribution-v0.4.0-signed-release
+          name: AM-STUDIO-Distribution-v0.5.0-signed-release
           path: dist/*
           if-no-files-found: error
