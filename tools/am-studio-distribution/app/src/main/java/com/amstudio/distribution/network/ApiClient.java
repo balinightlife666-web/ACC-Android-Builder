@@ -29,6 +29,14 @@ public final class ApiClient {
         return requestJson("GET", "/v1/me", null);
     }
 
+    public JSONObject getWallet() throws Exception {
+        return requestJson("GET", "/v1/wallet", null);
+    }
+
+    public JSONObject getRoyaltyLedger() throws Exception {
+        return requestJson("GET", "/v1/royalties/ledger", null);
+    }
+
     public JSONObject createRelease(JSONObject release) throws Exception {
         return requestJson("POST", "/v1/releases", release == null ? new JSONObject() : release);
     }
