@@ -8,12 +8,18 @@ on:
     paths:
       - 'tools/am-studio-distribution/**'
       - '.github/workflows/am-studio-distribution-build.yml'
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'tools/am-studio-distribution/**'
+      - '.github/workflows/am-studio-distribution-build.yml'
 
 permissions:
   contents: read
 
 concurrency:
-  group: am-studio-distribution-apk
+  group: am-studio-distribution-apk-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
