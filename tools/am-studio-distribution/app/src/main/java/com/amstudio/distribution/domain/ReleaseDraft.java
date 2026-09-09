@@ -10,6 +10,7 @@ import java.util.UUID;
 
 public final class ReleaseDraft {
     private String id;
+    private String backendReleaseId;
     private String title;
     private String artistName;
     private String labelName;
@@ -38,6 +39,7 @@ public final class ReleaseDraft {
 
     public ReleaseDraft() {
         this.id = "rel_" + UUID.randomUUID().toString().replace("-", "");
+        this.backendReleaseId = "";
         this.title = "";
         this.artistName = "";
         this.labelName = "AM STUDIO";
@@ -59,6 +61,7 @@ public final class ReleaseDraft {
     }
 
     public String getId() { return id; }
+    public String getBackendReleaseId() { return backendReleaseId; }
     public String getTitle() { return title; }
     public String getArtistName() { return artistName; }
     public String getLabelName() { return labelName; }
@@ -85,6 +88,7 @@ public final class ReleaseDraft {
     public long getUpdatedAt() { return updatedAt; }
     public List<String> getDestinations() { return new ArrayList<>(destinations); }
 
+    public void setBackendReleaseId(String value) { backendReleaseId = clean(value); touch(); }
     public void setTitle(String value) { title = clean(value); touch(); }
     public void setArtistName(String value) { artistName = clean(value); touch(); }
     public void setLabelName(String value) { labelName = clean(value); touch(); }
@@ -131,6 +135,7 @@ public final class ReleaseDraft {
     public JSONObject toJson() throws JSONException {
         JSONObject json = new JSONObject();
         json.put("id", id);
+        json.put("backendReleaseId", backendReleaseId);
         json.put("title", title);
         json.put("artistName", artistName);
         json.put("labelName", labelName);
@@ -165,6 +170,7 @@ public final class ReleaseDraft {
         ReleaseDraft draft = new ReleaseDraft();
         if (json == null) return draft;
         draft.id = json.optString("id", draft.id);
+        draft.backendReleaseId = json.optString("backendReleaseId", "");
         draft.title = json.optString("title", "");
         draft.artistName = json.optString("artistName", "");
         draft.labelName = json.optString("labelName", "AM STUDIO");
