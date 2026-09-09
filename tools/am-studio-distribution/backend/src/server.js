@@ -26,6 +26,7 @@ export function createServer() {
           environment: 'DEV_SANDBOX',
           persistence: 'JSON_FILE',
           mediaStorage: 'LOCAL_STREAM',
+          royaltyLedger: 'APPEND_ONLY_SANDBOX',
           requestId
         });
       }
@@ -47,9 +48,25 @@ export function createServer() {
         const body = await bodyJson(req);
         return json(res, 201, { ...store.createUploadSession(body, actor), requestId });
       }
+      if (method === 'GET' && path === '/v1/royalties/ledger') {
+        return json(res, 200, { entries: store.getRoyaltyLedger(actor), requestId });
+      }
+      if (method === 'GET' && path === '/v1/wallet') {
+        return json(res, 200, { wallet: store.getWallet(actor), requestId });
+      }
       if (method === 'GET' && path === '/v1/admin/audit') {
         requireRole(user, 'OWNER');
         return json(res, 200, { events: store.getAudit(), requestId });
+      }
+      if (method === 'POST' && path === '/v1/admin/royalties/ingest') {
+        requireRole(user, 'OWNER');
+        const body = await bodyJson(req);
+        return json(res, 201, { result: store.ingestRoyaltyLine(body, actor), requestId });
+      }
+      if (method === 'POST' && path === '/v1/admin/royalties/reconcile') {
+        requireRole(user, 'OWNER');
+        const body = await bodyJson(req);
+        return json(res, 200, { result: store.reconcileRoyalty(body, actor), requestId });
       }
 
       const releaseMatch = path.match(/^\/v1\/releases\/([^/]+)$/);
