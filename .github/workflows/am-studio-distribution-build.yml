@@ -6,13 +6,17 @@ on:
     branches:
       - feat/am-studio-distribution-foundation
     paths:
-      - 'tools/am-studio-distribution/**'
+      - 'tools/am-studio-distribution/app/**'
+      - 'tools/am-studio-distribution/build.gradle'
+      - 'tools/am-studio-distribution/settings.gradle'
       - '.github/workflows/am-studio-distribution-build.yml'
   pull_request:
     branches:
       - main
     paths:
-      - 'tools/am-studio-distribution/**'
+      - 'tools/am-studio-distribution/app/**'
+      - 'tools/am-studio-distribution/build.gradle'
+      - 'tools/am-studio-distribution/settings.gradle'
       - '.github/workflows/am-studio-distribution-build.yml'
 
 permissions:
