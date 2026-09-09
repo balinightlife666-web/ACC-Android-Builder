@@ -56,8 +56,7 @@ local function compactProgression()
     local panel = gui and gui:FindFirstChild("ProgressionPanel")
     if not panel or not panel:IsA("Frame") then return false end
 
-    local compact = compactMode()
-    if compact then
+    if compactMode() then
         panel.Position = UDim2.new(0.5, 0, 0, 4)
         panel.Size = UDim2.new(0.64, 0, 0, 54)
 
@@ -102,11 +101,14 @@ local function attachCareerBar()
     local progressionGui = playerGui:FindFirstChild("LostAndFoundProgressionHUD")
     local progressionPanel = progressionGui and progressionGui:FindFirstChild("ProgressionPanel")
     local careerGui = playerGui:FindFirstChild("LostAndFoundCareerUnlocks")
-    local careerBar = careerGui and careerGui:FindFirstChild("CareerTierBar", true)
+    local careerBar = progressionPanel and progressionPanel:FindFirstChild("CareerTierBar")
+    if not careerBar and careerGui then
+        careerBar = careerGui:FindFirstChild("CareerTierBar", true)
+    end
     if not progressionPanel or not careerBar or not careerBar:IsA("TextLabel") then return false end
 
     if careerGui and careerGui:IsA("ScreenGui") then
-        -- Toast remains above normal HUD but below Station Shop modal.
+        -- Promotion toast remains above normal HUD but below Station Shop modal.
         careerGui.DisplayOrder = 16
     end
 
@@ -135,6 +137,40 @@ local function attachCareerBar()
     return true
 end
 
+local function getModalShield(panel)
+    local shieldGui = playerGui:FindFirstChild("LostAndFoundStationShopModalShield")
+    if not shieldGui then
+        shieldGui = Instance.new("ScreenGui")
+        shieldGui.Name = "LostAndFoundStationShopModalShield"
+        shieldGui.ResetOnSpawn = false
+        shieldGui.IgnoreGuiInset = false
+        shieldGui.DisplayOrder = 17
+        shieldGui.Enabled = false
+        shieldGui.Parent = playerGui
+    end
+
+    local shield = shieldGui:FindFirstChild("Shield")
+    if not shield then
+        shield = Instance.new("TextButton")
+        shield.Name = "Shield"
+        shield.Size = UDim2.fromScale(1, 1)
+        shield.Position = UDim2.fromScale(0, 0)
+        shield.BackgroundColor3 = Color3.fromRGB(6, 8, 12)
+        shield.BackgroundTransparency = 0.28
+        shield.BorderSizePixel = 0
+        shield.Text = ""
+        shield.AutoButtonColor = false
+        shield.Active = true
+        shield.Selectable = false
+        shield.Parent = shieldGui
+        shield.Activated:Connect(function()
+            if panel and panel.Parent then panel.Visible = false end
+        end)
+    end
+
+    return shieldGui
+end
+
 local function ensureShopModal()
     local shop = playerGui:FindFirstChild("LostAndFoundStationShop")
     if not shop or not shop:IsA("ScreenGui") then return false end
@@ -149,39 +185,18 @@ local function ensureShopModal()
 
     if compactMode() then
         panel.Size = UDim2.new(0.78, 0, 0.82, 0)
-        panel.Position = UDim2.fromScale(0.5, 0.52)
+        panel.Position = UDim2.fromScale(0.5, 0.50)
         local constraint = panel:FindFirstChildOfClass("UISizeConstraint")
         if constraint then
             constraint.MinSize = Vector2.new(300, 260)
-            constraint.MaxSize = Vector2.new(500, 380)
+            constraint.MaxSize = Vector2.new(500, 360)
         end
     end
 
-    panel.ZIndex = 2
-
-    local shield = shop:FindFirstChild("ModalShield")
-    if not shield then
-        shield = Instance.new("TextButton")
-        shield.Name = "ModalShield"
-        shield.Size = UDim2.fromScale(1, 1)
-        shield.Position = UDim2.fromScale(0, 0)
-        shield.BackgroundColor3 = Color3.fromRGB(6, 8, 12)
-        shield.BackgroundTransparency = 0.28
-        shield.BorderSizePixel = 0
-        shield.Text = ""
-        shield.AutoButtonColor = false
-        shield.Active = true
-        shield.Selectable = false
-        shield.ZIndex = 1
-        shield.Visible = panel.Visible
-        shield.Parent = shop
-        shield.Activated:Connect(function()
-            panel.Visible = false
-        end)
-    end
+    local shieldGui = getModalShield(panel)
 
     local function syncModalState()
-        shield.Visible = panel.Visible
+        shieldGui.Enabled = panel.Visible
         if openButton and openButton:IsA("GuiObject") then
             openButton.Visible = not panel.Visible
         end
@@ -245,6 +260,10 @@ player:GetAttributeChangedSignal("LostFoundProgressionRevision"):Connect(functio
         compactProgression()
         attachCareerBar()
     end)
+end)
+
+player:GetAttributeChangedSignal("LostFoundResolvedLocale"):Connect(function()
+    task.defer(reconcile)
 end)
 
 local camera = workspace.CurrentCamera
