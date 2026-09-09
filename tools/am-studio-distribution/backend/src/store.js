@@ -15,7 +15,9 @@ export class MemoryStore {
   }
 
   listReleases() {
-    return [...this.releases.values()].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)).map(structuredClone);
+    return [...this.releases.values()]
+      .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))
+      .map(value => structuredClone(value));
   }
 
   getRelease(id) {
@@ -99,7 +101,9 @@ export class MemoryStore {
     return structuredClone(release);
   }
 
-  getAudit() { return this.audit.map(structuredClone); }
+  getAudit() {
+    return this.audit.map(value => structuredClone(value));
+  }
 
   requireRelease(id) {
     const release = this.releases.get(id);
