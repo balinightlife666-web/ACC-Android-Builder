@@ -1,27 +1,40 @@
 import http from 'node:http';
+import { randomUUID } from 'node:crypto';
 import { URL } from 'node:url';
 import { MemoryStore, coded } from './store.js';
+import { JsonFilePersistence } from './persistence.js';
+import { AuthService } from './auth.js';
+import { LocalAssetStorage } from './storage.js';
 
-export const store = new MemoryStore();
+const persistence = new JsonFilePersistence();
+export const store = new MemoryStore({ persistence });
+export const auth = new AuthService();
+export const storage = new LocalAssetStorage();
 
 export function createServer() {
   return http.createServer(async (req, res) => {
-    const requestId = `req_${cryptoSafeId()}`;
+    const requestId = `req_${randomUUID().replaceAll('-', '')}`;
     try {
       const url = new URL(req.url, 'http://localhost');
       const method = req.method || 'GET';
       const path = url.pathname;
-      const actor = req.headers['x-am-actor'] || 'dev-user';
 
       if (method === 'GET' && path === '/health') {
-        return json(res, 200, { ok: true, service: 'am-studio-distribution-backend', environment: 'DEV_SANDBOX', requestId });
-      }
-      if (method === 'GET' && path === '/v1/me') {
         return json(res, 200, {
-          id: 'usr_dev', displayName: 'AM STUDIO Dev User', roles: ['OWNER'],
-          kycState: 'NOT_CONNECTED', payoutEligibility: false,
-          environment: 'DEV_SANDBOX', requestId
+          ok: true,
+          service: 'am-studio-distribution-backend',
+          environment: 'DEV_SANDBOX',
+          persistence: 'JSON_FILE',
+          mediaStorage: 'LOCAL_STREAM',
+          requestId
         });
+      }
+
+      const user = auth.authenticate(req);
+      const actor = user.id;
+
+      if (method === 'GET' && path === '/v1/me') {
+        return json(res, 200, { ...user, requestId });
       }
       if (method === 'POST' && path === '/v1/releases') {
         const body = await bodyJson(req);
@@ -35,6 +48,7 @@ export function createServer() {
         return json(res, 201, { ...store.createUploadSession(body, actor), requestId });
       }
       if (method === 'GET' && path === '/v1/admin/audit') {
+        requireRole(user, 'OWNER');
         return json(res, 200, { events: store.getAudit(), requestId });
       }
 
@@ -62,6 +76,15 @@ export function createServer() {
         return json(res, 200, { release: store.submitReview(reviewMatch[1], actor), requestId });
       }
 
+      const uploadContentMatch = path.match(/^\/v1\/uploads\/([^/]+)\/content$/);
+      if (method === 'PUT' && uploadContentMatch) {
+        const id = uploadContentMatch[1];
+        const asset = store.getAsset(id);
+        if (!asset) throw coded('ASSET_NOT_FOUND', 'Asset not found', 404);
+        const written = await storage.writeFromRequest(asset, req);
+        return json(res, 200, { asset: store.markUploaded(id, written, actor), requestId });
+      }
+
       const uploadCompleteMatch = path.match(/^\/v1\/uploads\/([^/]+)\/complete$/);
       if (method === 'POST' && uploadCompleteMatch) {
         const body = await bodyJson(req);
@@ -72,7 +95,13 @@ export function createServer() {
     } catch (error) {
       const status = Number(error?.status || 500);
       const code = error?.code || 'INTERNAL_ERROR';
-      json(res, status, { error: { code, message: status >= 500 ? 'Internal server error' : String(error.message || code), requestId } });
+      json(res, status, {
+        error: {
+          code,
+          message: status >= 500 ? 'Internal server error' : String(error.message || code),
+          requestId
+        }
+      });
     }
   });
 }
@@ -90,6 +119,12 @@ async function bodyJson(req) {
   catch { throw coded('INVALID_JSON', 'Invalid JSON body'); }
 }
 
+function requireRole(user, role) {
+  if (!Array.isArray(user?.roles) || !user.roles.includes(role)) {
+    throw coded('FORBIDDEN', 'Insufficient role', 403);
+  }
+}
+
 function json(res, status, payload) {
   const data = Buffer.from(JSON.stringify(payload));
   res.writeHead(status, {
@@ -99,10 +134,6 @@ function json(res, status, payload) {
     'x-content-type-options': 'nosniff'
   });
   res.end(data);
-}
-
-function cryptoSafeId() {
-  return Math.random().toString(36).slice(2) + Date.now().toString(36);
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) {
