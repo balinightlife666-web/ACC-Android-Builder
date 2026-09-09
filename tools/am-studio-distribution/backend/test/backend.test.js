@@ -113,8 +113,13 @@ test('json persistence survives store restart', () => {
   const persistence = new JsonFilePersistence(file);
   const first = new MemoryStore({ persistence });
   const release = first.createRelease({ title: 'Persistent Single', artistName: 'Arda Test' });
+  first.ingestRoyaltyLine({
+    ownerId: 'usr_artist', provider: 'labelgrid', statementId: 'INV-1', lineRef: 'row-1',
+    currency: 'USD', amountMinor: 1250
+  }, 'usr_dev_owner');
   const second = new MemoryStore({ persistence: new JsonFilePersistence(file) });
   assert.equal(second.getRelease(release.id).title, 'Persistent Single');
+  assert.equal(second.getWallet('usr_artist').currencies.USD.PENDING, 1250);
   fs.rmSync(dir, { recursive: true, force: true });
 });
 
@@ -136,4 +141,44 @@ test('auth boundary requires bearer token', () => {
   const user = auth.authenticate({ headers: { authorization: 'Bearer secret-test-token' } });
   assert.equal(user.id, 'usr_dev_owner');
   assert.ok(user.roles.includes('OWNER'));
+});
+
+test('royalty raw line ingestion is idempotent and uses integer minor units', () => {
+  const store = new MemoryStore();
+  const input = {
+    ownerId: 'usr_artist', provider: 'labelgrid', statementId: 'INV-2026-09', lineRef: '42',
+    currency: 'USD', amountMinor: 1234, isrc: 'TESTISRC0001', destination: 'Spotify'
+  };
+  const first = store.ingestRoyaltyLine(input, 'usr_dev_owner');
+  const second = store.ingestRoyaltyLine(input, 'usr_dev_owner');
+  assert.equal(first.duplicate, false);
+  assert.equal(second.duplicate, true);
+  assert.equal(store.getRoyaltyLedger('usr_artist').length, 1);
+  assert.equal(store.getWallet('usr_artist').currencies.USD.PENDING, 1234);
+  assert.throws(() => store.ingestRoyaltyLine({ ...input, lineRef: '43', amountMinor: 12.5 }, 'usr_dev_owner'), /safe integer/i);
+});
+
+test('royalty reconciliation moves value append-only from pending to available', () => {
+  const store = new MemoryStore();
+  store.ingestRoyaltyLine({
+    ownerId: 'usr_artist', provider: 'labelgrid', statementId: 'INV-2', lineRef: '1',
+    currency: 'USD', amountMinor: 2000
+  }, 'usr_dev_owner');
+
+  const first = store.reconcileRoyalty({
+    ownerId: 'usr_artist', currency: 'USD', amountMinor: 1500,
+    sourceRef: 'reconcile:INV-2:batch-a', idempotencyKey: 'reconcile:INV-2:batch-a'
+  }, 'usr_dev_owner');
+  const second = store.reconcileRoyalty({
+    ownerId: 'usr_artist', currency: 'USD', amountMinor: 1500,
+    sourceRef: 'reconcile:INV-2:batch-a', idempotencyKey: 'reconcile:INV-2:batch-a'
+  }, 'usr_dev_owner');
+
+  assert.equal(first.duplicate, false);
+  assert.equal(second.duplicate, true);
+  const wallet = store.getWallet('usr_artist').currencies.USD;
+  assert.equal(wallet.PENDING, 500);
+  assert.equal(wallet.AVAILABLE, 1500);
+  assert.equal(wallet.TOTAL, 2000);
+  assert.equal(store.getRoyaltyLedger('usr_artist').length, 3);
 });
