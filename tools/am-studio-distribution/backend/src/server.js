@@ -138,7 +138,8 @@ function json(res, status, payload) {
 
 if (import.meta.url === `file://${process.argv[1]}`) {
   const port = Number(process.env.PORT || 8787);
-  createServer().listen(port, '127.0.0.1', () => {
-    console.log(`AM STUDIO Distribution backend DEV_SANDBOX listening on http://127.0.0.1:${port}`);
+  const host = process.env.HOST || '127.0.0.1';
+  createServer().listen(port, host, () => {
+    console.log(`AM STUDIO Distribution backend DEV_SANDBOX listening on ${host}:${port}`);
   });
 }
