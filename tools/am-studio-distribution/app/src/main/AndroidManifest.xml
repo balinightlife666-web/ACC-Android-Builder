@@ -3,8 +3,8 @@
     <application
         android:allowBackup="false"
         android:usesCleartextTraffic="false"
-        android:icon="@drawable/ic_am_studio"
-        android:label="AM STUDIO"
+        android:icon="@drawable/am_studio_logo"
+        android:label="AM STUDIO Music Distribution"
         android:supportsRtl="true"
         android:theme="@android:style/Theme.Material.NoActionBar">
         <activity
