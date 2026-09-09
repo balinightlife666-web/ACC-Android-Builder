@@ -1,11 +1,22 @@
 # AM STUDIO MUSIC DISTRIBUTION — PERMANENT APK SIGNING LOCK
 
-Status: REQUIRED BEFORE NEXT USER-FACING UPGRADE BUILD
+Status: PERMANENT KEY GENERATED / ACTIONS SECRET PROVISIONING PENDING
 
 ## Goal
 All user-facing AM STUDIO Music Distribution APKs must use the same permanent signing certificate so Android can upgrade the installed app without uninstalling and without losing app data.
 
 Package lock: `com.amstudio.distribution`
+
+## Permanent certificate identity
+
+- Alias: `amstudio-release`
+- Key type: RSA 4096 / SHA256withRSA
+- Keystore format: PKCS12
+- Certificate SHA-256 fingerprint:
+  `34:47:8F:B9:8A:55:73:45:EA:7F:22:1A:C1:98:33:4F:28:7F:9F:A1:94:BC:B6:94:75:27:1C:F8:5D:E9:56:23`
+- Certificate serial: `961d392186486e7a`
+
+The private keystore and passwords are intentionally NOT stored in this repository. The fingerprint above is public identity metadata and is safe to record for future signature verification.
 
 ## Build channels
 
@@ -24,7 +35,7 @@ Package lock: `com.amstudio.distribution`
 ## Required GitHub Actions secrets
 
 1. `AM_STUDIO_KEYSTORE_B64`
-   - Base64 representation of the permanent `.jks` keystore.
+   - Base64 representation of the permanent keystore.
 2. `AM_STUDIO_KEYSTORE_PASSWORD`
    - Keystore password.
 3. `AM_STUDIO_KEY_ALIAS`
@@ -40,7 +51,7 @@ The keystore/private key must NEVER be committed to the repository.
 - Keep at least two encrypted offline backups of the permanent keystore.
 - Losing the signing key means existing direct-install users cannot receive normal APK upgrades signed by a replacement key.
 - Never expose signing secrets in source, APK, PR comments, logs, or issue bodies.
-- Every distributed APK must have a signing certificate fingerprint recorded.
+- Every distributed APK must have a signing certificate fingerprint recorded and it must equal the permanent fingerprint above.
 - A build is not called `UPGRADE-SAFE` until signed-release CI has passed with the permanent key.
 
 ## Migration state
