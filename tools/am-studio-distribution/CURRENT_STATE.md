@@ -2,7 +2,7 @@
 
 Date: 2026-09-09
 Authority: MASTERPLAN v1.0
-Phase: A — MEDIA PREFLIGHT SANDBOX / PHYSICAL RUNTIME QC NEXT
+Phase: A — MEDIA PREFLIGHT SANDBOX + BACKEND FOUNDATION / PHYSICAL RUNTIME QC NEXT
 
 ## Source
 - Repository: `balinightlife666-web/ACC-Android-Builder`
@@ -10,11 +10,12 @@ Phase: A — MEDIA PREFLIGHT SANDBOX / PHYSICAL RUNTIME QC NEXT
 - Pull request: #92 (DRAFT / UNMERGED)
 - Android package: `com.amstudio.distribution`
 - App version: `0.2.0-media-preflight` / versionCode 2
-- Last verified source commit before this state receipt: `b9f2671c58a35271e5064c168ef570e4c204bf70`
-- Verified CI run: `34338410385` — PASS
+- Verified APK source commit: `b9f2671c58a35271e5064c168ef570e4c204bf70`
+- Verified APK CI run: `34338410385` — PASS
 - Verified APK SHA-256: `36b1ffe015bc3928306f58f12f30b8c1c91d4623873658aff1c59e345ca64415`
+- Backend foundation test run: `34338868865` — PASS
 
-## Implemented and CI-verified
+## Android implemented and CI-verified
 - Dedicated project isolated at `tools/am-studio-distribution`
 - Provider-neutral canonical release model and lifecycle
 - `DistributionGateway` abstraction + `SandboxDistributionGateway`
@@ -29,11 +30,27 @@ Phase: A — MEDIA PREFLIGHT SANDBOX / PHYSICAL RUNTIME QC NEXT
 - Sandbox preflight requires WAV/FLAC, cover 1:1 >= 3000x3000, metadata, rights, and destinations
 - Sandbox submission state without claiming production delivery
 - Official AM STUDIO vector app mark applied to header and launcher
-- API contract / long-term white-label-to-direct-aggregator architecture retained
 - GitHub Actions APK build + checksum artifact
 
+## Backend foundation implemented and test-verified
+- Isolated backend at `tools/am-studio-distribution/backend`
+- Node 22 zero-dependency DEV_SANDBOX service
+- Canonical server-side release lifecycle and edit-state lock
+- Release create/list/read/patch operations
+- Upload-session registry for AUDIO_MASTER / ARTWORK metadata
+- Checksum completion/verification gate
+- Server-side release preflight using verified asset references
+- READY_FOR_REVIEW -> IN_REVIEW transition gate
+- Immutable-style audit event stream for sensitive state changes
+- Stable coded error boundary
+- REST endpoints under `/v1`
+- Automated lifecycle/preflight/checksum/edit-lock/audit tests — PASS
+- Separate backend CI pipeline
+- Android CI trigger narrowed so backend-only work does not rebuild APK
+
 ## Runtime evidence status
-- CI compile/package: PASS
+- Android CI compile/package: PASS
+- Backend automated tests: PASS
 - Physical Android install: PENDING for v0.2
 - Launcher/icon visual QC: PENDING
 - Audio picker runtime QC: PENDING
@@ -43,8 +60,9 @@ Phase: A — MEDIA PREFLIGHT SANDBOX / PHYSICAL RUNTIME QC NEXT
 - Sandbox submission runtime QC: PENDING
 
 ## Explicitly NOT production-ready
-- Authentication backend
-- Secure object/media storage and upload sessions
+- Production authentication/session service
+- Secure object storage / signed upload targets
+- Persistent production database
 - Real KYC/KYB
 - White-label provider credentials/integration
 - Real DSP delivery
@@ -60,9 +78,9 @@ Phase: A — MEDIA PREFLIGHT SANDBOX / PHYSICAL RUNTIME QC NEXT
 ## Next implementation order
 1. Physical Android v0.2 runtime QC.
 2. Fix any runtime evidence failures without changing architecture.
-3. Build AM STUDIO backend foundation: auth + catalog + media upload sessions.
-4. Implement server-side preflight/state transition service.
-5. Select/contract first white-label provider and integrate sandbox through adapter.
+3. Replace dev in-memory backend with production persistence + auth + secure upload storage.
+4. Connect Android to AM STUDIO backend using environment-safe API client.
+5. Select/contract first white-label provider and implement provider sandbox adapter.
 6. End-to-end provider sandbox release delivery.
 7. KYC/rights/admin moderation.
 8. Royalty raw-ingest + normalized ledger + splits.
