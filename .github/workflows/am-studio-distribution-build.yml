@@ -56,12 +56,12 @@ jobs:
           SRC='tools/am-studio-distribution/app/build/outputs/apk/debug/app-debug.apk'
           test -f "$SRC"
           mkdir -p dist
-          cp "$SRC" 'dist/AM-STUDIO-Distribution-v0.3.0-backend-ready.apk'
-          sha256sum 'dist/AM-STUDIO-Distribution-v0.3.0-backend-ready.apk' | tee 'dist/SHA256SUMS.txt'
+          cp "$SRC" 'dist/AM-STUDIO-Distribution-v0.4.0-sandbox-connect.apk'
+          sha256sum 'dist/AM-STUDIO-Distribution-v0.4.0-sandbox-connect.apk' | tee 'dist/SHA256SUMS.txt'
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: AM-STUDIO-Distribution-v0.3.0-backend-ready
+          name: AM-STUDIO-Distribution-v0.4.0-sandbox-connect
           path: dist/*
           if-no-files-found: error
