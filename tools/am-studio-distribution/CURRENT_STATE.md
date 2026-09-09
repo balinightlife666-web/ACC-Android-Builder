@@ -2,23 +2,22 @@
 
 Date: 2026-09-09
 Authority: MASTERPLAN v1.0
-Phase: A — MEDIA PREFLIGHT SANDBOX + BACKEND FOUNDATION / PHYSICAL RUNTIME QC NEXT
+Phase: A — BACKEND-READY SANDBOX / PHYSICAL RUNTIME QC + PROVIDER ONBOARDING NEXT
 
 ## Source
 - Repository: `balinightlife666-web/ACC-Android-Builder`
 - Branch: `feat/am-studio-distribution-foundation`
 - Pull request: #92 (DRAFT / UNMERGED)
 - Android package: `com.amstudio.distribution`
-- App version: `0.2.0-media-preflight` / versionCode 2
-- Verified APK source commit: `b9f2671c58a35271e5064c168ef570e4c204bf70`
-- Verified APK CI run: `34338410385` — PASS
-- Verified APK SHA-256: `36b1ffe015bc3928306f58f12f30b8c1c91d4623873658aff1c59e345ca64415`
-- Backend foundation test run: `34338868865` — PASS
+- App version: `0.3.0-backend-ready` / versionCode 3
+- Verified APK source commit: `020fd8d301c2e88a85a7b92d827a177efec72e08`
+- Verified APK CI run: `34347864249` — PASS
+- Verified APK SHA-256: `1babe0385c1e50c7a3b14a0080e9358561fc1845abcb989e1ccc9ee3d392844b`
+- Latest provider/backend test run: `34348166322` — PASS
 
 ## Android implemented and CI-verified
 - Dedicated project isolated at `tools/am-studio-distribution`
 - Provider-neutral canonical release model and lifecycle
-- `DistributionGateway` abstraction + `SandboxDistributionGateway`
 - Local canonical release draft persistence
 - Home / Releases / New Release / Earnings / Account screens
 - Real Android document picker for master audio and cover artwork
@@ -28,43 +27,58 @@ Phase: A — MEDIA PREFLIGHT SANDBOX + BACKEND FOUNDATION / PHYSICAL RUNTIME QC 
 - Rights declaration gate
 - DSP destination selection
 - Sandbox preflight requires WAV/FLAC, cover 1:1 >= 3000x3000, metadata, rights, and destinations
-- Sandbox submission state without claiming production delivery
 - Official AM STUDIO vector app mark applied to header and launcher
-- GitHub Actions APK build + checksum artifact
+- HTTPS-only network policy; cleartext remains blocked
+- AM STUDIO API client foundation
+- Content-URI SHA-256 hashing
+- Backend operations supported by client layer: current user, create/patch release, upload session, streamed PUT asset upload, upload completion, preflight, submit review
+- Backend/provider credentials are NOT hard-coded into APK
 
-## Backend foundation implemented and test-verified
-- Isolated backend at `tools/am-studio-distribution/backend`
-- Node 22 zero-dependency DEV_SANDBOX service
+## Backend implemented and test-verified
+- Isolated Node 22 backend at `tools/am-studio-distribution/backend`
 - Canonical server-side release lifecycle and edit-state lock
+- Bearer-token auth boundary in DEV_SANDBOX
+- Durable JSON-file persistence adapter with atomic replacement
 - Release create/list/read/patch operations
-- Upload-session registry for AUDIO_MASTER / ARTWORK metadata
-- Checksum completion/verification gate
-- Server-side release preflight using verified asset references
+- AUDIO_MASTER / ARTWORK upload-session registry
+- Actual request-byte media storage adapter
+- Server-computed SHA-256 verification; checksum mismatch fails closed
+- Server-side release preflight using VERIFIED assets
 - READY_FOR_REVIEW -> IN_REVIEW transition gate
-- Immutable-style audit event stream for sensitive state changes
+- Audit event stream for sensitive state changes
 - Stable coded error boundary
-- REST endpoints under `/v1`
-- Automated lifecycle/preflight/checksum/edit-lock/audit tests — PASS
-- Separate backend CI pipeline
-- Android CI trigger narrowed so backend-only work does not rebuild APK
+- Automated tests for lifecycle, edit locks, preflight, auth, persistence restart, byte hashing, checksum rejection and provider isolation — PASS
+
+## Provider strategy
+- First technical target: LabelGrid Engine API
+- `LabelGridAdapter` implemented as SERVER-ONLY adapter foundation
+- Sandbox/production base URL separation
+- Server-side bearer token only
+- Foundation operations: provider user, distro outlets, release/track create pass-through, track upload URL, validate, quality report, distribute, takedown, statements, analytics summary
+- Provider registry fails closed when no provider/token is configured
+- Commercial status: NOT CONTRACTED / NO SANDBOX TOKEN YET
+- Publicly listed API plan starts at USD 139/month billed yearly; API/sandbox access requires paid API plan
+- Sandbox may require IP allowlisting
 
 ## Runtime evidence status
-- Android CI compile/package: PASS
-- Backend automated tests: PASS
-- Physical Android install: PENDING for v0.2
+- Android v0.3 CI compile/package: PASS
+- Backend/provider automated tests: PASS
+- Physical Android install v0.3: PENDING
 - Launcher/icon visual QC: PENDING
 - Audio picker runtime QC: PENDING
 - Artwork picker/runtime dimension QC: PENDING
 - Draft persistence after app restart: PENDING
-- Preflight PASS/FAIL behavior on real files: PENDING
-- Sandbox submission runtime QC: PENDING
+- Local preflight PASS/FAIL on real files: PENDING
+- Backend-connected Android end-to-end upload: NOT TESTED (no deployed HTTPS AM STUDIO API endpoint yet)
+- LabelGrid sandbox end-to-end delivery: NOT TESTED (commercial/API onboarding required)
 
 ## Explicitly NOT production-ready
-- Production authentication/session service
-- Secure object storage / signed upload targets
-- Persistent production database
+- Production identity provider / user login / token refresh
+- Production database (current durable adapter is DEV JSON file)
+- Production object storage / signed uploads (current adapter is DEV local filesystem)
 - Real KYC/KYB
-- White-label provider credentials/integration
+- Active LabelGrid/other provider contract and credentials
+- Canonical -> provider metadata/entity mapping completion
 - Real DSP delivery
 - ISRC/UPC issuance/import workflow
 - Royalty statement ingestion and reconciliation
@@ -76,16 +90,17 @@ Phase: A — MEDIA PREFLIGHT SANDBOX + BACKEND FOUNDATION / PHYSICAL RUNTIME QC 
 - Production legal/commercial launch
 
 ## Next implementation order
-1. Physical Android v0.2 runtime QC.
-2. Fix any runtime evidence failures without changing architecture.
-3. Replace dev in-memory backend with production persistence + auth + secure upload storage.
-4. Connect Android to AM STUDIO backend using environment-safe API client.
-5. Select/contract first white-label provider and implement provider sandbox adapter.
-6. End-to-end provider sandbox release delivery.
-7. KYC/rights/admin moderation.
-8. Royalty raw-ingest + normalized ledger + splits.
-9. Payout workflow.
-10. Controlled beta, multi-provider routing, then direct DSP/DDEX evolution.
+1. Physical Android v0.3 runtime QC.
+2. Deploy AM STUDIO backend behind a real HTTPS sandbox endpoint.
+3. Replace DEV auth/JSON/local media adapters with production identity + database + object storage adapters while preserving interfaces.
+4. Wire Android release wizard to the deployed AM STUDIO API and run real byte-upload E2E.
+5. Commercial onboarding for LabelGrid Engine API + sandbox token/IP allowlist.
+6. Implement canonical AM STUDIO -> LabelGrid artist/label/track/release/DSP mapping.
+7. End-to-end LabelGrid sandbox release: assets -> validation/QC -> review -> distribution evidence.
+8. KYC/rights/admin moderation.
+9. Royalty raw-ingest + normalized append-only ledger + splits.
+10. Payout workflow.
+11. Controlled beta, multi-provider routing, then direct DSP/DDEX evolution.
 
 ## Safety lock
 Do not call a release LIVE, monetized, royalty-bearing, production-distributed, or payout-eligible unless corresponding provider/DSP/ledger evidence exists.
