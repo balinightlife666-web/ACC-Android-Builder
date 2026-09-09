@@ -10,8 +10,8 @@ android {
         applicationId 'com.amstudio.distribution'
         minSdk 26
         targetSdk 35
-        versionCode 4
-        versionName '0.4.0-sandbox-connect'
+        versionCode 5
+        versionName '0.5.0-ledger-ready'
     }
 
     def signingPath = System.getenv('AM_STUDIO_KEYSTORE_PATH')
