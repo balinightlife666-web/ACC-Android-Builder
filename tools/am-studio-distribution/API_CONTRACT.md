@@ -1,13 +1,14 @@
-# AM STUDIO DISTRIBUTION — API CONTRACT v0.1
+# AM STUDIO DISTRIBUTION — API CONTRACT v0.2
 
-Status: FOUNDATION CONTRACT
+Status: BACKEND-READY SANDBOX CONTRACT
 Base path target: `/v1`
 Rule: Android only calls AM STUDIO services. Provider credentials and DSP-specific payloads never enter the APK.
 
 ## Identity
 
 ### POST /v1/auth/session
-Creates/refreshes an authenticated AM STUDIO session.
+Target production contract for creating/refreshing an authenticated AM STUDIO session.
+Current DEV_SANDBOX implementation uses a bearer-token auth boundary only; production identity/token refresh is not yet implemented.
 
 ### GET /v1/me
 Returns user, organization/label memberships, KYC/KYB state, roles, plan and payout eligibility.
@@ -30,12 +31,18 @@ Update only fields allowed by current release state. Server rejects illegal life
 ## Media
 
 ### POST /v1/uploads
-Request short-lived upload session for AUDIO_MASTER or ARTWORK.
-Request contains file name, size, MIME and checksum.
-Response contains `assetId`, upload target and expiry.
+Request upload session for AUDIO_MASTER or ARTWORK.
+Request contains file name, size, MIME and SHA-256 checksum.
+Response contains `assetId`, upload method/target and expiry.
+
+### PUT /v1/uploads/{assetId}/content
+Streams actual asset bytes to AM STUDIO storage adapter.
+Server computes SHA-256 from received bytes and rejects size/checksum mismatch.
+Current sandbox storage is local filesystem; production target is signed object storage behind the same canonical flow.
 
 ### POST /v1/uploads/{assetId}/complete
-Server verifies object, checksum and media policy. Asset remains non-distributable until verification passes.
+Completes technical asset metadata only after server byte verification succeeds.
+Audio currently supplies duration; artwork supplies width/height. Asset becomes VERIFIED only after required technical metadata passes.
 
 ## Preflight / moderation
 
@@ -56,21 +63,37 @@ Returns structured checks:
 Transitions READY_FOR_REVIEW -> IN_REVIEW after server validation.
 
 ### GET /v1/releases/{releaseId}/qc
-Returns QC checks and repair instructions.
+Target endpoint for QC checks and repair instructions.
 
 ## Distribution
 
 ### POST /v1/releases/{releaseId}/distribute
-Creates durable distribution job after approval. Response: `jobId`, canonical status.
+Target endpoint: creates durable distribution job only after approval and provider configuration.
+Provider API token remains server-side.
 
 ### GET /v1/releases/{releaseId}/deliveries
-Returns destination-level delivery states. Provider IDs may be returned only as opaque mappings for admin/debug roles.
+Target endpoint: destination-level delivery states. Provider IDs may be returned only as opaque mappings for admin/debug roles.
 
 ### POST /v1/releases/{releaseId}/metadata-update
-Creates controlled post-delivery update request.
+Target controlled post-delivery update request.
 
 ### POST /v1/releases/{releaseId}/takedown
-Creates takedown request with reason/evidence and audit event.
+Target takedown request with reason/evidence and audit event.
+
+## Provider adapter internal boundary
+
+Not exposed to Android. Distribution orchestrator calls adapters through canonical commands:
+- validateRelease
+- createRelease
+- mapAssets
+- submitRelease
+- fetchDeliveryStatus
+- requestMetadataUpdate
+- requestTakedown
+- fetchAnalytics
+- fetchRoyaltyStatements
+
+First technical adapter target: LabelGrid Engine API. The adapter is fail-closed without a configured server-side token. LabelGrid remains replaceable; it never becomes the canonical AM STUDIO data model.
 
 ## Analytics
 
@@ -95,19 +118,6 @@ Creates payout request only when KYC/tax/payment/threshold gates pass.
 
 ### GET /v1/payouts
 Payout history and state.
-
-## Provider adapter internal boundary
-
-Not exposed to Android. Distribution orchestrator calls adapters through canonical commands:
-- validateRelease
-- createRelease
-- mapAssets
-- submitRelease
-- fetchDeliveryStatus
-- requestMetadataUpdate
-- requestTakedown
-- fetchAnalytics
-- fetchRoyaltyStatements
 
 ## Idempotency
 
