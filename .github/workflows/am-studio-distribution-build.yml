@@ -23,11 +23,12 @@ permissions:
   contents: read
 
 concurrency:
-  group: am-studio-distribution-apk-${{ github.ref }}
+  group: am-studio-distribution-apk-${{ github.ref }}-${{ github.event_name }}
   cancel-in-progress: true
 
 jobs:
-  build:
+  debug_ci:
+    if: github.event_name != 'workflow_dispatch'
     runs-on: ubuntu-24.04
     timeout-minutes: 20
 
@@ -50,18 +51,83 @@ jobs:
         working-directory: tools/am-studio-distribution
         run: gradle :app:assembleDebug --stacktrace
 
-      - name: Stage artifact
+      - name: Stage debug artifact
         run: |
           set -euo pipefail
           SRC='tools/am-studio-distribution/app/build/outputs/apk/debug/app-debug.apk'
           test -f "$SRC"
           mkdir -p dist
-          cp "$SRC" 'dist/AM-STUDIO-Distribution-v0.4.0-sandbox-connect.apk'
-          sha256sum 'dist/AM-STUDIO-Distribution-v0.4.0-sandbox-connect.apk' | tee 'dist/SHA256SUMS.txt'
+          cp "$SRC" 'dist/AM-STUDIO-Distribution-v0.4.0-sandbox-connect-DEBUG.apk'
+          sha256sum 'dist/AM-STUDIO-Distribution-v0.4.0-sandbox-connect-DEBUG.apk' | tee 'dist/SHA256SUMS.txt'
+          printf '%s\n' 'DEBUG BUILD — NOT UPGRADE-SAFE / NOT FOR USER DISTRIBUTION' > 'dist/BUILD_CHANNEL.txt'
 
-      - name: Upload APK
+      - name: Upload debug APK
         uses: actions/upload-artifact@v4
         with:
-          name: AM-STUDIO-Distribution-v0.4.0-sandbox-connect
+          name: AM-STUDIO-Distribution-v0.4.0-debug-ci
+          path: dist/*
+          if-no-files-found: error
+
+  signed_release:
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      AM_STUDIO_KEYSTORE_PASSWORD: ${{ secrets.AM_STUDIO_KEYSTORE_PASSWORD }}
+      AM_STUDIO_KEY_ALIAS: ${{ secrets.AM_STUDIO_KEY_ALIAS }}
+      AM_STUDIO_KEY_PASSWORD: ${{ secrets.AM_STUDIO_KEY_PASSWORD }}
+      AM_STUDIO_KEYSTORE_B64: ${{ secrets.AM_STUDIO_KEYSTORE_B64 }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.10.2'
+
+      - name: Require permanent signing secrets
+        run: |
+          set -euo pipefail
+          test -n "$AM_STUDIO_KEYSTORE_B64"
+          test -n "$AM_STUDIO_KEYSTORE_PASSWORD"
+          test -n "$AM_STUDIO_KEY_ALIAS"
+          test -n "$AM_STUDIO_KEY_PASSWORD"
+
+      - name: Restore permanent AM STUDIO keystore
+        run: |
+          set -euo pipefail
+          KEYSTORE="$RUNNER_TEMP/am-studio-release.jks"
+          printf '%s' "$AM_STUDIO_KEYSTORE_B64" | base64 --decode > "$KEYSTORE"
+          test -s "$KEYSTORE"
+          chmod 600 "$KEYSTORE"
+          echo "AM_STUDIO_KEYSTORE_PATH=$KEYSTORE" >> "$GITHUB_ENV"
+
+      - name: Build signed release APK
+        working-directory: tools/am-studio-distribution
+        run: gradle :app:assembleRelease --stacktrace
+
+      - name: Stage signed release
+        run: |
+          set -euo pipefail
+          SRC='tools/am-studio-distribution/app/build/outputs/apk/release/app-release.apk'
+          test -f "$SRC"
+          mkdir -p dist
+          cp "$SRC" 'dist/AM-STUDIO-Distribution-v0.4.0-sandbox-connect-SIGNED.apk'
+          sha256sum 'dist/AM-STUDIO-Distribution-v0.4.0-sandbox-connect-SIGNED.apk' | tee 'dist/SHA256SUMS.txt'
+          keytool -printcert -jarfile 'dist/AM-STUDIO-Distribution-v0.4.0-sandbox-connect-SIGNED.apk' > 'dist/SIGNING_CERT.txt'
+          printf '%s\n' 'PERMANENT AM STUDIO SIGNED RELEASE — UPGRADE CHANNEL' > 'dist/BUILD_CHANNEL.txt'
+
+      - name: Upload signed APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: AM-STUDIO-Distribution-v0.4.0-signed-release
           path: dist/*
           if-no-files-found: error
