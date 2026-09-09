@@ -1,6 +1,6 @@
-# AM STUDIO DISTRIBUTION — API CONTRACT v0.2
+# AM STUDIO DISTRIBUTION — API CONTRACT v0.3
 
-Status: BACKEND-READY SANDBOX CONTRACT
+Status: BACKEND-READY SANDBOX + LEDGER FOUNDATION CONTRACT
 Base path target: `/v1`
 Rule: Android only calls AM STUDIO services. Provider credentials and DSP-specific payloads never enter the APK.
 
@@ -95,6 +95,8 @@ Not exposed to Android. Distribution orchestrator calls adapters through canonic
 
 First technical adapter target: LabelGrid Engine API. The adapter is fail-closed without a configured server-side token. LabelGrid remains replaceable; it never becomes the canonical AM STUDIO data model.
 
+Provider outlet IDs are never hard-coded into the canonical release. AM STUDIO maps canonical destination names against the provider's live `/distro-outlets` response and fails closed if a destination is missing or ambiguous.
+
 ## Analytics
 
 ### GET /v1/analytics/summary
@@ -102,14 +104,32 @@ Canonical normalized metrics by date, release, track, territory and destination.
 
 ## Royalties
 
+Money rule: authoritative ledger amounts are integer `amountMinor` values in an explicit 3-letter currency. Floating-point monetary values are rejected.
+
 ### GET /v1/royalties/statements
-Statement summaries after ingestion/reconciliation.
+Target statement summaries after ingestion/reconciliation.
 
 ### GET /v1/royalties/ledger
-Append-only user-visible ledger. Never calculate authoritative balances on-device.
+IMPLEMENTED in sandbox. Returns the authenticated owner's append-only journal entries.
+Current buckets:
+- `PENDING`
+- `AVAILABLE`
+- `HELD`
+- `PAID`
+
+Raw provider statement rows enter `PENDING`. Existing rows are never edited in place.
 
 ### GET /v1/wallet
-Returns verified available, pending, held and paid balances.
+IMPLEMENTED in sandbox. Returns bucket totals per currency derived from append-only ledger entries. Android must not calculate authoritative balances locally.
+
+### POST /v1/admin/royalties/ingest
+IMPLEMENTED sandbox/admin boundary. Adds one normalized provider statement line as `ROYALTY_RAW -> PENDING`.
+Idempotency key is derived from provider + statement ID + provider line reference, preventing duplicate ingestion of the same statement row.
+
+### POST /v1/admin/royalties/reconcile
+IMPLEMENTED sandbox/admin boundary. Moves an amount append-only from `PENDING` to `AVAILABLE` using paired debit/credit journal entries and an idempotent transfer identity.
+
+No AM STUDIO commission percentage, artist split percentage, tax deduction, provider fee, or payout fee is hard-coded into this ledger foundation. Those are separate configurable engines that must append explicit journal entries later.
 
 ## Payouts
 
@@ -122,6 +142,7 @@ Payout history and state.
 ## Idempotency
 
 Every mutating production endpoint supports an idempotency key. Retrying a timed-out create/submit/payout request must not duplicate business actions.
+Royalty raw ingestion and reconciliation already enforce idempotency in the sandbox foundation.
 
 ## Audit
 
