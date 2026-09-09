@@ -1,6 +1,15 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { createHash } from 'node:crypto';
+import { Readable } from 'node:stream';
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+
 import { MemoryStore } from '../src/store.js';
+import { JsonFilePersistence } from '../src/persistence.js';
+import { LocalAssetStorage } from '../src/storage.js';
+import { AuthService } from '../src/auth.js';
 
 function validReleasePatch(audioAssetId, artworkAssetId) {
   return {
@@ -19,13 +28,25 @@ function validReleasePatch(audioAssetId, artworkAssetId) {
   };
 }
 
+function checksum(buffer) {
+  return `sha256:${createHash('sha256').update(buffer).digest('hex')}`;
+}
+
 function verifyAsset(store, kind, fileName, mime, extra = {}) {
+  const bytes = Buffer.from(`${kind}-${fileName}`);
+  const digest = checksum(bytes);
   const session = store.createUploadSession({
-    kind, fileName, mime, sizeBytes: 1000, checksum: `sha256-${kind}`
+    kind, fileName, mime, sizeBytes: bytes.length, checksum: digest
+  });
+  store.markUploaded(session.assetId, {
+    checksum: digest,
+    sizeBytes: bytes.length,
+    storageKey: `${session.assetId}.bin`
   });
   const asset = store.completeUpload(session.assetId, {
-    checksum: `sha256-${kind}`,
-    ...extra
+    durationMs: kind === 'AUDIO_MASTER' ? (extra.durationMs || 180000) : 0,
+    width: kind === 'ARTWORK' ? (extra.width || 3000) : 0,
+    height: kind === 'ARTWORK' ? (extra.height || 3000) : 0
   });
   return asset.id;
 }
@@ -52,12 +73,17 @@ test('verified WAV + 3000 square art can reach review', () => {
   assert.equal(submitted.status, 'IN_REVIEW');
 });
 
-test('checksum mismatch rejects asset', () => {
+test('server-computed checksum mismatch rejects asset', () => {
   const store = new MemoryStore();
+  const expected = checksum(Buffer.from('expected'));
+  const actual = checksum(Buffer.from('wrong'));
   const session = store.createUploadSession({
-    kind: 'AUDIO_MASTER', fileName: 'master.flac', mime: 'audio/flac', sizeBytes: 1234, checksum: 'expected'
+    kind: 'AUDIO_MASTER', fileName: 'master.flac', mime: 'audio/flac', sizeBytes: 5, checksum: expected
   });
-  assert.throws(() => store.completeUpload(session.assetId, { checksum: 'wrong' }), /Checksum mismatch/);
+  assert.throws(() => store.markUploaded(session.assetId, {
+    checksum: actual, sizeBytes: 5, storageKey: 'bad.bin'
+  }), /checksum does not match/i);
+  assert.equal(store.getAsset(session.assetId).status, 'REJECTED');
 });
 
 test('release cannot be edited after submission', () => {
@@ -79,4 +105,35 @@ test('audit trail records sensitive state changes', () => {
   assert.equal(events[0].action, 'RELEASE_CREATED');
   assert.equal(events[1].action, 'RELEASE_UPDATED');
   assert.equal(events[0].actor, 'owner');
+});
+
+test('json persistence survives store restart', () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'am-studio-state-'));
+  const file = path.join(dir, 'state.json');
+  const persistence = new JsonFilePersistence(file);
+  const first = new MemoryStore({ persistence });
+  const release = first.createRelease({ title: 'Persistent Single', artistName: 'Arda Test' });
+  const second = new MemoryStore({ persistence: new JsonFilePersistence(file) });
+  assert.equal(second.getRelease(release.id).title, 'Persistent Single');
+  fs.rmSync(dir, { recursive: true, force: true });
+});
+
+test('local asset storage hashes actual uploaded bytes', async () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'am-studio-media-'));
+  const storage = new LocalAssetStorage(dir);
+  const bytes = Buffer.from('real-audio-bytes');
+  const asset = { id: 'ast_test', sizeBytes: bytes.length };
+  const result = await storage.writeFromRequest(asset, Readable.from([bytes]));
+  assert.equal(result.checksum, checksum(bytes));
+  assert.equal(result.sizeBytes, bytes.length);
+  assert.ok(fs.existsSync(path.join(dir, result.storageKey)));
+  fs.rmSync(dir, { recursive: true, force: true });
+});
+
+test('auth boundary requires bearer token', () => {
+  const auth = new AuthService({ devToken: 'secret-test-token' });
+  assert.throws(() => auth.authenticate({ headers: {} }), /bearer token required/i);
+  const user = auth.authenticate({ headers: { authorization: 'Bearer secret-test-token' } });
+  assert.equal(user.id, 'usr_dev_owner');
+  assert.ok(user.roles.includes('OWNER'));
 });
