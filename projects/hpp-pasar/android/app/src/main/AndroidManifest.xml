@@ -4,8 +4,8 @@
 
     <application
         android:allowBackup="true"
-        android:icon="@drawable/hpp_pasar_logo"
-        android:roundIcon="@drawable/hpp_pasar_logo"
+        android:icon="@mipmap/ic_launcher"
+        android:roundIcon="@mipmap/ic_launcher"
         android:label="HPP Pasar"
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
