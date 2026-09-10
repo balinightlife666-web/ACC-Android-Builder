@@ -1,6 +1,12 @@
 name: HPP Pasar Android Build
 
 on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'projects/hpp-pasar/android/**'
+      - '.github/workflows/hpp-pasar-android-build.yml'
   pull_request:
     paths:
       - 'projects/hpp-pasar/android/**'
