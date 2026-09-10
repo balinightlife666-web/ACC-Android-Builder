@@ -1,9 +1,9 @@
 {
-  "status": "PUBLISHED",
+  "status": "FAILED_BEFORE_RECEIPT",
   "event": "schedule",
-  "runId": "34430326374",
-  "sourceHead": "1e9dc99aa246d0ad70d516957d9fa11833740f7d",
-  "bbyaRelevantCommit": "4e74db1eadcc8f7f5e6af3f95180274d2d86d2dc",
+  "runId": "34509348621",
+  "sourceHead": "5628da2f1b9810bccacb8c1ba28d8c9e4fa627f4",
+  "bbyaRelevantCommit": "a481579b69e474f29112cf9e9ef272c7ed8328f9",
   "changed": "true",
-  "recordedAt": "2026-09-10T02:40:07Z"
+  "recordedAt": "2026-09-10T17:37:39Z"
 }
