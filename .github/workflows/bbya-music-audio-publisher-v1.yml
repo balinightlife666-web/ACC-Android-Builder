@@ -1,0 +1,268 @@
+name: BBYA Music Audio Publisher V1
+
+on:
+  workflow_dispatch:
+    inputs:
+      audio_path:
+        description: "Repository path to .mp3/.ogg/.wav/.flac"
+        required: true
+        default: "audio/inbox/track.mp3"
+        type: string
+      display_name:
+        description: "Roblox audio display name"
+        required: true
+        type: string
+      description:
+        description: "Roblox audio description"
+        required: false
+        default: "BBYA Music"
+        type: string
+      creator_type:
+        description: "Upload owner"
+        required: true
+        default: "user"
+        type: choice
+        options:
+          - user
+          - group
+      creator_id:
+        description: "Roblox User ID or Group ID"
+        required: true
+        type: string
+      confirm_upload:
+        description: "Safety confirmation"
+        required: true
+        default: "NO"
+        type: choice
+        options:
+          - "NO"
+          - "UPLOAD"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: bbya-music-audio-publisher
+  cancel-in-progress: false
+
+jobs:
+  publish-audio:
+    if: ${{ inputs.confirm_upload == 'UPLOAD' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      ROBLOX_AUDIO_API_KEY: ${{ secrets.GUDANGPET88_AUDIO_UPLOADER }}
+      AUDIO_PATH: ${{ inputs.audio_path }}
+      DISPLAY_NAME: ${{ inputs.display_name }}
+      DESCRIPTION: ${{ inputs.description }}
+      CREATOR_TYPE: ${{ inputs.creator_type }}
+      CREATOR_ID: ${{ inputs.creator_id }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate input and secret
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if [ -z "${ROBLOX_AUDIO_API_KEY:-}" ]; then
+            echo "Missing repository secret: GUDANGPET88_AUDIO_UPLOADER" >&2
+            exit 1
+          fi
+
+          if [ ! -f "$AUDIO_PATH" ]; then
+            echo "Audio file not found: $AUDIO_PATH" >&2
+            exit 1
+          fi
+
+          case "${AUDIO_PATH##*.}" in
+            mp3|MP3|ogg|OGG|wav|WAV|flac|FLAC) ;;
+            *)
+              echo "Unsupported audio extension. Use mp3, ogg, wav, or flac." >&2
+              exit 1
+              ;;
+          esac
+
+          BYTES=$(wc -c < "$AUDIO_PATH")
+          MAX_BYTES=$((20 * 1024 * 1024))
+          if [ "$BYTES" -ge "$MAX_BYTES" ]; then
+            echo "Audio must be smaller than 20 MB for Roblox Open Cloud." >&2
+            exit 1
+          fi
+
+          if ! [[ "$CREATOR_ID" =~ ^[0-9]+$ ]]; then
+            echo "creator_id must be numeric." >&2
+            exit 1
+          fi
+
+      - name: Build Roblox asset request
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json, os
+
+          creator_type = os.environ["CREATOR_TYPE"]
+          creator_id = os.environ["CREATOR_ID"]
+          creator_key = "userId" if creator_type == "user" else "groupId"
+
+          payload = {
+              "assetType": "Audio",
+              "displayName": os.environ["DISPLAY_NAME"],
+              "description": os.environ.get("DESCRIPTION", "BBYA Music"),
+              "creationContext": {
+                  "creator": {
+                      creator_key: creator_id
+                  }
+              }
+          }
+
+          with open("roblox-audio-request.json", "w", encoding="utf-8") as f:
+              json.dump(payload, f, ensure_ascii=False)
+          PY
+
+      - name: Detect MIME type
+        id: mime
+        shell: bash
+        run: |
+          set -euo pipefail
+          EXT="${AUDIO_PATH##*.}"
+          EXT="${EXT,,}"
+          case "$EXT" in
+            mp3) MIME="audio/mpeg" ;;
+            ogg) MIME="audio/ogg" ;;
+            wav) MIME="audio/wav" ;;
+            flac) MIME="audio/flac" ;;
+          esac
+          echo "value=$MIME" >> "$GITHUB_OUTPUT"
+
+      - name: Create Roblox audio asset
+        shell: bash
+        env:
+          MIME_TYPE: ${{ steps.mime.outputs.value }}
+        run: |
+          set -euo pipefail
+          HTTP_CODE=$(curl --silent --show-error \
+            --output create-response.json \
+            --write-out '%{http_code}' \
+            --request POST 'https://apis.roblox.com/assets/v1/assets' \
+            --header "x-api-key: $ROBLOX_AUDIO_API_KEY" \
+            --form "request=<roblox-audio-request.json;type=application/json" \
+            --form "fileContent=@${AUDIO_PATH};type=${MIME_TYPE}")
+
+          echo "Create Asset HTTP: $HTTP_CODE"
+          if [ "$HTTP_CODE" -lt 200 ] || [ "$HTTP_CODE" -ge 300 ]; then
+            cat create-response.json
+            exit 1
+          fi
+
+          python3 - <<'PY'
+          import json
+          with open("create-response.json", encoding="utf-8") as f:
+              data = json.load(f)
+          path = data.get("path")
+          if not path or not path.startswith("operations/"):
+              raise SystemExit(f"Create response did not contain an operation path: {data}")
+          with open("operation-path.txt", "w", encoding="utf-8") as f:
+              f.write(path)
+          print(f"Operation: {path}")
+          PY
+
+      - name: Wait for Roblox operation
+        id: result
+        shell: bash
+        run: |
+          set -euo pipefail
+          OPERATION_PATH=$(cat operation-path.txt)
+          OPERATION_ID="${OPERATION_PATH#operations/}"
+
+          for ATTEMPT in $(seq 1 36); do
+            HTTP_CODE=$(curl --silent --show-error \
+              --output operation-response.json \
+              --write-out '%{http_code}' \
+              --header "x-api-key: $ROBLOX_AUDIO_API_KEY" \
+              "https://apis.roblox.com/assets/v1/operations/${OPERATION_ID}")
+
+            if [ "$HTTP_CODE" -lt 200 ] || [ "$HTTP_CODE" -ge 300 ]; then
+              echo "Operation HTTP: $HTTP_CODE" >&2
+              cat operation-response.json
+              exit 1
+            fi
+
+            DONE=$(python3 - <<'PY'
+          import json
+          with open("operation-response.json", encoding="utf-8") as f:
+              data = json.load(f)
+          print("true" if data.get("done") is True else "false")
+          PY
+          )
+
+            if [ "$DONE" = "true" ]; then
+              break
+            fi
+
+            if [ "$ATTEMPT" -eq 36 ]; then
+              echo "Timed out waiting for Roblox asset operation." >&2
+              exit 1
+            fi
+
+            sleep 5
+          done
+
+          python3 - <<'PY'
+          import json, os
+          from pathlib import Path
+
+          with open("operation-response.json", encoding="utf-8") as f:
+              data = json.load(f)
+
+          if data.get("error"):
+              raise SystemExit(f"Roblox asset operation failed: {data['error']}")
+
+          response = data.get("response") or {}
+          asset_id = str(response.get("assetId") or "")
+          if not asset_id:
+              raise SystemExit(f"Roblox operation completed without assetId: {data}")
+
+          moderation = (response.get("moderationResult") or {}).get("moderationState", "UNKNOWN")
+          display_name = response.get("displayName") or os.environ.get("DISPLAY_NAME", "")
+
+          Path(os.environ["GITHUB_OUTPUT"]).open("a", encoding="utf-8").write(
+              f"asset_id={asset_id}\nmoderation={moderation}\n"
+          )
+
+          summary = os.environ["GITHUB_STEP_SUMMARY"]
+          with open(summary, "a", encoding="utf-8") as f:
+              f.write("# BBYA Music Audio Publisher\n\n")
+              f.write(f"- **Display name:** {display_name}\n")
+              f.write(f"- **Roblox Asset ID:** `{asset_id}`\n")
+              f.write(f"- **Moderation:** `{moderation}`\n")
+              f.write(f"- **Source file:** `{os.environ['AUDIO_PATH']}`\n")
+          PY
+
+      - name: Save publish receipt
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p publish-receipt
+          cp create-response.json publish-receipt/
+          cp operation-response.json publish-receipt/
+          cat > publish-receipt/summary.json <<EOF
+          {
+            "assetId": "${{ steps.result.outputs.asset_id }}",
+            "moderation": "${{ steps.result.outputs.moderation }}",
+            "audioPath": "${AUDIO_PATH}",
+            "workflowRun": "${GITHUB_RUN_ID}",
+            "sourceCommit": "${GITHUB_SHA}"
+          }
+          EOF
+
+      - name: Upload receipt artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: bbya-music-audio-publish-${{ github.run_id }}
+          path: publish-receipt/
+          if-no-files-found: error
+          retention-days: 14
