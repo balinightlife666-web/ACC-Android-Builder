@@ -1,0 +1,65 @@
+name: BBYA Music Permission Test 175 V1
+
+on:
+  push:
+    branches:
+      - feat/bbya-music-manager-mvp
+    paths:
+      - .github/workflows/bbya-music-permission-test-175-v1.yml
+
+permissions:
+  contents: read
+
+jobs:
+  grant-test-universe:
+    runs-on: ubuntu-latest
+    env:
+      ASSET_ID: '132374505628905'
+      TARGET_UNIVERSE_ID: '10762005984'
+      PRODUCTION_UNIVERSE_ID: '8116636513'
+    steps:
+      - name: TEST-only guard
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$TARGET_UNIVERSE_ID" = "10762005984"
+          test "$TARGET_UNIVERSE_ID" != "$PRODUCTION_UNIVERSE_ID"
+          test "$ASSET_ID" = "132374505628905"
+          echo "TEST-ONLY asset=$ASSET_ID universe=$TARGET_UNIVERSE_ID"
+
+      - name: Grant approved asset to BBYA Music UI TEST
+        shell: bash
+        env:
+          ROBLOX_API_KEY: ${{ secrets.ROBLOX_PUBLISH_CADANGAN_AUDII_01 }}
+        run: |
+          set -euo pipefail
+          if [ -z "${ROBLOX_API_KEY:-}" ]; then
+            echo "ROBLOX_PUBLISH_CADANGAN_AUDII_01 is missing"
+            exit 20
+          fi
+
+          ASSET_URL="https://apis.roblox.com/cloud/v2/assets/${ASSET_ID}"
+          PERM_URL="${ASSET_URL}/permissions"
+
+          asset_code=$(curl -sS -o /tmp/asset.json -w '%{http_code}' \
+            -H "x-api-key: ${ROBLOX_API_KEY}" \
+            "$ASSET_URL")
+          echo "asset_get_http=${asset_code}"
+          cat /tmp/asset.json
+          echo
+
+          body=$(printf '{"requests":[{"action":"ACTION_GRANT","subject":"universes/%s"}]}' "$TARGET_UNIVERSE_ID")
+          perm_code=$(curl -sS -o /tmp/perm.json -w '%{http_code}' \
+            -X POST \
+            -H "x-api-key: ${ROBLOX_API_KEY}" \
+            -H 'Content-Type: application/json' \
+            --data "$body" \
+            "$PERM_URL")
+          echo "permission_http=${perm_code}"
+          cat /tmp/perm.json
+          echo
+
+          case "$perm_code" in
+            2*) echo "PERMISSION_GRANT_OK asset=${ASSET_ID} universe=${TARGET_UNIVERSE_ID}" ;;
+            *)  echo "PERMISSION_GRANT_FAILED asset=${ASSET_ID} universe=${TARGET_UNIVERSE_ID}"; exit 21 ;;
+          esac
