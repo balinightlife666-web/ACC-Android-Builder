@@ -6,7 +6,6 @@
         <item name="android:statusBarColor">@color/ink</item>
         <item name="android:navigationBarColor">@color/ink</item>
         <item name="android:windowBackground">@drawable/bg_app</item>
-        <item name="android:windowLightNavigationBar">false</item>
         <item name="android:windowDisablePreview">false</item>
         <item name="android:windowActionModeOverlay">true</item>
         <item name="android:colorAccent">@color/electric</item>
