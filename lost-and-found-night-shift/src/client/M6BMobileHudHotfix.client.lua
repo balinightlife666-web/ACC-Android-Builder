@@ -156,7 +156,7 @@ local function getModalShield(panel)
         shield.Size = UDim2.fromScale(1, 1)
         shield.Position = UDim2.fromScale(0, 0)
         shield.BackgroundColor3 = Color3.fromRGB(6, 8, 12)
-        shield.BackgroundTransparency = 0.28
+        shield.BackgroundTransparency = 1
         shield.BorderSizePixel = 0
         shield.Text = ""
         shield.AutoButtonColor = false
