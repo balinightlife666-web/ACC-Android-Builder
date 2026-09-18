@@ -157,6 +157,7 @@ local serialByCollectionId = {}
 local ownedCounts = {}
 local migrationComplete = false
 local toastToken = 0
+local collectionHudRestoreState = nil
 
 local function rarityColor(rarity)
     return RARITY_COLORS[tostring(rarity or "COMMON")] or Color3.fromRGB(177, 187, 201)
@@ -195,6 +196,37 @@ local function setTradeHudVisible(visible)
         tradePopup.Visible = false
     end
     if tradeButton then tradeButton.Visible = visible end
+end
+
+local function setCollectionPriorityHudSuppression(suppressed)
+    local hudNames = {
+        "LostAndFoundProgressionHUD",
+        "LostAndFoundCareerUnlocks",
+    }
+
+    if suppressed then
+        if collectionHudRestoreState then return end
+        collectionHudRestoreState = {}
+        for _, hudName in ipairs(hudNames) do
+            local hud = playerGui:FindFirstChild(hudName)
+            if hud and hud:IsA("ScreenGui") then
+                collectionHudRestoreState[hudName] = hud.Enabled
+                hud.Enabled = false
+            end
+        end
+        return
+    end
+
+    local restoreState = collectionHudRestoreState
+    collectionHudRestoreState = nil
+    if not restoreState then return end
+
+    for hudName, wasEnabled in pairs(restoreState) do
+        local hud = playerGui:FindFirstChild(hudName)
+        if hud and hud:IsA("ScreenGui") then
+            hud.Enabled = wasEnabled
+        end
+    end
 end
 
 local function addPreview(card, entry, isDiscovered)
@@ -328,6 +360,7 @@ local function setCollectionOpen(open)
     setMainHudVisible(not open)
     setArchiveHudVisible(not open)
     setTradeHudVisible(not open)
+    setCollectionPriorityHudSuppression(open)
 end
 
 indexButton.Activated:Connect(function()
