@@ -1,0 +1,50 @@
+name: ARDA Music Player v1.2 Build
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "arda-music-player/**"
+      - ".github/workflows/arda-music-player-build.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.10.2"
+
+      - name: Build and lint unsigned release
+        working-directory: arda-music-player
+        run: gradle --no-daemon :app:assembleRelease :app:lintRelease
+
+      - name: Collect build package
+        run: |
+          mkdir -p arda-build-package
+          cp arda-music-player/app/build/outputs/apk/release/app-release-unsigned.apk arda-build-package/ARDA-MUSIC-PLAYER-v1.2.0-unsigned.apk
+          cp "$ANDROID_HOME/build-tools/35.0.0/lib/apksigner.jar" arda-build-package/apksigner.jar
+          cp -R arda-music-player/app/build/reports/lint-results-release.html arda-build-package/lint-results-release.html
+
+      - name: Upload APK and signing tool
+        uses: actions/upload-artifact@v4
+        with:
+          name: arda-music-player-v1.2.0-build
+          path: arda-build-package/
+          if-no-files-found: error
+          retention-days: 7
