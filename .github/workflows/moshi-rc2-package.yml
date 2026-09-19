@@ -1,12 +1,15 @@
 name: MOSHI RC2 Package
 
-# One package run for the consolidated post-QC candidate.
+# Manual package run for the consolidated post-QC candidate.
+# The RC backend is intentionally supplied at dispatch time because Quick Tunnel
+# hostnames are ephemeral and must not be pinned into the source branch.
 on:
-  push:
-    branches:
-      - moshi/final-alpha-v01
-    paths:
-      - '.github/workflows/moshi-rc2-package.yml'
+  workflow_dispatch:
+    inputs:
+      api_base_url:
+        description: 'Live HTTPS MOSHI Alpha backend base URL'
+        required: true
+        type: string
 
 permissions:
   contents: read
@@ -15,7 +18,7 @@ jobs:
   package:
     runs-on: ubuntu-22.04
     env:
-      MOSHI_RC_API_BASE_URL: https://america-assignments-donors-seo.trycloudflare.com
+      MOSHI_RC_API_BASE_URL: ${{ inputs.api_base_url }}
     defaults:
       run:
         working-directory: projects/moshi/android
@@ -25,6 +28,10 @@ jobs:
       - name: Verify current Alpha backend endpoint
         run: |
           set -euo pipefail
+          case "$MOSHI_RC_API_BASE_URL" in
+            https://*) ;;
+            *) echo "api_base_url must use https://"; exit 1 ;;
+          esac
           curl --fail --silent --show-error --max-time 20 "$MOSHI_RC_API_BASE_URL/health" >/tmp/moshi-health.txt
           cat /tmp/moshi-health.txt
 
@@ -69,4 +76,4 @@ jobs:
             /tmp/MOSHI-alpha8-RC2-aligned-unsigned.sha256
             /tmp/MOSHI-alpha8-RC2-build.txt
             /tmp/apksigner.jar
-          retention-days: 7
+          retention-days: 30
