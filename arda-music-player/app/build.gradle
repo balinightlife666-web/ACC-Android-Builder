@@ -1,0 +1,57 @@
+plugins {
+    id 'com.android.application'
+}
+
+def signingFile = rootProject.file('signing.properties')
+def signingProps = new Properties()
+if (signingFile.exists()) {
+    signingFile.withInputStream { signingProps.load(it) }
+}
+
+android {
+    namespace 'com.arda.musicplayer'
+    compileSdk 35
+
+    defaultConfig {
+        applicationId 'com.arda.musicplayer'
+        minSdk 26
+        targetSdk 35
+        versionCode 3
+        versionName '1.2.0'
+    }
+
+    signingConfigs {
+        release {
+            if (signingFile.exists()) {
+                storeFile rootProject.file(signingProps['storeFile'])
+                storePassword signingProps['storePassword']
+                keyAlias signingProps['keyAlias']
+                keyPassword signingProps['keyPassword']
+                enableV1Signing true
+                enableV2Signing true
+                enableV3Signing true
+            }
+        }
+    }
+
+    buildTypes {
+        debug {
+            applicationIdSuffix '.debug'
+            versionNameSuffix '-debug'
+        }
+        release {
+            debuggable false
+            minifyEnabled false
+            shrinkResources false
+            if (signingFile.exists()) {
+                signingConfig signingConfigs.release
+            }
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}
