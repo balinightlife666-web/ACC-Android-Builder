@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">ARDA MUSIC PLAYER</string>
+    <string name="notification_channel">ARDA MUSIC PLAYER playback</string>
+    <string name="notification_channel_description">Wedding playlist playback controls</string>
+</resources>
