@@ -10,5 +10,8 @@ M4E1CaseDepth.Apply()
 local M4E1DAntiRepeat = require(script.Parent:WaitForChild("M4E1DAntiRepeat"))
 M4E1DAntiRepeat.Apply()
 
+local LiveServiceEventService = require(script.Parent:WaitForChild("LiveServiceEventService"))
+LiveServiceEventService.Start()
+
 local PersonalShiftRuntime = require(script.Parent:WaitForChild("PersonalShiftRuntime"))
 PersonalShiftRuntime.Start()
