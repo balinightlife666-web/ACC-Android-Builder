@@ -3,7 +3,7 @@ local Config = {}
 Config.GameTitle = "LOST & FOUND: NIGHT SHIFT"
 Config.UniverseId = 10745354451
 Config.PlaceId = 93699016600671
-Config.Milestone = "M4-D — PERSONAL SHIFTS"
+Config.Milestone = "M6-C — LIVE SERVICE FOUNDATION"
 
 Config.InitialServerStationCapacity = 8
 Config.CaseAdvanceDelay = 3.2
