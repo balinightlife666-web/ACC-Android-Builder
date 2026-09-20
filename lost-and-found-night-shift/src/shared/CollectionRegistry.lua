@@ -23,14 +23,15 @@ CollectionRegistry.Order = {
     "unstable_mass_readout",
 }
 
-local function item(id, baseItemId, name, rarity, serialPrefix)
+local function item(id, baseItemId, name, rarity, serialPrefix, edition, eventId)
     return {
         id = id,
         baseItemId = baseItemId,
         name = name,
         rarity = rarity,
         serialPrefix = serialPrefix,
-        edition = "S1",
+        edition = edition or "S1",
+        eventId = eventId,
         tradeable = true,
     }
 end
@@ -77,6 +78,7 @@ function CollectionRegistry.PublicEntries()
             rarity = entry.rarity,
             serialPrefix = entry.serialPrefix,
             edition = entry.edition,
+            eventId = entry.eventId,
             tradeable = entry.tradeable,
         })
     end
