@@ -82,3 +82,13 @@
 - Exact trigger/source `950eeb1e7b4c6119292340f4e630b8fa3e589461` published successfully as Roblox v34.
 - Deploy receipt: run `33100322285`, Rojo `7.7.0`, bytes `83918`, SHA256 `b70b00eaeab8cdfc6cb72b1ea881625ddc75995d2903c6ed3cae903436692612`.
 - M4-D status: LIVE_PUBLISHED / BUILD-DEPLOY VERIFIED / SOLO RUNTIME QC PENDING.
+
+
+## 2026-09-20 — M6-C live-service foundation SOURCE ONLY
+- Preserved Roblox v68 as the current LIVE_PUBLISHED baseline; M6-B Android runtime polish QC remains pending.
+- Added dormant `LiveServiceEventRegistry.lua` with Halloween 2026 (`HW26`) and Christmas 2026 (`XMAS26`) identities.
+- Added `LiveServiceEventService.lua` to replicate server-authoritative event state without changing gameplay/economy by itself.
+- Both events are disabled and have no approved runtime window, collectible pool, case hook, drop rate or mint cap.
+- Added backward-compatible `edition` / `eventId` metadata support to Collection Registry; all existing items remain S1.
+- Added `brain/M6C_LIVE_SERVICE_HALLOWEEN_FOUNDATION_LOCK.md`.
+- M6-C source is intentionally NOT published until v68 Android runtime acceptance unless Arda explicitly overrides the gate.
