@@ -1,0 +1,36 @@
+{
+  "status": "UPLOAD_BLOCKED_QUOTA",
+  "scope": "BBYA_MUSIC_MANAGER_CONTROLLED_TEST_ONLY",
+  "track": "MANIS",
+  "source": {
+    "driveFileId": "1Wj0DHxZzlMj_qVIywQ_wzkwga2Zntb3P",
+    "sha256": "6446f570652df9651057bb646c4202b1e185f115224b4ec0e206b4ba31d371a4",
+    "codec": "mp3",
+    "sampleRateHz": 48000,
+    "durationSeconds": 148.8
+  },
+  "processing": {
+    "authority": "EXPERIMENTAL_CANDIDATE_NOT_FINAL",
+    "speedFactor": 1.25,
+    "playbackSpeed": 0.8,
+    "method": "ffmpeg asetrate=48000*1.25,aresample=48000; stereo libmp3lame 192k",
+    "processedSha256": "da9faa5822a50a2a388ecd3c1dfe86a63f43fb1ea6316bbecd5281f8149fdca3",
+    "processedDurationSeconds": 119.04,
+    "inverseMathVerified": true
+  },
+  "roblox": {
+    "uploaderAuthorityIntrospection": "PASS",
+    "createAssetHttp": 429,
+    "errorCode": "RESOURCE_EXHAUSTED",
+    "errorMessage": "User does not have available quota for Audio asset upload. The limit of 100 has been reached. Please try again at 2026-09-22 15:21:02Z.",
+    "operationCreated": false,
+    "assetId": null,
+    "testUniverseId": "10762005984",
+    "productionUniverseTargeted": false
+  },
+  "workflow": {
+    "runId": "33729122334",
+    "sourceCommit": "ba9b7432e8e3841cc7398b3b3525af3f19215402"
+  },
+  "conclusion": "Drive source, SHA guard, preprocessing, inverse normalization math, and uploader key authority passed. Roblox quota prevented asset creation before an operation/final Asset ID existed."
+}
