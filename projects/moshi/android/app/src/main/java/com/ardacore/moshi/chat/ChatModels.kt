@@ -39,9 +39,19 @@ data class ChatAttachment(
     val fileName: String,
     val contentType: String,
     val sizeBytes: Long,
-    val status: String,
+    var status: String,
     val downloadPath: String,
-)
+) {
+    init {
+        // The backend marks an upload as "attached" once it belongs to a message.
+        // At that point download_path is present and the attachment is downloadable.
+        // Normalize that wire state to the UI's existing "ready" state so receivers
+        // get the Open/Play action without weakening authenticated download checks.
+        if (status == "attached" && downloadPath.isNotBlank()) {
+            status = "ready"
+        }
+    }
+}
 
 data class UploadTicket(
     val id: String,
