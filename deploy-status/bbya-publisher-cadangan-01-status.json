@@ -1,9 +1,9 @@
 {
   "status": "FAILED_BEFORE_RECEIPT",
   "event": "schedule",
-  "runId": "35949513394",
-  "sourceHead": "eec466a66436f1405cd4baf8553004b2d85e2f96",
+  "runId": "35974592093",
+  "sourceHead": "28214b64e7385e3536b60543ba49e581b37a9d19",
   "bbyaRelevantCommit": "42cc9996a72f8f562f70eeafe39a9deed00f3284",
   "changed": "true",
-  "recordedAt": "2026-09-24T02:59:06Z"
+  "recordedAt": "2026-09-24T08:19:58Z"
 }
