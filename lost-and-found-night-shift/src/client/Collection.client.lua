@@ -285,6 +285,8 @@ local function rebuildCards()
     for order, entry in ipairs(entries) do
         local isDiscovered = discovered[entry.id] == true
         local rarity = tostring(entry.rarity or "COMMON")
+        local edition = tostring(entry.edition or "S1")
+        local isSeasonal = edition ~= "S1"
         local accent = isDiscovered and rarityColor(rarity) or Color3.fromRGB(72, 80, 92)
         local serialInfo = serialByCollectionId[entry.id]
         local owned = ownedCounts[entry.id] or 0
@@ -310,7 +312,11 @@ local function rebuildCards()
 
         local rarityLabel = label(card, UDim2.new(1, -8, 0, 12), UDim2.fromOffset(4, 116), 8, Enum.Font.GothamBold, accent)
         rarityLabel.TextXAlignment = Enum.TextXAlignment.Center
-        rarityLabel.Text = isDiscovered and rarity or "LOCKED"
+        if isSeasonal then
+            rarityLabel.Text = isDiscovered and (rarity .. " • " .. edition) or (edition .. " • LOCKED")
+        else
+            rarityLabel.Text = isDiscovered and rarity or "LOCKED"
+        end
 
         local serialLabel = label(card, UDim2.new(1, -8, 0, 16), UDim2.fromOffset(4, 130), 8, Enum.Font.RobotoMono, Color3.fromRGB(124, 205, 212))
         serialLabel.TextXAlignment = Enum.TextXAlignment.Center
