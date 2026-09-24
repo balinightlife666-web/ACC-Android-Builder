@@ -13,5 +13,8 @@ M4E1DAntiRepeat.Apply()
 local LiveServiceEventService = require(script.Parent:WaitForChild("LiveServiceEventService"))
 LiveServiceEventService.Start()
 
+local M6CSeasonalContentService = require(script.Parent:WaitForChild("M6CSeasonalContentService"))
+M6CSeasonalContentService.RegisterDefinitions()
+
 local PersonalShiftRuntime = require(script.Parent:WaitForChild("PersonalShiftRuntime"))
 PersonalShiftRuntime.Start()
