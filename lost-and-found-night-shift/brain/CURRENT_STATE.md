@@ -14,6 +14,10 @@ Updated: 2026-09-24
 
 Never call a new build LIVE/VERIFIED without a valid deploy receipt. Runtime PASS remains a separate Roblox-client gate.
 
+## Accepted baseline
+- M0 — FIRST SUITCASE — COMPLETE / ACCEPTED.
+- Current execution phase: M6-C Live Service / Halloween Foundation.
+
 ## Latest VERIFIED LIVE baseline — Roblox v68
 Status: **LIVE_PUBLISHED / RECEIPT VERIFIED / ANDROID RUNTIME POLISH QC PENDING**
 
