@@ -66,6 +66,7 @@ Current event state:
 - first event case definition: `LF-HW26-001 — Cold Room Parcel`; `selectionWeight=nil`, so it cannot enter runtime rotation.
 - Halloween in-engine lobby dressing is implemented behind the event-state gate and remains invisible while the event is inactive.
 - seasonal Collection definitions remain hidden unless the event is active or the player historically discovered/owns that seasonal item.
+- seasonal Collection cards show an explicit edition token (for example `RARE • HW26` or `HW26 • LOCKED`).
 - Christmas 2026: disabled; exact runtime window/pool/case hooks remain TBD.
 - no seasonal reward/economy change has been activated.
 
