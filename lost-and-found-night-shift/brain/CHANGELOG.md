@@ -92,3 +92,14 @@
 - Added backward-compatible `edition` / `eventId` metadata support to Collection Registry; all existing items remain S1.
 - Added `brain/M6C_LIVE_SERVICE_HALLOWEEN_FOUNDATION_LOCK.md`.
 - M6-C source is intentionally NOT published until v68 Android runtime acceptance unless Arda explicitly overrides the gate.
+
+
+## 2026-09-24 — M6-C Halloween source package
+- Added dormant Halloween 2026 content definitions under edition `HW26`.
+- Designed four seasonal collectibles: Midnight Check-In Hardcase, Pumpkin Claim Tag, Black Cat Transit Backpack, and Cold Room Parcel.
+- Added `LF-HW26-001 — Cold Room Parcel` as a self-contained event case with QUARANTINE as the correct operational action.
+- Kept every HW26 collectible `dropEnabled=false`; no event drop chance or mint cap has been approved.
+- Kept the event case `selectionWeight=nil`; it cannot enter runtime rotation.
+- Added seasonal collection visibility/persistence support so inactive historical event items remain recognizable and visible to prior owners/discoverers.
+- Added event-gated Roblox 3D Halloween lobby dressing; inactive events produce no visual change.
+- M6-C remains SOURCE ONLY / NOT LIVE; Roblox v68 remains the verified live baseline.
