@@ -21,8 +21,15 @@ LiveServiceEventRegistry.Events = {
         endsAt = nil,
         stationSkinId = "HALLOWEEN_2026",
         environmentProfile = "HALLOWEEN",
-        collectionPool = {},
-        caseHookIds = {},
+        collectionPool = {
+            "hw26_midnight_hardcase",
+            "hw26_pumpkin_claim_tag",
+            "hw26_black_cat_backpack",
+            "hw26_cold_room_parcel",
+        },
+        caseHookIds = {
+            "LF-HW26-001",
+        },
     },
     CHRISTMAS_2026 = {
         id = "CHRISTMAS_2026",
