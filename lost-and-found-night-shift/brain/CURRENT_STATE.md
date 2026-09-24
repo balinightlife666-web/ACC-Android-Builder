@@ -1,6 +1,6 @@
 # LOST & FOUND: NIGHT SHIFT — CURRENT STATE
 
-Updated: 2026-09-20
+Updated: 2026-09-24
 
 ## Identity / infrastructure
 - Universe ID: `10745354451`
@@ -60,9 +60,14 @@ Implemented in source:
 - milestone metadata updated to `M6-C — LIVE SERVICE FOUNDATION`.
 
 Current event state:
-- Halloween 2026: disabled; exact runtime window TBD; pool empty; case hooks empty.
-- Christmas 2026: disabled; exact runtime window TBD; pool empty; case hooks empty.
-- no seasonal drop rate, mint cap, rarity mix, reward, room transformation or event case has been activated.
+- Halloween 2026: disabled; exact runtime window TBD.
+- HW26 source pool designed: Midnight Check-In Hardcase / Pumpkin Claim Tag / Black Cat Transit Backpack / Cold Room Parcel.
+- all HW26 collectible definitions remain `dropEnabled=false`; no seasonal mint cap or drop chance approved.
+- first event case definition: `LF-HW26-001 — Cold Room Parcel`; `selectionWeight=nil`, so it cannot enter runtime rotation.
+- Halloween in-engine lobby dressing is implemented behind the event-state gate and remains invisible while the event is inactive.
+- seasonal Collection definitions remain hidden unless the event is active or the player historically discovered/owns that seasonal item.
+- Christmas 2026: disabled; exact runtime window/pool/case hooks remain TBD.
+- no seasonal reward/economy change has been activated.
 
 M6-C source must not be published over v68 until the v68 Android polish runtime check is accepted, unless Arda explicitly overrides that gate.
 
