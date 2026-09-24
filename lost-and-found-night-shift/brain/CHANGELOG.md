@@ -103,3 +103,5 @@
 - Added seasonal collection visibility/persistence support so inactive historical event items remain recognizable and visible to prior owners/discoverers.
 - Added event-gated Roblox 3D Halloween lobby dressing; inactive events produce no visual change.
 - M6-C remains SOURCE ONLY / NOT LIVE; Roblox v68 remains the verified live baseline.
+
+- Added explicit seasonal edition labels to Collection cards (for example `RARE • HW26`).
