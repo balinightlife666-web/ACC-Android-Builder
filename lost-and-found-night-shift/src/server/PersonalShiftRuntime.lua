@@ -8,6 +8,7 @@ local CaseRegistry = require(shared:WaitForChild("CaseRegistry"))
 local CollectionRegistry = require(shared:WaitForChild("CollectionRegistry"))
 local CollectionPreviewFactory = require(shared:WaitForChild("CollectionPreviewFactory"))
 local StationSkinRegistry = require(shared:WaitForChild("StationSkinRegistry"))
+local LiveServiceEventRegistry = require(shared:WaitForChild("LiveServiceEventRegistry"))
 
 local PersonalStationWorld = require(script.Parent:WaitForChild("PersonalStationWorld"))
 local LegacyWorldBuilder = require(script.Parent:WaitForChild("WorldBuilder"))
@@ -175,14 +176,6 @@ function PersonalShiftRuntime.Start()
         local discoveredIds = {}
         local serialByCollectionId = {}
         local ownedCounts = {}
-        local count = 0
-
-        for _, collectionId in ipairs(CollectionRegistry.Order) do
-            if found[collectionId] then
-                discoveredIds[collectionId] = true
-                count += 1
-            end
-        end
 
         for _, instance in ipairs(inventoryFor(userId)) do
             if CollectionRegistry.Get(instance.collectionId) then
@@ -201,17 +194,30 @@ function PersonalShiftRuntime.Start()
             end
         end
 
+        local activeEvent = LiveServiceEventRegistry.GetActive(os.time())
+        local activeEventId = activeEvent and activeEvent.id or nil
+        local visibleOrder = CollectionRegistry.VisibleOrder(activeEventId, found, ownedCounts)
+        local count = 0
+
+        for _, collectionId in ipairs(visibleOrder) do
+            if found[collectionId] then
+                discoveredIds[collectionId] = true
+                count += 1
+            end
+        end
+
         return {
             discovered = discoveredIds,
             count = count,
-            total = CollectionRegistry.Count(),
-            entries = CollectionRegistry.PublicEntries(),
+            total = CollectionRegistry.Count(visibleOrder),
+            entries = CollectionRegistry.PublicEntries(visibleOrder),
             serialByCollectionId = serialByCollectionId,
             ownedCounts = ownedCounts,
             inventoryCount = #inventoryFor(userId),
             serialMigrationComplete = serialMigrationComplete[userId] == true,
             persistent = persistenceReady[userId] == true,
             stationProfile = cloneTable(stationProfiles[userId] or {}),
+            activeEventId = activeEventId or "",
         }
     end
 
@@ -220,9 +226,12 @@ function PersonalShiftRuntime.Start()
         local found = discoveries[player.UserId] or {}
         local discoveredList = {}
 
-        for _, collectionId in ipairs(CollectionRegistry.Order) do
-            if found[collectionId] then table.insert(discoveredList, collectionId) end
+        for collectionId, isDiscovered in pairs(found) do
+            if isDiscovered and CollectionRegistry.Get(collectionId) then
+                table.insert(discoveredList, collectionId)
+            end
         end
+        table.sort(discoveredList)
 
         local inventoryList = {}
         for _, instance in ipairs(inventoryFor(player.UserId)) do
@@ -331,11 +340,7 @@ function PersonalShiftRuntime.Start()
     end
 
     local function sourceForCollection(collectionId)
-        for _, caseData in ipairs(CaseRegistry.Cases) do
-            if caseData.collectionId == collectionId then return caseData.id, "CASE_ITEM" end
-            if caseData.bonusCollectionId == collectionId then return caseData.id, "PERFECT_BONUS" end
-        end
-        return "UNKNOWN", "DISCOVERY"
+        return CaseRegistry.FindCollectionSource(collectionId)
     end
 
     local function markIndexDiscovered(player, collectionId, eventKind)
@@ -597,6 +602,14 @@ function PersonalShiftRuntime.Start()
         if completed >= 8 then table.insert(pool, CaseRegistry.Get(8)) end
         if completed >= 9 then table.insert(pool, CaseRegistry.Get(9)) end
         if completed >= 10 then table.insert(pool, CaseRegistry.Get(10)) end
+
+        local activeEvent = LiveServiceEventRegistry.GetActive(os.time())
+        if activeEvent then
+            for _, caseData in ipairs(CaseRegistry.GetEventCases(activeEvent.id, true)) do
+                table.insert(pool, caseData)
+            end
+        end
+
         return pool, false
     end
 
@@ -604,7 +617,9 @@ function PersonalShiftRuntime.Start()
         local weighted = {}
         local total = 0
         for _, caseData in ipairs(candidates) do
-            local weight = caseData.caseType == "mystery" and 3 or 10
+            local explicitWeight = tonumber(caseData.selectionWeight)
+            local weight = explicitWeight and math.max(1, math.floor(explicitWeight))
+                or (caseData.caseType == "mystery" and 3 or 10)
             if caseData.id == "LF-M0-010" then weight = 2 end
             if state.lastCaseId == caseData.id then weight = math.max(1, math.floor(weight * 0.25)) end
             total += weight
@@ -663,8 +678,10 @@ function PersonalShiftRuntime.Start()
     local function rollDrop(state, collectionId, grade, sourceCaseId, sourceKind)
         local entry = CollectionRegistry.Get(collectionId)
         if not entry or grade ~= "PERFECT" then return nil, "NOT_ELIGIBLE" end
+        if entry.dropEnabled == false then return nil, "DROP_LOCKED" end
 
-        local chance = tonumber(DROP_CHANCE[entry.rarity]) or 0
+        local chance = tonumber(entry.dropChance)
+        if chance == nil then chance = tonumber(DROP_CHANCE[entry.rarity]) or 0 end
         if chance <= 0 then return nil, "NO_CHANCE" end
         local roll = state.random:NextNumber()
         if roll > chance then return nil, "ROLL_MISS" end
