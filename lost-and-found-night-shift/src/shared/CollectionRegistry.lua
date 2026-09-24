@@ -59,28 +59,85 @@ CollectionRegistry.Items = {
     unstable_mass_readout = item("unstable_mass_readout", "mass_readout", "Unstable Mass Readout", "ANOMALY", "UMR"),
 }
 
+CollectionRegistry.SeasonalOrder = {}
+
+local function cloneEntry(entry)
+    return {
+        id = entry.id,
+        baseItemId = entry.baseItemId,
+        name = entry.name,
+        rarity = entry.rarity,
+        serialPrefix = entry.serialPrefix,
+        edition = entry.edition or "S1",
+        eventId = entry.eventId,
+        tradeable = entry.tradeable ~= false,
+        dropEnabled = entry.dropEnabled ~= false,
+        dropChance = entry.dropChance,
+        mintCap = entry.mintCap,
+    }
+end
+
+function CollectionRegistry.RegisterSeasonal(entry)
+    if type(entry) ~= "table" or type(entry.id) ~= "string" or entry.id == "" then
+        return false, "INVALID_ENTRY"
+    end
+    if CollectionRegistry.Items[entry.id] then
+        return false, "DUPLICATE_ID"
+    end
+
+    CollectionRegistry.Items[entry.id] = cloneEntry(entry)
+    table.insert(CollectionRegistry.SeasonalOrder, entry.id)
+    return true
+end
+
+function CollectionRegistry.VisibleOrder(activeEventId, discovered, ownedCounts)
+    discovered = type(discovered) == "table" and discovered or {}
+    ownedCounts = type(ownedCounts) == "table" and ownedCounts or {}
+
+    local result = {}
+    for _, collectionId in ipairs(CollectionRegistry.Order) do
+        table.insert(result, collectionId)
+    end
+
+    for _, collectionId in ipairs(CollectionRegistry.SeasonalOrder) do
+        local entry = CollectionRegistry.Items[collectionId]
+        local visible = entry
+            and (
+                (activeEventId ~= nil and activeEventId ~= "" and entry.eventId == activeEventId)
+                or discovered[collectionId] == true
+                or (tonumber(ownedCounts[collectionId]) or 0) > 0
+            )
+        if visible then table.insert(result, collectionId) end
+    end
+
+    return result
+end
+
 function CollectionRegistry.Get(collectionId)
     return CollectionRegistry.Items[collectionId]
 end
 
-function CollectionRegistry.Count()
-    return #CollectionRegistry.Order
+function CollectionRegistry.Count(order)
+    return #(order or CollectionRegistry.Order)
 end
 
-function CollectionRegistry.PublicEntries()
+function CollectionRegistry.PublicEntries(order)
     local entries = {}
-    for _, collectionId in ipairs(CollectionRegistry.Order) do
+    for _, collectionId in ipairs(order or CollectionRegistry.Order) do
         local entry = CollectionRegistry.Items[collectionId]
-        table.insert(entries, {
-            id = entry.id,
-            baseItemId = entry.baseItemId,
-            name = entry.name,
-            rarity = entry.rarity,
-            serialPrefix = entry.serialPrefix,
-            edition = entry.edition,
-            eventId = entry.eventId,
-            tradeable = entry.tradeable,
-        })
+        if entry then
+            table.insert(entries, {
+                id = entry.id,
+                baseItemId = entry.baseItemId,
+                name = entry.name,
+                rarity = entry.rarity,
+                serialPrefix = entry.serialPrefix,
+                edition = entry.edition,
+                eventId = entry.eventId,
+                tradeable = entry.tradeable,
+                dropEnabled = entry.dropEnabled,
+            })
+        end
     end
     return entries
 end
