@@ -51,6 +51,20 @@ local VARIANTS = {
     teddy_bear = { base = "teddy_bear", color = Color3.fromRGB(182, 151, 113), rarity = "RARE" },
 }
 
+function CollectionPreviewFactory.RegisterVariant(collectionId, variant)
+    if type(collectionId) ~= "string" or collectionId == "" or type(variant) ~= "table" then
+        return false
+    end
+    VARIANTS[collectionId] = {
+        base = tostring(variant.base or "hardcase_suitcase"),
+        color = variant.color or Color3.fromRGB(90, 96, 108),
+        rarity = tostring(variant.rarity or "COMMON"),
+        scale = tonumber(variant.scale),
+        accent = variant.accent,
+    }
+    return true
+end
+
 local function makePart(model, name, size, cframe, color, material, shape)
     local part = Instance.new("Part")
     part.Name = name
