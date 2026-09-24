@@ -36,6 +36,8 @@ CaseRegistry.Cases = {
     },
 }
 
+CaseRegistry.EventCases = {}
+
 local RNG = Random.new()
 local runtimeCounter = 0
 local MYSTERY_CANDIDATE_CHANCE = 0.35
@@ -331,6 +333,45 @@ end
 
 function CaseRegistry.GetCanonical(index)
     return CaseRegistry.Cases[index]
+end
+
+function CaseRegistry.RegisterEventCase(eventId, caseData)
+    eventId = tostring(eventId or "")
+    if eventId == "" or type(caseData) ~= "table" or type(caseData.id) ~= "string" or caseData.id == "" then
+        return false, "INVALID_EVENT_CASE"
+    end
+
+    CaseRegistry.EventCases[eventId] = CaseRegistry.EventCases[eventId] or {}
+    for _, existing in ipairs(CaseRegistry.EventCases[eventId]) do
+        if existing.id == caseData.id then return false, "DUPLICATE_ID" end
+    end
+    table.insert(CaseRegistry.EventCases[eventId], caseData)
+    return true
+end
+
+function CaseRegistry.GetEventCases(eventId, requireApprovedWeight)
+    local result = {}
+    for _, caseData in ipairs(CaseRegistry.EventCases[tostring(eventId or "")] or {}) do
+        local weight = tonumber(caseData.selectionWeight)
+        if not requireApprovedWeight or (weight and weight > 0) then
+            table.insert(result, caseData)
+        end
+    end
+    return result
+end
+
+function CaseRegistry.FindCollectionSource(collectionId)
+    for _, caseData in ipairs(CaseRegistry.Cases) do
+        if caseData.collectionId == collectionId then return caseData.id, "CASE_ITEM" end
+        if caseData.bonusCollectionId == collectionId then return caseData.id, "PERFECT_BONUS" end
+    end
+    for _, eventCases in pairs(CaseRegistry.EventCases) do
+        for _, caseData in ipairs(eventCases) do
+            if caseData.collectionId == collectionId then return caseData.id, "EVENT_CASE_ITEM" end
+            if caseData.bonusCollectionId == collectionId then return caseData.id, "EVENT_PERFECT_BONUS" end
+        end
+    end
+    return "UNKNOWN", "DISCOVERY"
 end
 
 function CaseRegistry.Count()
