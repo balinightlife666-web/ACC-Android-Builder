@@ -18,18 +18,18 @@ Never call a new build LIVE/VERIFIED without a valid deploy receipt. Runtime PAS
 - M0 — FIRST SUITCASE — COMPLETE / ACCEPTED.
 - Current execution phase: M6-C Live Service / Halloween Foundation.
 
-## Latest VERIFIED LIVE baseline — Roblox v68
-Status: **LIVE_PUBLISHED / RECEIPT VERIFIED / ANDROID RUNTIME POLISH QC PENDING**
+## Latest VERIFIED LIVE baseline — Roblox v69
+Status: **LIVE_PUBLISHED / RECEIPT VERIFIED / ANDROID RUNTIME QC PENDING**
 
-- source commit: `5fae0e20e9dd336e352ce743b1d88479e5b6e91e`
-- workflow run: `35366469917`
+- source commit: `cc4fbdbb64024fed29f995f069adc5b1baaca260`
+- workflow run: `36034437502`
 - Universe: `10745354451`
 - Place: `93699016600671`
-- RBXL bytes: `231605`
-- RBXL SHA256: `6a9a7448c438307c382300a2020ccd753821d117b5bc4977d5bd9ad2df96694f`
-- published: `2026-09-18T16:06:37Z`
+- RBXL bytes: `240392`
+- RBXL SHA256: `95ce1e5c4c368d599947ec436ccfd58a26cc4b312d84c618b999c35c6ffb0820`
+- published: `2026-09-24T17:27:44Z`
 
-v68 includes the final M6-B mobile polish:
+v69 includes the final M6-B mobile polish plus the dormant M6-C live-service foundation:
 - Station Shop uses an invisible input blocker instead of a visible dark backdrop.
 - Collection gets visual priority by suppressing Progression + Career HUD while open and restoring prior Enabled state when closed.
 - Unified MENU V2 remains the only runtime menu authority.
@@ -48,7 +48,7 @@ Hard locks remain:
 - reward/economy/drop/canon/serial/trade/showcase rules are unchanged.
 
 ## M6-C — Live Service / Halloween Foundation
-Status: **SOURCE FOUNDATION / DORMANT / NOT LIVE**
+Status: **FOUNDATION LIVE IN v69 / HALLOWEEN CONTENT DORMANT / ACTIVATION PREP SOURCE-ONLY**
 
 Authority:
 - `brain/M6C_LIVE_SERVICE_HALLOWEEN_FOUNDATION_LOCK.md`
@@ -74,7 +74,7 @@ Current event state:
 - Christmas 2026: disabled; exact runtime window/pool/case hooks remain TBD.
 - no seasonal reward/economy change has been activated.
 
-M6-C source must not be published over v68 until the v68 Android polish runtime check is accepted, unless Arda explicitly overrides that gate.
+v69 is now LIVE_PUBLISHED by explicit Arda instruction. Android runtime QC is still required before Halloween activation.
 
 ## Core gameplay locks
 Loop:
