@@ -128,10 +128,23 @@ Drop targets:
 - stable showcase must not periodic destroy/recreate or continuously repivot unchanged items.
 
 ## Active gate
-1. Arda tests Roblox v68 on Android landscape.
+1. Arda tests Roblox v69 on Android landscape.
 2. Confirm Station Shop has no visible backdrop and gameplay taps remain blocked behind it.
 3. Confirm Collection header is no longer covered by Progression/Career HUD and HUD restores after close.
 4. Confirm unified MENU still routes INDEKS → ARSIP → TUKAR → TOKO STASIUN.
 5. Confirm close returns to normal gameplay.
 6. Only then mark M6-B runtime PASS.
 7. After that, approve exact Halloween event window before enabling any M6-C event content.
+
+
+## M6-C activation prep candidate
+Status: **SOURCE-ONLY / NOT APPLIED TO RUNTIME**
+
+- Candidate window: 24 Oct 2026 00:00 WITA → 4 Nov 2026 00:00 WITA.
+- Candidate event cases: LF-HW26-001 / LF-HW26-002 / LF-HW26-003.
+- Candidate case weight: 2 each.
+- Candidate seasonal drop chances: MCH 35%, PCT 20%, BCT 20%, CRP 10%.
+- Candidate mint policy: no hard cap; scarcity is time-window + drop-rate + HW26 provenance.
+- Runtime registry remains disabled.
+- Runtime event-case weights remain unset.
+- Runtime seasonal drops remain disabled.
