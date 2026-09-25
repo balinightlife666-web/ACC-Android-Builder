@@ -1,7 +1,7 @@
-# LOST & FOUND: NIGHT SHIFT — M6-C LIVE SERVICE / HALLOWEEN FOUNDATION LOCK v1.1
+# LOST & FOUND: NIGHT SHIFT — M6-C LIVE SERVICE / HALLOWEEN FOUNDATION LOCK v1.2
 
 Date: 2026-09-24  
-Status: **SOURCE PRODUCTION / DORMANT / NOT LIVE**
+Status: **FOUNDATION LIVE v69 / ACTIVATION PREP SOURCE-ONLY**
 
 ## Purpose
 M6-C creates the reusable live-service foundation and first Halloween 2026 content package without activating the event prematurely or changing the existing economy/canon.
@@ -119,3 +119,34 @@ When event is inactive, seasonal decor is removed/not created.
 6. Static/regression QC.
 7. Publish through the locked LOST FOUND issue route and verify exact receipt.
 8. Android runtime/event QC before calling Halloween LIVE.
+
+
+## Activation candidate (not applied)
+Source: `src/shared/M6CHalloweenActivationCandidate.lua`
+
+Candidate window:
+- 24 October 2026 00:00 WITA
+- through 4 November 2026 00:00 WITA
+
+Candidate event cases:
+- `LF-HW26-001 — Cold Room Parcel`
+- `LF-HW26-002 — Midnight Check-In`
+- `LF-HW26-003 — Black Cat Transit`
+
+Candidate case weights:
+- 2 / 2 / 2
+
+Candidate seasonal ownership rolls:
+- Midnight Check-In Hardcase: 35%
+- Pumpkin Claim Tag: 20%
+- Black Cat Transit Backpack: 20%
+- Cold Room Parcel: 10%
+
+Candidate mint policy:
+- no hard cap in v1;
+- scarcity comes from the limited event window, per-item drop chance, and immutable HW26 serial provenance.
+
+These values are design-only. The candidate module is not required by runtime code. Runtime remains locked with:
+- event `enabled=false`;
+- event case `selectionWeight=nil`;
+- collectible `dropEnabled=false`.
