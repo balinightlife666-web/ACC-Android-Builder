@@ -29,6 +29,8 @@ LiveServiceEventRegistry.Events = {
         },
         caseHookIds = {
             "LF-HW26-001",
+            "LF-HW26-002",
+            "LF-HW26-003",
         },
     },
     CHRISTMAS_2026 = {
