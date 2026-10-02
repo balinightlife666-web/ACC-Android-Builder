@@ -105,3 +105,11 @@
 - M6-C remains SOURCE ONLY / NOT LIVE; Roblox v68 remains the verified live baseline.
 
 - Added explicit seasonal edition labels to Collection cards (for example `RARE • HW26`).
+## 2026-10-02 — M6-C activation safety SOURCE ONLY
+- Confirmed Roblox v69 remains the latest receipt-verified live baseline: source `cc4fbdbb64024fed29f995f069adc5b1baaca260`, run `36034437502`.
+- Reordered startup so seasonal collectible/case definitions register before live-service state authority starts.
+- Added fail-closed activation preflight to `LiveServiceEventService.lua`.
+- Event activation is blocked if the seasonal collection pool, edition metadata, explicit item drop chances, event-case hooks, positive case weights, or case drop approvals are incomplete/mismatched.
+- Added replicated diagnostics `ActivationReady` and `GuardReason`.
+- Halloween 2026 remains disabled; HW26 drops and case weights remain locked. No Credits/XP/base drop/canon/trading changes were made.
+- These changes are source-only and have not replaced v69 on Roblox.
