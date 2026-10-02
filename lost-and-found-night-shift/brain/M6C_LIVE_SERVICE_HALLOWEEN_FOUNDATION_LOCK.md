@@ -1,6 +1,6 @@
-# LOST & FOUND: NIGHT SHIFT — M6-C LIVE SERVICE / HALLOWEEN FOUNDATION LOCK v1.2
+# LOST & FOUND: NIGHT SHIFT — M6-C LIVE SERVICE / HALLOWEEN FOUNDATION LOCK v1.3
 
-Date: 2026-09-24  
+Date: 2026-10-02  
 Status: **FOUNDATION LIVE v69 / ACTIVATION PREP SOURCE-ONLY**
 
 ## Purpose
@@ -34,7 +34,7 @@ This execution label follows M6-A/M6-B progression work and maps to the live-ser
 9. Mystery canon remains unchanged; Flight 000 / Lost Child explanations remain CANON UNKNOWN.
 10. Halloween content is self-contained seasonal fiction and does not explain the Season 1 mystery.
 11. Seasonal visuals remain Roblox 3D/procedural/in-engine.
-12. Do not publish M6-C over the current v68 runtime-QC baseline until the v68 Android polish check is accepted or Arda explicitly overrides that gate.
+12. Roblox v69 remains the verified live baseline. Activation-prep changes after v69 remain source-only until deliberately published; Halloween must not activate until Android baseline QC and explicit activation values are approved.
 
 ## Halloween 2026 identity
 - event ID: `HALLOWEEN_2026`
@@ -110,8 +110,16 @@ When event is inactive, seasonal decor is removed/not created.
 - collection pool: **TBD**
 - event case hooks: **TBD**
 
+## Activation safety added after v69
+Source-only safeguards:
+- seasonal definitions register before live-service state starts;
+- live-service activation fails closed if any expected collectible is missing, has the wrong event/edition, remains drop-locked, or lacks an explicit approved drop chance;
+- activation also fails closed if any expected event case is missing, has no positive approved selection weight, remains case-drop locked, or points outside the registered seasonal pool;
+- replicated state exposes `ActivationReady` and `GuardReason` for runtime diagnostics;
+- these safeguards do not alter the current disabled event state or the v69 live receipt.
+
 ## Remaining pre-launch gates
-1. v68 Android runtime acceptance for M6-B polish.
+1. v69 Android runtime acceptance for M6-B polish.
 2. Approve Halloween event start/end window.
 3. Approve event-case selection weight/frequency.
 4. Approve seasonal drop behavior and any mint caps.
