@@ -1,6 +1,6 @@
 # LOST & FOUND: NIGHT SHIFT — CURRENT STATE
 
-Updated: 2026-09-24
+Updated: 2026-10-02
 
 ## Identity / infrastructure
 - Universe ID: `10745354451`
@@ -73,6 +73,10 @@ Current event state:
 - seasonal Collection cards show an explicit edition token (for example `RARE • HW26` or `HW26 • LOCKED`).
 - Christmas 2026: disabled; exact runtime window/pool/case hooks remain TBD.
 - no seasonal reward/economy change has been activated.
+- source after v69 now registers seasonal definitions before starting live-service state.
+- source after v69 now has a fail-closed activation preflight: collectible/event/edition/drop-chance/case-weight mismatches force replicated event state inactive.
+- diagnostic attributes `ActivationReady` and `GuardReason` are source-ready for runtime verification.
+- these post-v69 activation-safety changes are **NOT PUBLISHED**; deploy receipt still points to v69 source `cc4fbdbb64024fed29f995f069adc5b1baaca260`.
 
 v69 is now LIVE_PUBLISHED by explicit Arda instruction. Android runtime QC is still required before Halloween activation.
 
