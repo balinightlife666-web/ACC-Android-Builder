@@ -34,3 +34,13 @@ jobs:
         with:
           name: ARDA-OS-Launcher-v0.4
           path: arda-os-launcher/app/build/outputs/apk/debug/app-debug.apk
+
+      - name: Export apksigner jar
+        run: |
+          SIGNER_JAR=$(find "$ANDROID_HOME/build-tools" -path "*/lib/apksigner.jar" | sort -V | tail -n 1)
+          test -n "$SIGNER_JAR"
+          cp "$SIGNER_JAR" ./apksigner.jar
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ARDA-OS-apksigner-tool
+          path: arda-os-launcher/apksigner.jar
