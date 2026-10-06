@@ -3,10 +3,7 @@ package id.nadmo.ardaos;
 import android.app.Activity;
 import android.app.ActivityManager;
 import android.app.AlertDialog;
-import android.app.PendingIntent;
-import android.content.ComponentName;
 import android.content.Intent;
-import android.content.pm.ApplicationInfo;
 import android.content.pm.LauncherActivityInfo;
 import android.content.pm.LauncherApps;
 import android.content.pm.PackageManager;
@@ -21,7 +18,6 @@ import android.os.StatFs;
 import android.os.UserHandle;
 import android.os.UserManager;
 import android.provider.Settings;
-import android.text.TextUtils;
 import android.view.Gravity;
 import android.view.HapticFeedbackConstants;
 import android.view.MotionEvent;
@@ -132,10 +128,20 @@ public class MainActivity extends Activity {
         view.setOnTouchListener((v, event) -> {
             if (event.getAction() == MotionEvent.ACTION_DOWN) {
                 v.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP);
-                v.animate().scaleX(0.965f).scaleY(0.965f).alpha(0.72f).setDuration(55).start();
+                v.animate()
+                        .scaleX(0.965f)
+                        .scaleY(0.965f)
+                        .alpha(0.72f)
+                        .setDuration(55)
+                        .start();
             } else if (event.getAction() == MotionEvent.ACTION_UP
                     || event.getAction() == MotionEvent.ACTION_CANCEL) {
-                v.animate().scaleX(1f).scaleY(1f).alpha(1f).setDuration(90).start();
+                v.animate()
+                        .scaleX(1f)
+                        .scaleY(1f)
+                        .alpha(1f)
+                        .setDuration(90)
+                        .start();
             }
             return false;
         });
@@ -144,12 +150,10 @@ public class MainActivity extends Activity {
     private FrameLayout cyberScreen() {
         FrameLayout frame = new FrameLayout(this);
         frame.setBackgroundColor(BG);
-
         CodeStreamView stream = new CodeStreamView(this);
         frame.addView(stream, new FrameLayout.LayoutParams(-1, -1));
-
         View veil = new View(this);
-        veil.setBackgroundColor(Color.argb(112, 0, 5, 9));
+        veil.setBackgroundColor(Color.argb(118, 0, 5, 9));
         frame.addView(veil, new FrameLayout.LayoutParams(-1, -1));
         return frame;
     }
@@ -178,34 +182,10 @@ public class MainActivity extends Activity {
         startActivity(new Intent(Settings.ACTION_SETTINGS));
     }
 
-    private boolean hasNotificationAccess() {
-        String enabled = Settings.Secure.getString(getContentResolver(), "enabled_notification_listeners");
-        if (enabled == null) return false;
-
-        ComponentName mine = new ComponentName(this, ArdaNotificationService.class);
-        for (String item : enabled.split(":")) {
-            ComponentName cn = ComponentName.unflattenFromString(item);
-            if (mine.equals(cn)) return true;
-        }
-        return false;
-    }
-
-    private void openNotificationAccess() {
-        try {
-            startActivity(new Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS));
-        } catch (Exception e) {
-            startActivity(new Intent(Settings.ACTION_SETTINGS));
-        }
-    }
-
     private void showHome() {
         List<AppEntry> installed = getAllApps();
-        int notificationCount = hasNotificationAccess()
-                ? ArdaNotificationService.snapshot().size()
-                : 0;
 
         FrameLayout frame = cyberScreen();
-
         root = new LinearLayout(this);
         root.setOrientation(LinearLayout.VERTICAL);
         root.setPadding(dp(14), dp(10), dp(14), dp(12));
@@ -216,7 +196,7 @@ public class MainActivity extends Activity {
         LinearLayout topRail = new LinearLayout(this);
         topRail.setGravity(Gravity.CENTER_VERTICAL);
         topRail.setPadding(dp(10), dp(7), dp(7), dp(7));
-        topRail.setBackground(hudDrawable(Color.argb(238, 8, 16, 24), DIM));
+        topRail.setBackground(hudDrawable(PANEL, DIM));
 
         TextView pulse = text("●", 15, CYAN, true);
         pulse.setGravity(Gravity.CENTER);
@@ -227,15 +207,6 @@ public class MainActivity extends Activity {
         identity.addView(text("ARDA OS // NADMO CYBERDECK", 12, CYAN, true));
         identity.addView(text("ACCESS GRANTED  •  CODESTREAM ACTIVE", 9, MUTED, false));
         topRail.addView(identity, new LinearLayout.LayoutParams(0, -2, 1));
-
-        TextView notify = text(notificationCount > 99 ? "N:99+" : "N:" + notificationCount, 11, MAGENTA, true);
-        notify.setGravity(Gravity.CENTER);
-        notify.setBackground(panelDrawable(PANEL_3, 3, MAGENTA));
-        makeInteractive(notify);
-        notify.setOnClickListener(v -> showNotifications());
-        LinearLayout.LayoutParams nlp = new LinearLayout.LayoutParams(dp(54), dp(40));
-        nlp.setMargins(0, 0, dp(6), 0);
-        topRail.addView(notify, nlp);
 
         TextView gear = text("⚙", 22, CYAN, false);
         gear.setGravity(Gravity.CENTER);
@@ -249,7 +220,7 @@ public class MainActivity extends Activity {
         LinearLayout sync = new LinearLayout(this);
         sync.setOrientation(LinearLayout.VERTICAL);
         sync.setPadding(dp(12), dp(8), dp(12), dp(8));
-        sync.setBackground(panelDrawable(Color.argb(232, 8, 16, 24), 2, Color.rgb(22, 55, 66)));
+        sync.setBackground(panelDrawable(PANEL, 2, Color.rgb(22, 55, 66)));
         LinearLayout.LayoutParams syncLp = new LinearLayout.LayoutParams(-1, -2);
         syncLp.setMargins(0, dp(8), 0, 0);
         root.addView(sync, syncLp);
@@ -353,24 +324,24 @@ public class MainActivity extends Activity {
         appsLp.setMargins(0, dp(8), 0, 0);
         root.addView(apps, appsLp);
 
-        TextView footer = text(
-                hasNotificationAccess()
-                        ? "v0.6  •  CODESTREAM ON  •  NOTIFY LINK ONLINE"
-                        : "v0.6  •  CODESTREAM ON  •  NOTIFY ACCESS OFF",
-                8, MUTED, false);
-        footer.setGravity(Gravity.CENTER);
-        footer.setPadding(0, dp(7), 0, 0);
-        root.addView(footer);
+        LinearLayout footerRail = new LinearLayout(this);
+        footerRail.setGravity(Gravity.CENTER);
+        footerRail.setPadding(0, dp(7), 0, 0);
+        TextView footer = text("v0.6.1  •  CODESTREAM ON  •  SAFE MODE", 8, MUTED, false);
+        footerRail.addView(footer);
+        root.addView(footerRail);
     }
 
     private void addTelemetry(LinearLayout parent, String key, String value) {
         LinearLayout box = new LinearLayout(this);
         box.setOrientation(LinearLayout.VERTICAL);
         box.setPadding(dp(9), dp(7), dp(9), dp(7));
-        box.setBackground(panelDrawable(Color.argb(232, 8, 16, 24), 3, DIM));
+        box.setBackground(panelDrawable(PANEL, 3, DIM));
 
-        box.addView(text(key + " //", 8, MUTED, true));
-        box.addView(text(value, 12, CYAN, true));
+        TextView k = text(key + " //", 8, MUTED, true);
+        TextView v = text(value, 12, CYAN, true);
+        box.addView(k);
+        box.addView(v);
 
         LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0, dp(50), 1);
         lp.setMargins(dp(2), 0, dp(2), 0);
@@ -417,8 +388,8 @@ public class MainActivity extends Activity {
         b.setMinimumWidth(0);
         b.setStateListAnimator(null);
         b.setBackground(hero
-                ? hudDrawable(Color.argb(236, 14, 29, 40), accent)
-                : panelDrawable(Color.argb(236, 11, 24, 34), 3, accent));
+                ? hudDrawable(PANEL_3, accent)
+                : panelDrawable(PANEL_2, 3, accent));
         makeInteractive(b);
         return b;
     }
@@ -521,15 +492,18 @@ public class MainActivity extends Activity {
                 case "wa":
                     ok = l.contains("whatsapp") || p.contains("whatsapp");
                     break;
+
                 case "fb":
                     ok = l.equals("facebook")
                             || l.startsWith("facebook ")
                             || p.equals("com.facebook.katana")
                             || p.equals("com.facebook.lite");
                     break;
+
                 case "ig":
                     ok = l.contains("instagram") || p.contains("instagram");
                     break;
+
                 case "note":
                     ok = l.equals("notes")
                             || l.equals("note")
@@ -539,6 +513,7 @@ public class MainActivity extends Activity {
                             || p.contains(".note")
                             || p.contains("keep");
                     break;
+
                 case "acc":
                     ok = l.contains("acc os x")
                             || l.contains("acc os")
@@ -549,6 +524,7 @@ public class MainActivity extends Activity {
 
             if (ok) matches.add(e);
         }
+
         return matches;
     }
 
@@ -576,13 +552,21 @@ public class MainActivity extends Activity {
         }
 
         String[] names = new String[matches.size()];
-        for (int i = 0; i < matches.size(); i++) names[i] = matches.get(i).displayLabel;
+        for (int i = 0; i < matches.size(); i++) {
+            names[i] = matches.get(i).displayLabel;
+        }
 
         AlertDialog dialog = new AlertDialog.Builder(this)
                 .setTitle(title + "  //  " + matches.size() + " INSTANCE")
                 .setItems(names, (d, which) -> launchApp(matches.get(which)))
                 .setNegativeButton("BATAL", null)
                 .create();
+
+        dialog.setOnShowListener(d -> {
+            if (dialog.getWindow() != null) {
+                dialog.getWindow().setDimAmount(0.72f);
+            }
+        });
 
         dialog.show();
     }
@@ -619,7 +603,7 @@ public class MainActivity extends Activity {
         LinearLayout head = new LinearLayout(this);
         head.setGravity(Gravity.CENTER_VERTICAL);
         head.setPadding(dp(8), dp(6), dp(8), dp(6));
-        head.setBackground(hudDrawable(Color.argb(238, 8, 16, 24), DIM));
+        head.setBackground(hudDrawable(PANEL, DIM));
 
         Button home = cyberButton("← HOME", false, CYAN);
         home.setGravity(Gravity.CENTER);
@@ -632,6 +616,7 @@ public class MainActivity extends Activity {
         drawerTitle.addView(text("APP DRAWER // " + allApps.size(), 11, CYAN, true));
         drawerTitle.addView(text("ALL PROFILES + CLONES", 8, MUTED, false));
         head.addView(drawerTitle, new LinearLayout.LayoutParams(0, -2, 1));
+
         shell.addView(head);
 
         EditText search = new EditText(this);
@@ -642,7 +627,7 @@ public class MainActivity extends Activity {
         search.setTextSize(12);
         search.setTypeface(Typeface.MONOSPACE);
         search.setPadding(dp(14), 0, dp(14), 0);
-        search.setBackground(hudDrawable(Color.argb(238, 11, 24, 34), CYAN));
+        search.setBackground(hudDrawable(PANEL_2, CYAN));
 
         LinearLayout.LayoutParams searchLp = new LinearLayout.LayoutParams(-1, dp(46));
         searchLp.setMargins(0, dp(8), 0, dp(8));
@@ -658,9 +643,12 @@ public class MainActivity extends Activity {
         grid.setUseDefaultMargins(false);
         grid.setPadding(0, 0, 0, dp(18));
         scroll.addView(grid);
+
         shell.addView(scroll, new LinearLayout.LayoutParams(-1, 0, 1));
 
-        Runnable render = () -> {
+        final Runnable[] renderHolder = new Runnable[1];
+
+        renderHolder[0] = () -> {
             String q = search.getText().toString().trim().toLowerCase(Locale.ROOT);
             grid.removeAllViews();
 
@@ -675,7 +663,7 @@ public class MainActivity extends Activity {
                 card.setOrientation(LinearLayout.VERTICAL);
                 card.setGravity(Gravity.CENTER);
                 card.setPadding(dp(4), dp(7), dp(4), dp(5));
-                card.setBackground(panelDrawable(Color.argb(236, 8, 16, 24), 3, DIM));
+                card.setBackground(panelDrawable(PANEL, 3, DIM));
                 makeInteractive(card);
 
                 ImageView icon = new ImageView(this);
@@ -701,9 +689,16 @@ public class MainActivity extends Activity {
         };
 
         search.addTextChangedListener(new android.text.TextWatcher() {
-            @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
-            @Override public void onTextChanged(CharSequence s, int start, int before, int count) { render.run(); }
-            @Override public void afterTextChanged(android.text.Editable s) {}
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+                renderHolder[0].run();
+            }
+
+            @Override
+            public void afterTextChanged(android.text.Editable s) {}
         });
 
         if (presetQuery == null) presetQuery = "";
@@ -715,188 +710,7 @@ public class MainActivity extends Activity {
 
         search.setText(presetQuery);
         search.setSelection(search.getText().length());
-        render.run();
-    }
-
-    private void showNotifications() {
-        FrameLayout frame = cyberScreen();
-
-        LinearLayout shell = new LinearLayout(this);
-        shell.setOrientation(LinearLayout.VERTICAL);
-        shell.setPadding(dp(12), dp(10), dp(12), dp(10));
-        shell.setBackgroundColor(Color.TRANSPARENT);
-        frame.addView(shell, new FrameLayout.LayoutParams(-1, -1));
-        setContentView(frame);
-
-        LinearLayout head = new LinearLayout(this);
-        head.setGravity(Gravity.CENTER_VERTICAL);
-        head.setPadding(dp(8), dp(6), dp(8), dp(6));
-        head.setBackground(hudDrawable(Color.argb(238, 8, 16, 24), DIM));
-
-        Button home = cyberButton("← HOME", false, CYAN);
-        home.setGravity(Gravity.CENTER);
-        home.setOnClickListener(v -> showHome());
-        head.addView(home, new LinearLayout.LayoutParams(dp(98), dp(42)));
-
-        LinearLayout title = new LinearLayout(this);
-        title.setOrientation(LinearLayout.VERTICAL);
-        title.setPadding(dp(10), 0, 0, 0);
-        title.addView(text("CYBER NOTIFICATION CENTER", 11, MAGENTA, true));
-        title.addView(text("SYSTEM UI PANEL REMAINS XOS", 8, MUTED, false));
-        head.addView(title, new LinearLayout.LayoutParams(0, -2, 1));
-
-        shell.addView(head);
-
-        if (!hasNotificationAccess()) {
-            LinearLayout access = new LinearLayout(this);
-            access.setOrientation(LinearLayout.VERTICAL);
-            access.setPadding(dp(14), dp(14), dp(14), dp(14));
-            access.setBackground(hudDrawable(Color.argb(238, 8, 16, 24), MAGENTA));
-
-            access.addView(text("NOTIFICATION LINK // OFFLINE", 12, MAGENTA, true));
-            TextView desc = text(
-                    "ARDA OS perlu Notification Access untuk membaca dan menampilkan notifikasi di panel cyberdeck ini.",
-                    10, TEXT, false);
-            desc.setPadding(0, dp(8), 0, dp(12));
-            access.addView(desc);
-
-            Button grant = cyberButton("OPEN NOTIFICATION ACCESS", false, MAGENTA);
-            grant.setGravity(Gravity.CENTER);
-            grant.setOnClickListener(v -> openNotificationAccess());
-            access.addView(grant, new LinearLayout.LayoutParams(-1, dp(48)));
-
-            LinearLayout.LayoutParams alp = new LinearLayout.LayoutParams(-1, -2);
-            alp.setMargins(0, dp(12), 0, 0);
-            shell.addView(access, alp);
-            return;
-        }
-
-        List<ArdaNotificationService.NotificationItem> items = ArdaNotificationService.snapshot();
-
-        LinearLayout status = new LinearLayout(this);
-        status.setGravity(Gravity.CENTER_VERTICAL);
-        status.setPadding(dp(10), dp(8), dp(10), dp(8));
-        status.setBackground(panelDrawable(Color.argb(236, 11, 24, 34), 3, DIM));
-
-        status.addView(text(items.size() + " ACTIVE PACKETS", 10, CYAN, true),
-                new LinearLayout.LayoutParams(0, -2, 1));
-
-        Button clear = cyberButton("CLEAR", false, MAGENTA);
-        clear.setGravity(Gravity.CENTER);
-        clear.setOnClickListener(v -> {
-            ArdaNotificationService.dismissAll();
-            clear.postDelayed(this::showNotifications, 180);
-        });
-        status.addView(clear, new LinearLayout.LayoutParams(dp(90), dp(38)));
-
-        LinearLayout.LayoutParams stLp = new LinearLayout.LayoutParams(-1, -2);
-        stLp.setMargins(0, dp(8), 0, dp(8));
-        shell.addView(status, stLp);
-
-        ScrollView scroll = new ScrollView(this);
-        scroll.setVerticalScrollBarEnabled(false);
-
-        LinearLayout list = new LinearLayout(this);
-        list.setOrientation(LinearLayout.VERTICAL);
-        list.setPadding(0, 0, 0, dp(20));
-        scroll.addView(list);
-        shell.addView(scroll, new LinearLayout.LayoutParams(-1, 0, 1));
-
-        if (items.isEmpty()) {
-            TextView empty = text("NO ACTIVE NOTIFICATION PACKETS\n// CHANNEL CLEAR", 12, MUTED, true);
-            empty.setGravity(Gravity.CENTER);
-            empty.setPadding(dp(12), dp(50), dp(12), dp(50));
-            list.addView(empty, new LinearLayout.LayoutParams(-1, -2));
-            return;
-        }
-
-        PackageManager pm = getPackageManager();
-
-        for (ArdaNotificationService.NotificationItem item : items) {
-            LinearLayout card = new LinearLayout(this);
-            card.setOrientation(LinearLayout.VERTICAL);
-            card.setPadding(dp(12), dp(10), dp(10), dp(10));
-            card.setBackground(panelDrawable(Color.argb(236, 8, 16, 24), 3, DIM));
-            makeInteractive(card);
-
-            LinearLayout appRow = new LinearLayout(this);
-            appRow.setGravity(Gravity.CENTER_VERTICAL);
-
-            ImageView icon = new ImageView(this);
-            try {
-                ApplicationInfo ai = pm.getApplicationInfo(item.packageName, 0);
-                icon.setImageDrawable(pm.getApplicationIcon(ai));
-            } catch (Exception ignored) {
-            }
-            appRow.addView(icon, new LinearLayout.LayoutParams(dp(30), dp(30)));
-
-            LinearLayout meta = new LinearLayout(this);
-            meta.setOrientation(LinearLayout.VERTICAL);
-            meta.setPadding(dp(9), 0, 0, 0);
-            meta.addView(text(appLabel(item.packageName) + "  //  " + ageText(item.postTime), 9, CYAN, true));
-            meta.addView(text(item.packageName, 8, MUTED, false));
-            appRow.addView(meta, new LinearLayout.LayoutParams(0, -2, 1));
-
-            TextView dismiss = text("×", 22, MAGENTA, true);
-            dismiss.setGravity(Gravity.CENTER);
-            dismiss.setBackground(panelDrawable(PANEL_3, 3, MAGENTA));
-            makeInteractive(dismiss);
-            dismiss.setOnClickListener(v -> {
-                ArdaNotificationService.dismiss(item.key);
-                dismiss.postDelayed(this::showNotifications, 150);
-            });
-            appRow.addView(dismiss, new LinearLayout.LayoutParams(dp(38), dp(38)));
-            card.addView(appRow);
-
-            if (!TextUtils.isEmpty(item.title)) {
-                TextView titleView = text(item.title, 12, TEXT, true);
-                titleView.setPadding(0, dp(8), 0, 0);
-                card.addView(titleView);
-            }
-
-            if (!TextUtils.isEmpty(item.text)) {
-                TextView body = text(item.text, 10, MUTED, false);
-                body.setMaxLines(3);
-                body.setEllipsize(TextUtils.TruncateAt.END);
-                body.setPadding(0, dp(5), 0, 0);
-                card.addView(body);
-            }
-
-            if (item.contentIntent != null) {
-                card.setOnClickListener(v -> {
-                    try {
-                        item.contentIntent.send();
-                    } catch (PendingIntent.CanceledException e) {
-                        Toast.makeText(this, "Notification target sudah tidak aktif.", Toast.LENGTH_SHORT).show();
-                    }
-                });
-            }
-
-            LinearLayout.LayoutParams cp = new LinearLayout.LayoutParams(-1, -2);
-            cp.setMargins(0, 0, 0, dp(7));
-            list.addView(card, cp);
-        }
-    }
-
-    private String appLabel(String packageName) {
-        try {
-            PackageManager pm = getPackageManager();
-            ApplicationInfo ai = pm.getApplicationInfo(packageName, 0);
-            CharSequence label = pm.getApplicationLabel(ai);
-            return label == null ? packageName : label.toString();
-        } catch (Exception e) {
-            return packageName;
-        }
-    }
-
-    private String ageText(long postTime) {
-        long delta = Math.max(0L, System.currentTimeMillis() - postTime);
-        long minutes = delta / 60000L;
-        if (minutes < 1) return "NOW";
-        if (minutes < 60) return minutes + "M";
-        long hours = minutes / 60;
-        if (hours < 24) return hours + "H";
-        return (hours / 24) + "D";
+        renderHolder[0].run();
     }
 
     @Override
