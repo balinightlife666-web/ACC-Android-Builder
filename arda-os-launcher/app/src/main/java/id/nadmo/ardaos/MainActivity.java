@@ -1,12 +1,14 @@
 package id.nadmo.ardaos;
 
 import android.app.Activity;
+import android.app.role.RoleManager;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.content.pm.ResolveInfo;
 import android.graphics.Color;
 import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
+import android.os.Build;
 import android.os.Bundle;
 import android.provider.Settings;
 import android.view.Gravity;
@@ -36,6 +38,41 @@ public class MainActivity extends Activity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         showHome();
+        requestHomeRoleIfNeeded();
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        if (root != null) showHome();
+    }
+
+    private boolean isDefaultHome() {
+        Intent intent = new Intent(Intent.ACTION_MAIN);
+        intent.addCategory(Intent.CATEGORY_HOME);
+        ResolveInfo resolveInfo = getPackageManager().resolveActivity(intent, PackageManager.MATCH_DEFAULT_ONLY);
+        return resolveInfo != null && resolveInfo.activityInfo != null
+                && getPackageName().equals(resolveInfo.activityInfo.packageName);
+    }
+
+    private void requestHomeRoleIfNeeded() {
+        if (isDefaultHome()) return;
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            RoleManager roleManager = (RoleManager) getSystemService(ROLE_SERVICE);
+            if (roleManager != null
+                    && roleManager.isRoleAvailable(RoleManager.ROLE_HOME)
+                    && !roleManager.isRoleHeld(RoleManager.ROLE_HOME)) {
+                startActivityForResult(roleManager.createRequestRoleIntent(RoleManager.ROLE_HOME), 7001);
+                return;
+            }
+        }
+
+        try {
+            startActivity(new Intent(Settings.ACTION_HOME_SETTINGS));
+        } catch (Exception e) {
+            startActivity(new Intent(Settings.ACTION_SETTINGS));
+        }
     }
 
     private int dp(int value) {
@@ -108,10 +145,22 @@ public class MainActivity extends Activity {
         LinearLayout.LayoutParams statusLp = new LinearLayout.LayoutParams(-1, -2);
         statusLp.setMargins(0, dp(28), 0, dp(12));
         root.addView(status, statusLp);
-        status.addView(text("SYSTEM READY", 13, CYAN, true));
-        TextView msg = text("Launcher aktif • Android system tetap normal", 12, MUTED, false);
-        msg.setPadding(0, dp(6), 0, 0);
-        status.addView(msg);
+
+        if (isDefaultHome()) {
+            status.addView(text("ARDA OS // HOME ACTIVE", 13, CYAN, true));
+            TextView msg = text("Launcher ini sekarang mengendalikan Home Screen.", 12, MUTED, false);
+            msg.setPadding(0, dp(6), 0, 0);
+            status.addView(msg);
+        } else {
+            status.addView(text("SETUP REQUIRED", 13, Color.rgb(255, 194, 77), true));
+            TextView msg = text("Android masih memakai launcher bawaan.", 12, MUTED, false);
+            msg.setPadding(0, dp(6), 0, dp(10));
+            status.addView(msg);
+
+            Button setHome = actionButton("Jadikan ARDA OS sebagai Home");
+            setHome.setOnClickListener(v -> requestHomeRoleIfNeeded());
+            status.addView(setHome, new LinearLayout.LayoutParams(-1, dp(48)));
+        }
 
         TextView quickLabel = text("QUICK ACCESS", 11, MUTED, true);
         quickLabel.setPadding(0, dp(12), 0, dp(8));
@@ -125,6 +174,7 @@ public class MainActivity extends Activity {
         root.addView(hsv);
 
         addQuick(quick, "Apps", v -> showApps());
+        addQuick(quick, "Home Setup", v -> requestHomeRoleIfNeeded());
         addQuick(quick, "Settings", v -> startActivity(new Intent(Settings.ACTION_SETTINGS)));
         addQuick(quick, "Wi-Fi", v -> startActivity(new Intent(Settings.ACTION_WIFI_SETTINGS)));
         addQuick(quick, "Bluetooth", v -> startActivity(new Intent(Settings.ACTION_BLUETOOTH_SETTINGS)));
