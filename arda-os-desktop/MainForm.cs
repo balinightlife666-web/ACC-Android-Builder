@@ -57,7 +57,7 @@ public sealed class MainForm : Form
 
     public MainForm()
     {
-        Text = "ARDA OS Desktop";
+        base.Text = "ARDA OS Desktop";
         FormBorderStyle = FormBorderStyle.None;
         WindowState = FormWindowState.Maximized;
         StartPosition = FormStartPosition.CenterScreen;
