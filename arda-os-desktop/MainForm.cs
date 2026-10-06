@@ -239,7 +239,7 @@ public sealed class MainForm : Form
         Controls.Add(taskbarButton);
         UpdateTaskbarText();
 
-        footer.Text = "v0.2  //  SAFE DESKTOP MODE  //  CTRL+SPACE APPS  //  CTRL+H TASKBAR  //  F12 EXIT";
+        footer.Text = "v0.3  //  RIGHT STATUS LAYOUT  //  CTRL+SPACE APPS  //  CTRL+H TASKBAR  //  F12 EXIT";
         footer.ForeColor = Muted;
         footer.Font = Mono(8);
         footer.AutoSize = true;
@@ -454,10 +454,11 @@ public sealed class MainForm : Form
         fbButton.SetBounds(0, primaryH + gap + (buttonH + gap) * 2, stackW, buttonH);
         igButton.SetBounds(0, primaryH + gap + (buttonH + gap) * 3, stackW, buttonH);
 
-        leftRail.Location = new Point(margin + 10, Math.Max(quickModules.Bottom + 34, stackY + 18));
-        commandText.Location = new Point(margin + 62, Math.Max(quickModules.Bottom + 50, stackY + 38));
+        int statusY = Math.Min(h - 178, nodeStack.Bottom + 26);
+        leftRail.Location = new Point(stackX + 4, statusY);
+        commandText.Location = new Point(stackX + 42, statusY + 14);
 
-        appsButton.SetBounds(w - margin - 132, h - 74, 132, 38);
+        appsButton.SetBounds(w - margin - 132, h - 82, 132, 38);
         startupButton.SetBounds(margin, h - 62, 150, 30);
         taskbarButton.SetBounds(margin + 158, h - 62, 150, 30);
         footer.Location = new Point(Math.Max(margin + 330, (w - footer.Width) / 2), h - 55);
@@ -1038,7 +1039,7 @@ internal sealed class CodeStreamControl : Control
         "notes.mount -> notepad.exe",
         "CORE_PANEL::ONLINE   TASKBAR_SWITCH::READY",
         "QUICK_MODULES::FILES/CHROME/SPOTIFY/DISCORD",
-        "CYBERDECK HUD DESKTOP v0.2   CODESTREAM ACTIVE"
+        "CYBERDECK HUD DESKTOP v0.3   RIGHT STATUS ACTIVE"
     ];
 
     private float offset;
