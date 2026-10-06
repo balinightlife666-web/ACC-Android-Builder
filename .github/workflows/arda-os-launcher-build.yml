@@ -32,5 +32,5 @@ jobs:
         run: gradle assembleDebug
       - uses: actions/upload-artifact@v4
         with:
-          name: ARDA-OS-Launcher-v0.6
+          name: ARDA-OS-Launcher-v0.6.1
           path: arda-os-launcher/app/build/outputs/apk/debug/app-debug.apk
