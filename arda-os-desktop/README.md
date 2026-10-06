@@ -1,15 +1,17 @@
-# ARDA OS Desktop v0.2
+# ARDA OS Desktop v0.3
 
 Safe-mode Windows cyberdeck launcher.
 
-## v0.2
-- Larger clock and tighter right-side fastlink stack.
-- ACC CORE live status panel.
-- Quick modules: Files, Chrome, Spotify, Discord.
-- More visual app drawer with node cards and search.
-- Safer autostart: copies the EXE to LocalAppData before registering startup.
-- Optional taskbar hide/show toggle. Defaults to visible and is restored automatically on exit.
-- Keyboard shortcuts: Ctrl+Space Apps, Ctrl+H taskbar, F12/Esc exit.
+## v0.3
+- Moves ROOT@ARDA / FASTLINK / WINDOWS SHELL / ALT+TAB status block to the lower-right deck.
+- Leaves the left side cleaner around ACC CORE and quick modules.
+- Apps control remains in the right-lower area with extra separation from terminal status.
+- Keeps live telemetry, ACC CORE, Files/Chrome/Spotify/Discord modules, visual app drawer, autostart, and safe taskbar toggle.
+
+## Shortcuts
+- Ctrl+Space: Apps
+- Ctrl+H: show/hide taskbar
+- F12 or Esc: exit
 
 ## Safety
 ARDA OS Desktop does not replace Explorer and does not require administrator rights.
