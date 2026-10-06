@@ -38,7 +38,9 @@ public class MainActivity extends Activity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         showHome();
-        requestHomeRoleIfNeeded();
+        if (!isDefaultHome()) {
+            openHomeSettings();
+        }
     }
 
     @Override
@@ -55,22 +57,27 @@ public class MainActivity extends Activity {
                 && getPackageName().equals(resolveInfo.activityInfo.packageName);
     }
 
-    private void requestHomeRoleIfNeeded() {
-        if (isDefaultHome()) return;
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            RoleManager roleManager = (RoleManager) getSystemService(ROLE_SERVICE);
-            if (roleManager != null
-                    && roleManager.isRoleAvailable(RoleManager.ROLE_HOME)
-                    && !roleManager.isRoleHeld(RoleManager.ROLE_HOME)) {
-                startActivityForResult(roleManager.createRequestRoleIntent(RoleManager.ROLE_HOME), 7001);
-                return;
-            }
+    private void openHomeSettings() {
+        Intent home = new Intent(Settings.ACTION_HOME_SETTINGS);
+        if (home.resolveActivity(getPackageManager()) != null) {
+            startActivity(home);
+            return;
         }
 
-        try {
-            startActivity(new Intent(Settings.ACTION_HOME_SETTINGS));
-        } catch (Exception e) {
+        Intent defaults = new Intent(Settings.ACTION_MANAGE_DEFAULT_APPS_SETTINGS);
+        if (defaults.resolveActivity(getPackageManager()) != null) {
+            startActivity(defaults);
+            return;
+        }
+
+        startActivity(new Intent(Settings.ACTION_SETTINGS));
+    }
+
+    private void openDefaultAppsSettings() {
+        Intent defaults = new Intent(Settings.ACTION_MANAGE_DEFAULT_APPS_SETTINGS);
+        if (defaults.resolveActivity(getPackageManager()) != null) {
+            startActivity(defaults);
+        } else {
             startActivity(new Intent(Settings.ACTION_SETTINGS));
         }
     }
@@ -158,7 +165,7 @@ public class MainActivity extends Activity {
             status.addView(msg);
 
             Button setHome = actionButton("Jadikan ARDA OS sebagai Home");
-            setHome.setOnClickListener(v -> requestHomeRoleIfNeeded());
+            setHome.setOnClickListener(v -> openHomeSettings());
             status.addView(setHome, new LinearLayout.LayoutParams(-1, dp(48)));
         }
 
@@ -174,7 +181,8 @@ public class MainActivity extends Activity {
         root.addView(hsv);
 
         addQuick(quick, "Apps", v -> showApps());
-        addQuick(quick, "Home Setup", v -> requestHomeRoleIfNeeded());
+        addQuick(quick, "Home App", v -> openHomeSettings());
+        addQuick(quick, "Default Apps", v -> openDefaultAppsSettings());
         addQuick(quick, "Settings", v -> startActivity(new Intent(Settings.ACTION_SETTINGS)));
         addQuick(quick, "Wi-Fi", v -> startActivity(new Intent(Settings.ACTION_WIFI_SETTINGS)));
         addQuick(quick, "Bluetooth", v -> startActivity(new Intent(Settings.ACTION_BLUETOOTH_SETTINGS)));
