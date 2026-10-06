@@ -30,7 +30,7 @@ public class CodeStreamView extends View {
             "social.route -> facebook://active",
             "notes.mount -> local_log_channel",
             "SYSTEM CACHE WARM  TOUCH_FEEDBACK ON",
-            "CYBERDECK HUD v0.6  CODESTREAM ACTIVE"
+            "CYBERDECK HUD v0.6.2  COMPACT MODE"
     };
 
     private float offset = 0f;
@@ -41,7 +41,7 @@ public class CodeStreamView extends View {
         super(context);
         paint.setTypeface(Typeface.MONOSPACE);
         paint.setTextSize(dp(10));
-        paint.setColor(Color.argb(48, 42, 238, 255));
+        paint.setColor(Color.argb(72, 42, 238, 255));
         setLayerType(View.LAYER_TYPE_SOFTWARE, null);
     }
 
@@ -84,9 +84,9 @@ public class CodeStreamView extends View {
             canvas.drawText(prefix + lines[idx], dp(6), y, paint);
 
             if (i % 4 == 2) {
-                paint.setColor(Color.argb(34, 255, 49, 153));
+                paint.setColor(Color.argb(48, 255, 49, 153));
                 canvas.drawText(":: " + lines[(idx + 5) % lines.length], dp(54), y + dp(9), paint);
-                paint.setColor(Color.argb(48, 42, 238, 255));
+                paint.setColor(Color.argb(72, 42, 238, 255));
             }
         }
 
