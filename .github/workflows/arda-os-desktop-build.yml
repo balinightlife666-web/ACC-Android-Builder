@@ -1,0 +1,39 @@
+name: Build ARDA OS Desktop
+
+on:
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'arda-os-desktop/**'
+      - '.github/workflows/arda-os-desktop-build.yml'
+  push:
+    branches: [ main ]
+    paths:
+      - 'arda-os-desktop/**'
+      - '.github/workflows/arda-os-desktop-build.yml'
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Publish self-contained Windows EXE
+        shell: pwsh
+        run: dotnet publish arda-os-desktop/ArdaOS.Desktop.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true
+
+      - name: Prepare artifact
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path dist | Out-Null
+          Copy-Item "arda-os-desktop/bin/Release/net8.0-windows/win-x64/publish/ARDA-OS-Desktop.exe" "dist/ARDA-OS-Desktop-v0.1.exe"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ARDA-OS-Desktop-v0.1
+          path: dist/ARDA-OS-Desktop-v0.1.exe
