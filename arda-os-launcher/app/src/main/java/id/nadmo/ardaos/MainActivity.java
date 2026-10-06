@@ -153,7 +153,7 @@ public class MainActivity extends Activity {
         CodeStreamView stream = new CodeStreamView(this);
         frame.addView(stream, new FrameLayout.LayoutParams(-1, -1));
         View veil = new View(this);
-        veil.setBackgroundColor(Color.argb(118, 0, 5, 9));
+        veil.setBackgroundColor(Color.argb(72, 0, 5, 9));
         frame.addView(veil, new FrameLayout.LayoutParams(-1, -1));
         return frame;
     }
@@ -188,85 +188,75 @@ public class MainActivity extends Activity {
         FrameLayout frame = cyberScreen();
         root = new LinearLayout(this);
         root.setOrientation(LinearLayout.VERTICAL);
-        root.setPadding(dp(14), dp(10), dp(14), dp(12));
+        root.setPadding(dp(12), dp(9), dp(12), dp(10));
         root.setBackgroundColor(Color.TRANSPARENT);
         frame.addView(root, new FrameLayout.LayoutParams(-1, -1));
         setContentView(frame);
 
         LinearLayout topRail = new LinearLayout(this);
         topRail.setGravity(Gravity.CENTER_VERTICAL);
-        topRail.setPadding(dp(10), dp(7), dp(7), dp(7));
-        topRail.setBackground(hudDrawable(PANEL, DIM));
+        topRail.setPadding(dp(9), dp(5), dp(6), dp(5));
+        topRail.setBackground(hudDrawable(Color.argb(190, 8, 16, 24), DIM));
 
-        TextView pulse = text("●", 15, CYAN, true);
+        TextView pulse = text("●", 12, CYAN, true);
         pulse.setGravity(Gravity.CENTER);
-        topRail.addView(pulse, new LinearLayout.LayoutParams(dp(28), dp(34)));
+        topRail.addView(pulse, new LinearLayout.LayoutParams(dp(24), dp(30)));
 
         LinearLayout identity = new LinearLayout(this);
         identity.setOrientation(LinearLayout.VERTICAL);
-        identity.addView(text("ARDA OS // NADMO CYBERDECK", 12, CYAN, true));
-        identity.addView(text("ACCESS GRANTED  •  CODESTREAM ACTIVE", 9, MUTED, false));
+        identity.addView(text("ARDA OS // NADMO CYBERDECK", 11, CYAN, true));
+        identity.addView(text("CODESTREAM ACTIVE  //  " + installed.size() + " NODES", 8, MUTED, false));
         topRail.addView(identity, new LinearLayout.LayoutParams(0, -2, 1));
 
-        TextView gear = text("⚙", 22, CYAN, false);
+        TextView gear = text("⚙", 19, CYAN, false);
         gear.setGravity(Gravity.CENTER);
-        gear.setBackground(panelDrawable(PANEL_3, 3, CYAN));
+        gear.setBackground(panelDrawable(Color.argb(180, 14, 29, 40), 2, CYAN));
         makeInteractive(gear);
         gear.setOnClickListener(v -> startActivity(new Intent(Settings.ACTION_SETTINGS)));
-        topRail.addView(gear, new LinearLayout.LayoutParams(dp(40), dp(40)));
-
+        topRail.addView(gear, new LinearLayout.LayoutParams(dp(34), dp(34)));
         root.addView(topRail);
 
-        LinearLayout sync = new LinearLayout(this);
-        sync.setOrientation(LinearLayout.VERTICAL);
-        sync.setPadding(dp(12), dp(8), dp(12), dp(8));
-        sync.setBackground(panelDrawable(PANEL, 2, Color.rgb(22, 55, 66)));
-        LinearLayout.LayoutParams syncLp = new LinearLayout.LayoutParams(-1, -2);
-        syncLp.setMargins(0, dp(8), 0, 0);
-        root.addView(sync, syncLp);
+        LinearLayout nodeRow = new LinearLayout(this);
+        nodeRow.setGravity(Gravity.CENTER_VERTICAL);
+        nodeRow.setPadding(dp(3), dp(7), dp(3), dp(2));
+        nodeRow.addView(text("SYSTEM NODE INDEX", 8, MUTED, true), new LinearLayout.LayoutParams(0, -2, 1));
+        nodeRow.addView(text(installed.size() + " ONLINE", 8, MAGENTA, true));
+        root.addView(nodeRow);
 
-        LinearLayout syncText = new LinearLayout(this);
-        TextView nodeText = text("SYSTEM NODE INDEX", 9, MUTED, true);
-        syncText.addView(nodeText, new LinearLayout.LayoutParams(0, -2, 1));
-        TextView countText = text(installed.size() + " NODES // ONLINE", 9, MAGENTA, true);
-        syncText.addView(countText);
-        sync.addView(syncText);
-
-        LinearLayout bar = new LinearLayout(this);
-        bar.setPadding(0, dp(6), 0, 0);
-        View cyanBar = new View(this);
-        cyanBar.setBackgroundColor(CYAN);
-        bar.addView(cyanBar, new LinearLayout.LayoutParams(0, dp(3), 74));
-        View magentaBar = new View(this);
-        magentaBar.setBackgroundColor(MAGENTA);
-        bar.addView(magentaBar, new LinearLayout.LayoutParams(0, dp(3), 8));
-        View restBar = new View(this);
-        restBar.setBackgroundColor(Color.rgb(18, 30, 38));
-        bar.addView(restBar, new LinearLayout.LayoutParams(0, dp(3), 18));
-        sync.addView(bar);
+        LinearLayout line = new LinearLayout(this);
+        View cyan = new View(this);
+        cyan.setBackgroundColor(CYAN);
+        line.addView(cyan, new LinearLayout.LayoutParams(0, dp(2), 82));
+        View mag = new View(this);
+        mag.setBackgroundColor(MAGENTA);
+        line.addView(mag, new LinearLayout.LayoutParams(0, dp(2), 7));
+        View dark = new View(this);
+        dark.setBackgroundColor(Color.argb(130, 60, 86, 94));
+        line.addView(dark, new LinearLayout.LayoutParams(0, dp(2), 11));
+        root.addView(line);
 
         LinearLayout timeRow = new LinearLayout(this);
         timeRow.setGravity(Gravity.CENTER_VERTICAL);
-        timeRow.setPadding(dp(2), dp(8), dp(2), dp(7));
+        timeRow.setPadding(dp(2), dp(7), dp(2), dp(4));
 
         TextClock clock = new TextClock(this);
         clock.setFormat12Hour("HH:mm");
         clock.setFormat24Hour("HH:mm");
-        clock.setTextSize(43);
-        clock.setTextColor(TEXT);
+        clock.setTextSize(39);
+        clock.setTextColor(Color.WHITE);
         clock.setTypeface(Typeface.MONOSPACE, Typeface.BOLD);
         timeRow.addView(clock, new LinearLayout.LayoutParams(0, -2, 1));
 
         LinearLayout rightTime = new LinearLayout(this);
         rightTime.setOrientation(LinearLayout.VERTICAL);
         rightTime.setGravity(Gravity.END);
-        TextView core = text("CORE // ONLINE", 10, CYAN, true);
+        TextView core = text("CORE // ONLINE", 9, CYAN, true);
         core.setGravity(Gravity.END);
         TextClock date = new TextClock(this);
-        date.setFormat12Hour("EEE • dd MMM yyyy");
-        date.setFormat24Hour("EEE • dd MMM yyyy");
-        date.setTextSize(10);
-        date.setTextColor(MUTED);
+        date.setFormat12Hour("EEE • dd MMM");
+        date.setFormat24Hour("EEE • dd MMM");
+        date.setTextSize(9);
+        date.setTextColor(TEXT);
         date.setTypeface(Typeface.MONOSPACE);
         date.setGravity(Gravity.END);
         rightTime.addView(core);
@@ -275,75 +265,92 @@ public class MainActivity extends Activity {
         root.addView(timeRow);
 
         LinearLayout telemetry = new LinearLayout(this);
+        telemetry.setPadding(0, dp(2), 0, dp(4));
         addTelemetry(telemetry, "BAT", batteryText());
         addTelemetry(telemetry, "RAM", memoryText());
         addTelemetry(telemetry, "STO", storageText());
         root.addView(telemetry);
 
         if (!isDefaultHome()) {
-            TextView setup = text("HOME ROLE NOT ACTIVE  //  TAP TO FIX", 10, MAGENTA, true);
+            TextView setup = text("HOME ROLE OFF  //  TAP TO FIX", 9, MAGENTA, true);
             setup.setGravity(Gravity.CENTER);
-            setup.setPadding(dp(8), dp(9), dp(8), dp(9));
-            setup.setBackground(hudDrawable(PANEL, MAGENTA));
+            setup.setPadding(dp(6), dp(6), dp(6), dp(6));
+            setup.setBackground(hudDrawable(Color.argb(190, 8, 16, 24), MAGENTA));
             makeInteractive(setup);
             setup.setOnClickListener(v -> openHomeSettings());
             LinearLayout.LayoutParams slp = new LinearLayout.LayoutParams(-1, -2);
-            slp.setMargins(0, dp(8), 0, 0);
+            slp.setMargins(0, dp(5), 0, 0);
             root.addView(setup, slp);
         }
 
-        TextView section = text("PRIMARY NODES  //  FASTLINK", 9, MUTED, true);
-        section.setPadding(dp(2), dp(10), 0, dp(6));
+        TextView section = text("FASTLINK // PRIMARY NODES", 8, MUTED, true);
+        section.setPadding(dp(2), dp(8), 0, dp(4));
         root.addView(section);
 
-        Button acc = cyberButton("ACC OS X\nCORE CONTROL  //  TAP TO ENTER", true, CYAN);
-        acc.setOnClickListener(v -> launchTarget("acc"));
-        LinearLayout.LayoutParams heroLp = new LinearLayout.LayoutParams(-1, dp(66));
-        heroLp.setMargins(0, 0, 0, dp(7));
-        root.addView(acc, heroLp);
+        LinearLayout commandZone = new LinearLayout(this);
+        commandZone.setGravity(Gravity.TOP);
+        commandZone.setOrientation(LinearLayout.HORIZONTAL);
 
-        LinearLayout row1 = new LinearLayout(this);
-        addHomeNode(row1, "WA\nCOMMS", "wa", MAGENTA);
-        addHomeNode(row1, "NOTE\nLOGS", "note", CYAN);
-        root.addView(row1, new LinearLayout.LayoutParams(-1, dp(62)));
+        LinearLayout atmosphere = new LinearLayout(this);
+        atmosphere.setOrientation(LinearLayout.VERTICAL);
+        atmosphere.setPadding(dp(6), dp(8), dp(8), 0);
 
-        LinearLayout row2 = new LinearLayout(this);
-        addHomeNode(row2, "FB\nSOCIAL", "fb", CYAN);
-        addHomeNode(row2, "IG\nMEDIA", "ig", MAGENTA);
-        LinearLayout.LayoutParams row2Lp = new LinearLayout.LayoutParams(-1, dp(62));
-        row2Lp.setMargins(0, dp(7), 0, 0);
-        root.addView(row2, row2Lp);
+        TextView rail = text("│\n│\n◆\n│\n│\n└─", 15, CYAN, false);
+        rail.setAlpha(0.85f);
+        atmosphere.addView(rail);
+
+        TextView rootStatus = text("ROOT@ARDA\nFASTLINK READY\nPROFILE MAP OK", 8, MUTED, false);
+        rootStatus.setPadding(dp(3), dp(2), 0, 0);
+        atmosphere.addView(rootStatus);
+
+        commandZone.addView(atmosphere, new LinearLayout.LayoutParams(0, -2, 1));
+
+        LinearLayout stack = new LinearLayout(this);
+        stack.setOrientation(LinearLayout.VERTICAL);
+        stack.setGravity(Gravity.END);
+
+        addCompactNode(stack, "ACC OS X   >", "acc", CYAN, true);
+        addCompactNode(stack, "WA        >", "wa", MAGENTA, false);
+        addCompactNode(stack, "NOTE      >", "note", CYAN, false);
+        addCompactNode(stack, "FB        >", "fb", CYAN, false);
+        addCompactNode(stack, "IG        >", "ig", MAGENTA, false);
+
+        commandZone.addView(stack, new LinearLayout.LayoutParams(dp(176), -2));
+        root.addView(commandZone);
 
         View spacer = new View(this);
         root.addView(spacer, new LinearLayout.LayoutParams(1, 0, 1));
 
-        Button apps = cyberButton("APPS  //  ALL INSTALLED + CLONES", false, CYAN);
+        LinearLayout bottom = new LinearLayout(this);
+        bottom.setGravity(Gravity.RIGHT | Gravity.CENTER_VERTICAL);
+
+        TextView hint = text("tap to search", 8, MUTED, false);
+        bottom.addView(hint, new LinearLayout.LayoutParams(0, -2, 1));
+
+        Button apps = cyberButton("APPS  >", false, CYAN);
         apps.setGravity(Gravity.CENTER);
         apps.setOnClickListener(v -> showApps(""));
-        LinearLayout.LayoutParams appsLp = new LinearLayout.LayoutParams(-1, dp(50));
-        appsLp.setMargins(0, dp(8), 0, 0);
-        root.addView(apps, appsLp);
+        bottom.addView(apps, new LinearLayout.LayoutParams(dp(126), dp(40)));
+        root.addView(bottom);
 
-        LinearLayout footerRail = new LinearLayout(this);
-        footerRail.setGravity(Gravity.CENTER);
-        footerRail.setPadding(0, dp(7), 0, 0);
-        TextView footer = text("v0.6.1  •  CODESTREAM ON  •  SAFE MODE", 8, MUTED, false);
-        footerRail.addView(footer);
-        root.addView(footerRail);
+        TextView footer = text("v0.6.2  •  COMPACT HUD  •  CODESTREAM", 7, MUTED, false);
+        footer.setGravity(Gravity.CENTER);
+        footer.setPadding(0, dp(5), 0, 0);
+        root.addView(footer);
     }
 
     private void addTelemetry(LinearLayout parent, String key, String value) {
         LinearLayout box = new LinearLayout(this);
         box.setOrientation(LinearLayout.VERTICAL);
-        box.setPadding(dp(9), dp(7), dp(9), dp(7));
-        box.setBackground(panelDrawable(PANEL, 3, DIM));
+        box.setPadding(dp(7), dp(4), dp(7), dp(4));
+        box.setBackground(panelDrawable(Color.argb(150, 8, 16, 24), 2, DIM));
 
         TextView k = text(key + " //", 8, MUTED, true);
         TextView v = text(value, 12, CYAN, true);
         box.addView(k);
         box.addView(v);
 
-        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0, dp(50), 1);
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0, dp(40), 1);
         lp.setMargins(dp(2), 0, dp(2), 0);
         parent.addView(box, lp);
     }
@@ -378,10 +385,10 @@ public class MainActivity extends Activity {
         b.setAllCaps(false);
         b.setText(label);
         b.setTextColor(hero ? accent : TEXT);
-        b.setTextSize(hero ? 14 : 12);
+        b.setTextSize(hero ? 12 : 10);
         b.setTypeface(Typeface.MONOSPACE, Typeface.BOLD);
         b.setGravity(Gravity.CENTER_VERTICAL);
-        b.setPadding(dp(15), 0, dp(15), 0);
+        b.setPadding(dp(10), 0, dp(10), 0);
         b.setMinHeight(0);
         b.setMinimumHeight(0);
         b.setMinWidth(0);
@@ -401,6 +408,17 @@ public class MainActivity extends Activity {
         LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0, -1, 1);
         lp.setMargins(dp(2), 0, dp(2), 0);
         row.addView(b, lp);
+    }
+
+    private void addCompactNode(LinearLayout parent, String label, String target, int accent, boolean primary) {
+        Button b = cyberButton(label, primary, accent);
+        b.setGravity(Gravity.CENTER_VERTICAL);
+        b.setSingleLine(true);
+        b.setOnClickListener(v -> launchTarget(target));
+
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(-1, dp(primary ? 42 : 36));
+        lp.setMargins(0, 0, 0, dp(5));
+        parent.addView(b, lp);
     }
 
     private List<AppEntry> getAllApps() {
