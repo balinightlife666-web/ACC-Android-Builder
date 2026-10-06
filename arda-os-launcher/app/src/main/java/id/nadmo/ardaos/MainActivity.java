@@ -1,52 +1,117 @@
 package id.nadmo.ardaos;
 
 import android.app.Activity;
-import android.app.role.RoleManager;
+import android.app.ActivityManager;
+import android.app.AlertDialog;
+import android.content.ComponentName;
 import android.content.Intent;
+import android.content.pm.LauncherActivityInfo;
+import android.content.pm.LauncherApps;
 import android.content.pm.PackageManager;
 import android.content.pm.ResolveInfo;
 import android.graphics.Color;
 import android.graphics.Typeface;
+import android.graphics.drawable.Drawable;
 import android.graphics.drawable.GradientDrawable;
-import android.os.Build;
+import android.os.BatteryManager;
 import android.os.Bundle;
+import android.os.StatFs;
+import android.os.UserHandle;
+import android.os.UserManager;
 import android.provider.Settings;
 import android.view.Gravity;
 import android.view.View;
 import android.widget.Button;
-import android.widget.HorizontalScrollView;
+import android.widget.EditText;
+import android.widget.GridLayout;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import android.widget.TextClock;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 
 public class MainActivity extends Activity {
-    private final int BG = Color.rgb(7, 11, 18);
-    private final int PANEL = Color.rgb(16, 24, 35);
-    private final int CYAN = Color.rgb(78, 224, 255);
-    private final int TEXT = Color.rgb(232, 241, 247);
-    private final int MUTED = Color.rgb(131, 150, 164);
+    private final int BG = Color.rgb(5, 8, 13);
+    private final int PANEL = Color.rgb(9, 17, 26);
+    private final int PANEL_2 = Color.rgb(12, 23, 34);
+    private final int CYAN = Color.rgb(57, 226, 255);
+    private final int MAGENTA = Color.rgb(255, 53, 173);
+    private final int TEXT = Color.rgb(232, 244, 248);
+    private final int MUTED = Color.rgb(122, 151, 164);
     private LinearLayout root;
+
+    private LauncherApps launcherApps;
+    private UserManager userManager;
+
+    private static class AppEntry {
+        LauncherActivityInfo info;
+        UserHandle user;
+        String label;
+        String displayLabel;
+        String packageName;
+        Drawable icon;
+
+        AppEntry(LauncherActivityInfo info, UserHandle user, String label, String packageName, Drawable icon) {
+            this.info = info;
+            this.user = user;
+            this.label = label;
+            this.displayLabel = label;
+            this.packageName = packageName;
+            this.icon = icon;
+        }
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        launcherApps = (LauncherApps) getSystemService(LAUNCHER_APPS_SERVICE);
+        userManager = (UserManager) getSystemService(USER_SERVICE);
         showHome();
-        if (!isDefaultHome()) {
-            openHomeSettings();
-        }
+        if (!isDefaultHome()) openHomeSettings();
     }
 
     @Override
     protected void onResume() {
         super.onResume();
         if (root != null) showHome();
+    }
+
+    private int dp(int value) {
+        return Math.round(value * getResources().getDisplayMetrics().density);
+    }
+
+    private GradientDrawable panelDrawable(int color, int radius, int strokeColor) {
+        GradientDrawable gd = new GradientDrawable();
+        gd.setColor(color);
+        gd.setCornerRadius(dp(radius));
+        gd.setStroke(dp(1), strokeColor);
+        return gd;
+    }
+
+    private GradientDrawable hudDrawable(int color, int strokeColor) {
+        GradientDrawable gd = new GradientDrawable();
+        gd.setColor(color);
+        gd.setCornerRadius(dp(4));
+        gd.setStroke(dp(1), strokeColor, dp(5), dp(3));
+        return gd;
+    }
+
+    private TextView text(String value, int size, int color, boolean bold) {
+        TextView t = new TextView(this);
+        t.setText(value);
+        t.setTextSize(size);
+        t.setTextColor(color);
+        t.setTypeface(Typeface.MONOSPACE, bold ? Typeface.BOLD : Typeface.NORMAL);
+        return t;
     }
 
     private boolean isDefaultHome() {
@@ -63,228 +128,416 @@ public class MainActivity extends Activity {
             startActivity(home);
             return;
         }
-
         Intent defaults = new Intent(Settings.ACTION_MANAGE_DEFAULT_APPS_SETTINGS);
         if (defaults.resolveActivity(getPackageManager()) != null) {
             startActivity(defaults);
             return;
         }
-
         startActivity(new Intent(Settings.ACTION_SETTINGS));
-    }
-
-    private void openDefaultAppsSettings() {
-        Intent defaults = new Intent(Settings.ACTION_MANAGE_DEFAULT_APPS_SETTINGS);
-        if (defaults.resolveActivity(getPackageManager()) != null) {
-            startActivity(defaults);
-        } else {
-            startActivity(new Intent(Settings.ACTION_SETTINGS));
-        }
-    }
-
-    private int dp(int value) {
-        return Math.round(value * getResources().getDisplayMetrics().density);
-    }
-
-    private GradientDrawable rounded(int color, int radius, int strokeColor) {
-        GradientDrawable gd = new GradientDrawable();
-        gd.setColor(color);
-        gd.setCornerRadius(dp(radius));
-        if (strokeColor != Color.TRANSPARENT) gd.setStroke(dp(1), strokeColor);
-        return gd;
-    }
-
-    private TextView text(String value, int size, int color, boolean bold) {
-        TextView t = new TextView(this);
-        t.setText(value);
-        t.setTextSize(size);
-        t.setTextColor(color);
-        if (bold) t.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
-        return t;
-    }
-
-    private Button actionButton(String label) {
-        Button b = new Button(this);
-        b.setText(label);
-        b.setTextColor(TEXT);
-        b.setAllCaps(false);
-        b.setTextSize(13);
-        b.setBackground(rounded(PANEL, 14, Color.rgb(36, 58, 73)));
-        b.setPadding(dp(14), dp(8), dp(14), dp(8));
-        return b;
     }
 
     private void showHome() {
         root = new LinearLayout(this);
         root.setOrientation(LinearLayout.VERTICAL);
-        root.setPadding(dp(18), dp(20), dp(18), dp(16));
+        root.setPadding(dp(14), dp(12), dp(14), dp(14));
         root.setBackgroundColor(BG);
         setContentView(root);
 
-        LinearLayout top = new LinearLayout(this);
-        top.setGravity(Gravity.CENTER_VERTICAL);
-        TextView brand = text("ARDA OS", 20, CYAN, true);
-        TextView sub = text("  // NADMO SYSTEM", 11, MUTED, false);
-        top.addView(brand);
-        top.addView(sub);
-        root.addView(top);
+        LinearLayout header = new LinearLayout(this);
+        header.setGravity(Gravity.CENTER_VERTICAL);
+        TextView brand = text("ARDA OS", 17, CYAN, true);
+        TextView sys = text("  // NADMO CYBERDECK", 10, MUTED, false);
+        header.addView(brand);
+        header.addView(sys, new LinearLayout.LayoutParams(0, -2, 1));
+        TextView gear = text("⚙", 24, CYAN, false);
+        gear.setGravity(Gravity.CENTER);
+        gear.setOnClickListener(v -> startActivity(new Intent(Settings.ACTION_SETTINGS)));
+        header.addView(gear, new LinearLayout.LayoutParams(dp(42), dp(42)));
+        root.addView(header);
 
+        LinearLayout timeRow = new LinearLayout(this);
+        timeRow.setGravity(Gravity.CENTER_VERTICAL);
+        timeRow.setPadding(0, dp(8), 0, dp(8));
         TextClock clock = new TextClock(this);
         clock.setFormat12Hour("HH:mm");
         clock.setFormat24Hour("HH:mm");
-        clock.setTextSize(58);
+        clock.setTextSize(46);
         clock.setTextColor(TEXT);
-        clock.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
-        clock.setPadding(0, dp(24), 0, 0);
-        root.addView(clock);
+        clock.setTypeface(Typeface.MONOSPACE, Typeface.BOLD);
+        timeRow.addView(clock, new LinearLayout.LayoutParams(0, -2, 1));
 
+        LinearLayout rightTime = new LinearLayout(this);
+        rightTime.setOrientation(LinearLayout.VERTICAL);
+        rightTime.setGravity(Gravity.END);
+        TextView core = text("CORE // ONLINE", 11, CYAN, true);
+        core.setGravity(Gravity.END);
         TextClock date = new TextClock(this);
-        date.setFormat12Hour("EEE, dd MMM yyyy");
-        date.setFormat24Hour("EEE, dd MMM yyyy");
-        date.setTextSize(15);
+        date.setFormat12Hour("EEE dd MMM");
+        date.setFormat24Hour("EEE dd MMM");
+        date.setTextSize(11);
         date.setTextColor(MUTED);
-        root.addView(date);
+        date.setTypeface(Typeface.MONOSPACE);
+        date.setGravity(Gravity.END);
+        rightTime.addView(core);
+        rightTime.addView(date);
+        timeRow.addView(rightTime);
+        root.addView(timeRow);
 
-        LinearLayout status = new LinearLayout(this);
-        status.setOrientation(LinearLayout.VERTICAL);
-        status.setPadding(dp(16), dp(14), dp(16), dp(14));
-        status.setBackground(rounded(PANEL, 18, Color.rgb(27, 63, 79)));
-        LinearLayout.LayoutParams statusLp = new LinearLayout.LayoutParams(-1, -2);
-        statusLp.setMargins(0, dp(28), 0, dp(12));
-        root.addView(status, statusLp);
+        View line = new View(this);
+        line.setBackgroundColor(CYAN);
+        root.addView(line, new LinearLayout.LayoutParams(-1, dp(1)));
 
-        if (isDefaultHome()) {
-            status.addView(text("ARDA OS // HOME ACTIVE", 13, CYAN, true));
-            TextView msg = text("Launcher ini sekarang mengendalikan Home Screen.", 12, MUTED, false);
-            msg.setPadding(0, dp(6), 0, 0);
-            status.addView(msg);
-        } else {
-            status.addView(text("SETUP REQUIRED", 13, Color.rgb(255, 194, 77), true));
-            TextView msg = text("Android masih memakai launcher bawaan.", 12, MUTED, false);
-            msg.setPadding(0, dp(6), 0, dp(10));
-            status.addView(msg);
+        LinearLayout telemetry = new LinearLayout(this);
+        telemetry.setPadding(0, dp(10), 0, dp(10));
+        addTelemetry(telemetry, "BAT", batteryText());
+        addTelemetry(telemetry, "RAM", memoryText());
+        addTelemetry(telemetry, "STO", storageText());
+        root.addView(telemetry);
 
-            Button setHome = actionButton("Jadikan ARDA OS sebagai Home");
-            setHome.setOnClickListener(v -> openHomeSettings());
-            status.addView(setHome, new LinearLayout.LayoutParams(-1, dp(48)));
+        if (!isDefaultHome()) {
+            TextView setup = text("HOME ROLE NOT ACTIVE  //  TAP TO FIX", 11, MAGENTA, true);
+            setup.setGravity(Gravity.CENTER);
+            setup.setPadding(dp(8), dp(10), dp(8), dp(10));
+            setup.setBackground(hudDrawable(PANEL, MAGENTA));
+            setup.setOnClickListener(v -> openHomeSettings());
+            LinearLayout.LayoutParams slp = new LinearLayout.LayoutParams(-1, -2);
+            slp.setMargins(0, 0, 0, dp(10));
+            root.addView(setup, slp);
         }
 
-        TextView quickLabel = text("QUICK ACCESS", 11, MUTED, true);
-        quickLabel.setPadding(0, dp(12), 0, dp(8));
-        root.addView(quickLabel);
+        TextView section = text(">> PRIMARY NODES", 10, MUTED, true);
+        section.setPadding(0, dp(4), 0, dp(8));
+        root.addView(section);
 
-        HorizontalScrollView hsv = new HorizontalScrollView(this);
-        hsv.setHorizontalScrollBarEnabled(false);
-        LinearLayout quick = new LinearLayout(this);
-        quick.setOrientation(LinearLayout.HORIZONTAL);
-        hsv.addView(quick);
-        root.addView(hsv);
+        Button acc = cyberButton("ACC OS X", true);
+        acc.setOnClickListener(v -> launchTarget("acc"));
+        LinearLayout.LayoutParams heroLp = new LinearLayout.LayoutParams(-1, dp(66));
+        heroLp.setMargins(0, 0, 0, dp(8));
+        root.addView(acc, heroLp);
 
-        addQuick(quick, "Apps", v -> showApps());
-        addQuick(quick, "Home App", v -> openHomeSettings());
-        addQuick(quick, "Default Apps", v -> openDefaultAppsSettings());
-        addQuick(quick, "Settings", v -> startActivity(new Intent(Settings.ACTION_SETTINGS)));
-        addQuick(quick, "Wi-Fi", v -> startActivity(new Intent(Settings.ACTION_WIFI_SETTINGS)));
-        addQuick(quick, "Bluetooth", v -> startActivity(new Intent(Settings.ACTION_BLUETOOTH_SETTINGS)));
+        LinearLayout row1 = new LinearLayout(this);
+        addHomeNode(row1, "WA", "wa");
+        addHomeNode(row1, "NOTE", "note");
+        root.addView(row1, new LinearLayout.LayoutParams(-1, dp(66)));
+
+        LinearLayout row2 = new LinearLayout(this);
+        addHomeNode(row2, "FB", "fb");
+        addHomeNode(row2, "IG", "ig");
+        LinearLayout.LayoutParams row2Lp = new LinearLayout.LayoutParams(-1, dp(66));
+        row2Lp.setMargins(0, dp(8), 0, 0);
+        root.addView(row2, row2Lp);
 
         View spacer = new View(this);
         root.addView(spacer, new LinearLayout.LayoutParams(1, 0, 1));
 
-        LinearLayout dock = new LinearLayout(this);
-        dock.setGravity(Gravity.CENTER);
-        dock.setPadding(dp(8), dp(8), dp(8), dp(8));
-        dock.setBackground(rounded(Color.rgb(12, 19, 29), 22, Color.rgb(31, 50, 64)));
-        root.addView(dock, new LinearLayout.LayoutParams(-1, -2));
-        addDock(dock, "PHONE", "com.google.android.dialer");
-        addDock(dock, "CHAT", "com.whatsapp");
-        addDock(dock, "APPS", null);
-        addDock(dock, "CAM", "com.android.camera");
+        Button apps = cyberButton("APPS  //  ALL INSTALLED + CLONES", false);
+        apps.setOnClickListener(v -> showApps(""));
+        LinearLayout.LayoutParams appsLp = new LinearLayout.LayoutParams(-1, dp(54));
+        appsLp.setMargins(0, dp(10), 0, 0);
+        root.addView(apps, appsLp);
+
+        TextView footer = text("ARDA OS v0.4  •  PROFILE-AWARE LAUNCHER", 9, MUTED, false);
+        footer.setGravity(Gravity.CENTER);
+        footer.setPadding(0, dp(8), 0, 0);
+        root.addView(footer);
     }
 
-    private void addQuick(LinearLayout parent, String label, View.OnClickListener listener) {
-        Button b = actionButton(label);
-        b.setOnClickListener(listener);
-        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(-2, dp(46));
-        lp.setMargins(0, 0, dp(8), 0);
-        parent.addView(b, lp);
+    private void addTelemetry(LinearLayout parent, String key, String value) {
+        LinearLayout box = new LinearLayout(this);
+        box.setOrientation(LinearLayout.VERTICAL);
+        box.setPadding(dp(10), dp(8), dp(10), dp(8));
+        box.setBackground(panelDrawable(PANEL, 4, Color.rgb(27, 68, 79)));
+        TextView k = text(key + " //", 9, MUTED, true);
+        TextView v = text(value, 13, CYAN, true);
+        box.addView(k);
+        box.addView(v);
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0, dp(54), 1);
+        lp.setMargins(dp(2), 0, dp(2), 0);
+        parent.addView(box, lp);
     }
 
-    private void addDock(LinearLayout parent, String label, String packageName) {
-        Button b = actionButton(label);
-        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0, dp(52), 1);
-        lp.setMargins(dp(3), 0, dp(3), 0);
-        parent.addView(b, lp);
-        if (packageName == null) {
-            b.setOnClickListener(v -> showApps());
-        } else {
-            b.setOnClickListener(v -> launchPackage(packageName));
+    private String batteryText() {
+        BatteryManager bm = (BatteryManager) getSystemService(BATTERY_SERVICE);
+        int pct = bm == null ? -1 : bm.getIntProperty(BatteryManager.BATTERY_PROPERTY_CAPACITY);
+        return pct < 0 ? "--" : pct + "%";
+    }
+
+    private String memoryText() {
+        ActivityManager am = (ActivityManager) getSystemService(ACTIVITY_SERVICE);
+        ActivityManager.MemoryInfo mi = new ActivityManager.MemoryInfo();
+        if (am == null) return "--";
+        am.getMemoryInfo(mi);
+        long avail = mi.availMem / (1024L * 1024L * 1024L);
+        return avail + "G";
+    }
+
+    private String storageText() {
+        try {
+            StatFs stat = new StatFs(getFilesDir().getAbsolutePath());
+            long free = stat.getAvailableBytes() / (1024L * 1024L * 1024L);
+            return free + "G";
+        } catch (Exception e) {
+            return "--";
         }
     }
 
-    private void launchPackage(String pkg) {
-        Intent launch = getPackageManager().getLaunchIntentForPackage(pkg);
+    private Button cyberButton(String label, boolean hero) {
+        Button b = new Button(this);
+        b.setAllCaps(false);
+        b.setText(label);
+        b.setTextColor(hero ? CYAN : TEXT);
+        b.setTextSize(hero ? 15 : 13);
+        b.setTypeface(Typeface.MONOSPACE, Typeface.BOLD);
+        b.setGravity(Gravity.CENTER_VERTICAL);
+        b.setPadding(dp(16), 0, dp(16), 0);
+        b.setBackground(hero ? hudDrawable(PANEL_2, CYAN) : panelDrawable(PANEL, 4, Color.rgb(29, 72, 84)));
+        return b;
+    }
+
+    private void addHomeNode(LinearLayout row, String label, String target) {
+        Button b = cyberButton(label, false);
+        b.setOnClickListener(v -> launchTarget(target));
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0, -1, 1);
+        lp.setMargins(dp(2), 0, dp(2), 0);
+        row.addView(b, lp);
+    }
+
+    private List<AppEntry> getAllApps() {
+        List<AppEntry> result = new ArrayList<>();
+
+        if (launcherApps != null && userManager != null) {
+            try {
+                List<UserHandle> profiles = userManager.getUserProfiles();
+                for (UserHandle user : profiles) {
+                    List<LauncherActivityInfo> activities = launcherApps.getActivityList(null, user);
+                    for (LauncherActivityInfo info : activities) {
+                        if (info.getApplicationInfo().packageName.equals(getPackageName())) continue;
+                        String label = info.getLabel() == null
+                                ? info.getApplicationInfo().packageName
+                                : info.getLabel().toString();
+                        result.add(new AppEntry(
+                                info,
+                                user,
+                                label,
+                                info.getApplicationInfo().packageName,
+                                info.getBadgedIcon(0)
+                        ));
+                    }
+                }
+            } catch (Exception ignored) {
+            }
+        }
+
+        if (result.isEmpty()) {
+            PackageManager pm = getPackageManager();
+            Intent main = new Intent(Intent.ACTION_MAIN, null);
+            main.addCategory(Intent.CATEGORY_LAUNCHER);
+            List<ResolveInfo> apps = pm.queryIntentActivities(main, 0);
+            for (ResolveInfo info : apps) {
+                if (info.activityInfo.packageName.equals(getPackageName())) continue;
+                String label = info.loadLabel(pm).toString();
+                result.add(new AppEntry(null, android.os.Process.myUserHandle(), label,
+                        info.activityInfo.packageName, info.loadIcon(pm)));
+            }
+        }
+
+        Collections.sort(result, Comparator.comparing(a -> a.label.toLowerCase(Locale.ROOT)));
+
+        Map<String, Integer> totals = new HashMap<>();
+        for (AppEntry e : result) {
+            String key = e.label.toLowerCase(Locale.ROOT);
+            totals.put(key, totals.getOrDefault(key, 0) + 1);
+        }
+
+        Map<String, Integer> seen = new HashMap<>();
+        for (AppEntry e : result) {
+            String key = e.label.toLowerCase(Locale.ROOT);
+            int count = totals.getOrDefault(key, 1);
+            if (count > 1) {
+                int idx = seen.getOrDefault(key, 0) + 1;
+                seen.put(key, idx);
+                e.displayLabel = e.label + " " + idx;
+            }
+        }
+        return result;
+    }
+
+    private List<AppEntry> findTargetApps(String target) {
+        List<AppEntry> matches = new ArrayList<>();
+        for (AppEntry e : getAllApps()) {
+            String l = e.label.toLowerCase(Locale.ROOT);
+            String p = e.packageName.toLowerCase(Locale.ROOT);
+            boolean ok = false;
+            switch (target) {
+                case "wa":
+                    ok = l.contains("whatsapp") || p.contains("whatsapp");
+                    break;
+                case "fb":
+                    ok = l.equals("facebook") || l.startsWith("facebook ")
+                            || p.equals("com.facebook.katana") || p.equals("com.facebook.lite");
+                    break;
+                case "ig":
+                    ok = l.contains("instagram") || p.contains("instagram");
+                    break;
+                case "note":
+                    ok = l.equals("notes") || l.equals("note") || l.contains("notepad")
+                            || l.contains("keep notes") || p.contains("notebook")
+                            || p.contains(".note") || p.contains("keep");
+                    break;
+                case "acc":
+                    ok = l.contains("acc os x") || l.contains("acc os")
+                            || p.contains("accos") || p.contains("acc.os");
+                    break;
+            }
+            if (ok) matches.add(e);
+        }
+        return matches;
+    }
+
+    private void launchTarget(String target) {
+        List<AppEntry> matches = findTargetApps(target);
+        if (matches.isEmpty()) {
+            Toast.makeText(this, "Target belum ditemukan. Buka Apps untuk pilih manual.", Toast.LENGTH_SHORT).show();
+            showApps(target);
+            return;
+        }
+        if (matches.size() == 1) {
+            launchApp(matches.get(0));
+            return;
+        }
+
+        String title;
+        switch (target) {
+            case "wa": title = "Pilih WhatsApp"; break;
+            case "fb": title = "Pilih Facebook"; break;
+            case "ig": title = "Pilih Instagram"; break;
+            case "note": title = "Pilih Notes"; break;
+            default: title = "Pilih aplikasi";
+        }
+
+        String[] names = new String[matches.size()];
+        for (int i = 0; i < matches.size(); i++) {
+            names[i] = matches.get(i).displayLabel;
+        }
+
+        new AlertDialog.Builder(this)
+                .setTitle(title + "  //  " + matches.size() + " instance")
+                .setItems(names, (dialog, which) -> launchApp(matches.get(which)))
+                .setNegativeButton("Batal", null)
+                .show();
+    }
+
+    private void launchApp(AppEntry entry) {
+        if (entry.info != null && launcherApps != null) {
+            try {
+                launcherApps.startMainActivity(entry.info.getComponentName(), entry.user, null, null);
+                return;
+            } catch (Exception ignored) {
+            }
+        }
+
+        Intent launch = getPackageManager().getLaunchIntentForPackage(entry.packageName);
         if (launch != null) {
+            launch.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
             startActivity(launch);
         } else {
-            showApps();
+            Toast.makeText(this, "Tidak bisa membuka " + entry.displayLabel, Toast.LENGTH_SHORT).show();
         }
     }
 
-    private void showApps() {
+    private void showApps(String presetQuery) {
         LinearLayout shell = new LinearLayout(this);
         shell.setOrientation(LinearLayout.VERTICAL);
-        shell.setPadding(dp(14), dp(16), dp(14), dp(12));
+        shell.setPadding(dp(12), dp(12), dp(12), dp(12));
         shell.setBackgroundColor(BG);
         setContentView(shell);
 
-        LinearLayout header = new LinearLayout(this);
-        header.setGravity(Gravity.CENTER_VERTICAL);
-        Button back = actionButton("← Home");
-        back.setOnClickListener(v -> showHome());
-        header.addView(back, new LinearLayout.LayoutParams(-2, dp(46)));
-        TextView title = text("   APP DRAWER", 17, CYAN, true);
-        header.addView(title);
-        shell.addView(header);
+        LinearLayout head = new LinearLayout(this);
+        head.setGravity(Gravity.CENTER_VERTICAL);
+        Button home = cyberButton("← HOME", false);
+        home.setOnClickListener(v -> showHome());
+        head.addView(home, new LinearLayout.LayoutParams(dp(104), dp(46)));
+        TextView title = text("  APP GRID // ALL PROFILES", 12, CYAN, true);
+        head.addView(title, new LinearLayout.LayoutParams(0, -2, 1));
+        shell.addView(head);
+
+        EditText search = new EditText(this);
+        search.setSingleLine(true);
+        search.setHint("SEARCH INSTALLED APPS...");
+        search.setHintTextColor(MUTED);
+        search.setTextColor(TEXT);
+        search.setTextSize(12);
+        search.setTypeface(Typeface.MONOSPACE);
+        search.setPadding(dp(14), 0, dp(14), 0);
+        search.setBackground(hudDrawable(PANEL, CYAN));
+        LinearLayout.LayoutParams searchLp = new LinearLayout.LayoutParams(-1, dp(48));
+        searchLp.setMargins(0, dp(10), 0, dp(10));
+        shell.addView(search, searchLp);
 
         ScrollView scroll = new ScrollView(this);
-        LinearLayout list = new LinearLayout(this);
-        list.setOrientation(LinearLayout.VERTICAL);
-        list.setPadding(0, dp(14), 0, dp(30));
-        scroll.addView(list);
+        GridLayout grid = new GridLayout(this);
+        grid.setColumnCount(4);
+        grid.setAlignmentMode(GridLayout.ALIGN_BOUNDS);
+        grid.setUseDefaultMargins(false);
+        grid.setPadding(0, 0, 0, dp(24));
+        scroll.addView(grid);
         shell.addView(scroll, new LinearLayout.LayoutParams(-1, 0, 1));
 
-        PackageManager pm = getPackageManager();
-        Intent main = new Intent(Intent.ACTION_MAIN, null);
-        main.addCategory(Intent.CATEGORY_LAUNCHER);
-        List<ResolveInfo> apps = new ArrayList<>(pm.queryIntentActivities(main, 0));
-        Collections.sort(apps, Comparator.comparing(a -> a.loadLabel(pm).toString().toLowerCase()));
+        List<AppEntry> allApps = getAllApps();
 
-        for (ResolveInfo info : apps) {
-            if (info.activityInfo.packageName.equals(getPackageName())) continue;
-            LinearLayout row = new LinearLayout(this);
-            row.setGravity(Gravity.CENTER_VERTICAL);
-            row.setPadding(dp(12), dp(10), dp(12), dp(10));
-            row.setBackground(rounded(PANEL, 14, Color.rgb(26, 42, 55)));
-            LinearLayout.LayoutParams rowLp = new LinearLayout.LayoutParams(-1, dp(66));
-            rowLp.setMargins(0, 0, 0, dp(8));
-            list.addView(row, rowLp);
+        Runnable render = () -> {
+            String q = search.getText().toString().trim().toLowerCase(Locale.ROOT);
+            grid.removeAllViews();
+            for (AppEntry entry : allApps) {
+                if (!q.isEmpty()
+                        && !entry.displayLabel.toLowerCase(Locale.ROOT).contains(q)
+                        && !entry.packageName.toLowerCase(Locale.ROOT).contains(q)) {
+                    continue;
+                }
 
-            ImageView icon = new ImageView(this);
-            icon.setImageDrawable(info.loadIcon(pm));
-            row.addView(icon, new LinearLayout.LayoutParams(dp(42), dp(42)));
+                LinearLayout card = new LinearLayout(this);
+                card.setOrientation(LinearLayout.VERTICAL);
+                card.setGravity(Gravity.CENTER);
+                card.setPadding(dp(4), dp(7), dp(4), dp(6));
+                card.setBackground(panelDrawable(PANEL, 4, Color.rgb(24, 57, 68)));
 
-            TextView label = text(info.loadLabel(pm).toString(), 14, TEXT, true);
-            label.setPadding(dp(14), 0, 0, 0);
-            row.addView(label, new LinearLayout.LayoutParams(0, -1, 1));
+                ImageView icon = new ImageView(this);
+                icon.setImageDrawable(entry.icon);
+                card.addView(icon, new LinearLayout.LayoutParams(dp(40), dp(40)));
 
-            row.setOnClickListener(v -> {
-                Intent i = new Intent(Intent.ACTION_MAIN);
-                i.addCategory(Intent.CATEGORY_LAUNCHER);
-                i.setClassName(info.activityInfo.packageName, info.activityInfo.name);
-                i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-                startActivity(i);
-            });
-        }
+                TextView label = text(entry.displayLabel, 9, TEXT, false);
+                label.setGravity(Gravity.CENTER);
+                label.setMaxLines(2);
+                LinearLayout.LayoutParams labelLp = new LinearLayout.LayoutParams(-1, 0, 1);
+                labelLp.setMargins(0, dp(5), 0, 0);
+                card.addView(label, labelLp);
+
+                card.setOnClickListener(v -> launchApp(entry));
+
+                GridLayout.LayoutParams gp = new GridLayout.LayoutParams();
+                gp.width = 0;
+                gp.height = dp(92);
+                gp.columnSpec = GridLayout.spec(GridLayout.UNDEFINED, 1f);
+                gp.setMargins(dp(3), dp(3), dp(3), dp(3));
+                grid.addView(card, gp);
+            }
+        };
+
+        search.addTextChangedListener(new android.text.TextWatcher() {
+            @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+            @Override public void onTextChanged(CharSequence s, int start, int before, int count) { render.run(); }
+            @Override public void afterTextChanged(android.text.Editable s) {}
+        });
+
+        if (presetQuery == null) presetQuery = "";
+        if (presetQuery.equals("wa")) presetQuery = "whatsapp";
+        if (presetQuery.equals("fb")) presetQuery = "facebook";
+        if (presetQuery.equals("ig")) presetQuery = "instagram";
+        if (presetQuery.equals("note")) presetQuery = "note";
+        if (presetQuery.equals("acc")) presetQuery = "acc";
+        search.setText(presetQuery);
+        search.setSelection(search.getText().length());
+        render.run();
     }
 
     @Override
