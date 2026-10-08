@@ -88,6 +88,7 @@ public sealed class MainForm : Form
         MinimumSize = new Size(900, 600);
 
         BuildUi();
+        RepairAutostartTargetIfEnabled();
         LoadShortcuts();
         UpdateTelemetry();
 
@@ -239,7 +240,7 @@ public sealed class MainForm : Form
         Controls.Add(taskbarButton);
         UpdateTaskbarText();
 
-        footer.Text = "v0.3  //  RIGHT STATUS LAYOUT  //  CTRL+SPACE APPS  //  CTRL+H TASKBAR  //  F12 EXIT";
+        footer.Text = "v0.3.1  //  RIGHT STATUS LOCKED  //  CTRL+SPACE APPS  //  CTRL+H TASKBAR  //  F12 EXIT";
         footer.ForeColor = Muted;
         footer.Font = Mono(8);
         footer.AutoSize = true;
@@ -837,6 +838,39 @@ public sealed class MainForm : Form
         }
     }
 
+    private void RepairAutostartTargetIfEnabled()
+    {
+        if (!IsStartupEnabled()) return;
+
+        const string keyPath = @"Software\Microsoft\Windows\CurrentVersion\Run";
+        using var key = Registry.CurrentUser.OpenSubKey(keyPath, writable: true);
+        if (key == null) return;
+
+        string sourceExe = Environment.ProcessPath ?? Application.ExecutablePath;
+        string installDir = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+            "ARDA OS");
+        Directory.CreateDirectory(installDir);
+
+        string installedExe = Path.Combine(installDir, "ARDA-OS-Desktop.exe");
+
+        try
+        {
+            if (!Path.GetFullPath(sourceExe).Equals(
+                    Path.GetFullPath(installedExe),
+                    StringComparison.OrdinalIgnoreCase))
+            {
+                File.Copy(sourceExe, installedExe, overwrite: true);
+            }
+
+            key.SetValue("ARDA OS Desktop", $"\"{installedExe}\"");
+        }
+        catch
+        {
+            key.SetValue("ARDA OS Desktop", $"\"{sourceExe}\"");
+        }
+    }
+
     private void ToggleStartup()
     {
         const string keyPath = @"Software\Microsoft\Windows\CurrentVersion\Run";
@@ -1039,7 +1073,7 @@ internal sealed class CodeStreamControl : Control
         "notes.mount -> notepad.exe",
         "CORE_PANEL::ONLINE   TASKBAR_SWITCH::READY",
         "QUICK_MODULES::FILES/CHROME/SPOTIFY/DISCORD",
-        "CYBERDECK HUD DESKTOP v0.3   RIGHT STATUS ACTIVE"
+        "CYBERDECK HUD DESKTOP v0.3.1   RIGHT STATUS LOCKED"
     ];
 
     private float offset;
