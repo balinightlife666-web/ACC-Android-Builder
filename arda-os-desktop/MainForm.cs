@@ -1092,6 +1092,9 @@ public sealed class MainForm : Form
     [DllImport("user32.dll")]
     private static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
 
+    [DllImport("user32.dll")]
+    private static extern bool SetForegroundWindow(IntPtr hWnd);
+
     [StructLayout(LayoutKind.Sequential)]
     private struct FILETIME
     {
