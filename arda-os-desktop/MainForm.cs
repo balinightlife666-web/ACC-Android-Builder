@@ -1067,7 +1067,8 @@ public sealed class MainForm : Form
     }
 
     private const int SW_HIDE = 0;
-    private const int SW_SHOW = 5;\n    private const int SW_RESTORE = 9;
+    private const int SW_SHOW = 5;
+    private const int SW_RESTORE = 9;
 
     [DllImport("kernel32.dll", SetLastError = true)]
     private static extern bool GetSystemTimes(
