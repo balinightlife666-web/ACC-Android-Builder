@@ -31,9 +31,9 @@ jobs:
         shell: pwsh
         run: |
           New-Item -ItemType Directory -Force -Path dist | Out-Null
-          Copy-Item "arda-os-desktop/bin/Release/net8.0-windows/win-x64/publish/ARDA-OS-Desktop.exe" "dist/ARDA-OS-Desktop-v0.3.1.exe"
+          Copy-Item "arda-os-desktop/bin/Release/net8.0-windows/win-x64/publish/ARDA-OS-Desktop.exe" "dist/ARDA-OS-Desktop-v0.3.2.exe"
 
       - uses: actions/upload-artifact@v4
         with:
-          name: ARDA-OS-Desktop-v0.3.1
-          path: dist/ARDA-OS-Desktop-v0.3.1.exe
+          name: ARDA-OS-Desktop-v0.3.2
+          path: dist/ARDA-OS-Desktop-v0.3.2.exe
