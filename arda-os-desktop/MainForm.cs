@@ -240,7 +240,7 @@ public sealed class MainForm : Form
         Controls.Add(taskbarButton);
         UpdateTaskbarText();
 
-        footer.Text = "v0.3.1  //  RIGHT STATUS LOCKED  //  CTRL+SPACE APPS  //  CTRL+H TASKBAR  //  F12 EXIT";
+        footer.Text = "v0.3.2  //  DISCORD LINK FIXED  //  CTRL+SPACE APPS  //  CTRL+H TASKBAR  //  F12 EXIT";
         footer.ForeColor = Muted;
         footer.Font = Mono(8);
         footer.AutoSize = true;
@@ -583,18 +583,85 @@ public sealed class MainForm : Form
 
     private void LaunchDiscord()
     {
+        // 1) Discord may already be running in the tray/background.
         try
         {
-            Process.Start(new ProcessStartInfo("discord:") { UseShellExecute = true });
+            var running = Process.GetProcessesByName("Discord")
+                .FirstOrDefault(p => p.MainWindowHandle != IntPtr.Zero);
+
+            if (running != null)
+            {
+                ShowWindow(running.MainWindowHandle, SW_RESTORE);
+                SetForegroundWindow(running.MainWindowHandle);
+                return;
+            }
         }
-        catch
+        catch { }
+
+        string localAppData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+        string discordDir = Path.Combine(localAppData, "Discord");
+
+        // 2) Standard Discord desktop install (Squirrel).
+        try
         {
-            var hit = shortcuts.FirstOrDefault(s => s.Name.Contains("Discord", StringComparison.OrdinalIgnoreCase));
-            if (hit != null)
-                LaunchShortcut(hit);
-            else
-                OpenTarget("https://discord.com/app");
+            string updateExe = Path.Combine(discordDir, "Update.exe");
+            if (File.Exists(updateExe))
+            {
+                Process.Start(new ProcessStartInfo(updateExe)
+                {
+                    Arguments = "--processStart Discord.exe",
+                    UseShellExecute = true,
+                    WorkingDirectory = discordDir
+                });
+                return;
+            }
         }
+        catch { }
+
+        // 3) Direct executable fallback from the newest app-* directory.
+        try
+        {
+            if (Directory.Exists(discordDir))
+            {
+                string? discordExe = Directory
+                    .GetDirectories(discordDir, "app-*")
+                    .OrderByDescending(d => d, StringComparer.OrdinalIgnoreCase)
+                    .Select(d => Path.Combine(d, "Discord.exe"))
+                    .FirstOrDefault(File.Exists);
+
+                if (discordExe != null)
+                {
+                    Process.Start(new ProcessStartInfo(discordExe)
+                    {
+                        UseShellExecute = true,
+                        WorkingDirectory = Path.GetDirectoryName(discordExe)
+                    });
+                    return;
+                }
+            }
+        }
+        catch { }
+
+        // 4) Start Menu shortcut also covers Store/alternate installs.
+        var hit = shortcuts.FirstOrDefault(s =>
+            s.Name.Equals("Discord", StringComparison.OrdinalIgnoreCase) ||
+            s.Name.Contains("Discord", StringComparison.OrdinalIgnoreCase));
+
+        if (hit != null)
+        {
+            LaunchShortcut(hit);
+            return;
+        }
+
+        // 5) Protocol and web are last fallbacks.
+        try
+        {
+            var started = Process.Start(new ProcessStartInfo("discord:") { UseShellExecute = true });
+            if (started != null) return;
+        }
+        catch { }
+
+        OpenTarget("https://discord.com/app");
     }
 
     private void OpenTarget(string target)
@@ -1000,7 +1067,7 @@ public sealed class MainForm : Form
     }
 
     private const int SW_HIDE = 0;
-    private const int SW_SHOW = 5;
+    private const int SW_SHOW = 5;\n    private const int SW_RESTORE = 9;
 
     [DllImport("kernel32.dll", SetLastError = true)]
     private static extern bool GetSystemTimes(
@@ -1073,7 +1140,7 @@ internal sealed class CodeStreamControl : Control
         "notes.mount -> notepad.exe",
         "CORE_PANEL::ONLINE   TASKBAR_SWITCH::READY",
         "QUICK_MODULES::FILES/CHROME/SPOTIFY/DISCORD",
-        "CYBERDECK HUD DESKTOP v0.3.1   RIGHT STATUS LOCKED"
+        "CYBERDECK HUD DESKTOP v0.3.2   DISCORD LINK READY"
     ];
 
     private float offset;
