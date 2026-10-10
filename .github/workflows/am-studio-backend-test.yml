@@ -1,0 +1,40 @@
+name: AM STUDIO Backend Tests
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - feat/am-studio-distribution-foundation
+    paths:
+      - 'tools/am-studio-distribution/backend/**'
+      - '.github/workflows/am-studio-backend-test.yml'
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'tools/am-studio-distribution/backend/**'
+      - '.github/workflows/am-studio-backend-test.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: am-studio-backend-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Run backend tests
+        working-directory: tools/am-studio-distribution/backend
+        run: npm test
