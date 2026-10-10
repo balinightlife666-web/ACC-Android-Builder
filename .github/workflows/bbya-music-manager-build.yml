@@ -1,0 +1,299 @@
+name: BBYA Music Manager APK
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - feat/bbya-music-manager-mvp
+    paths:
+      - '.github/workflows/bbya-music-manager-build.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: bbya-music-manager-apk
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Patch OAuth refresh, creator target, resilient sync and Roblox audio limits
+        shell: bash
+        run: |
+          set -euo pipefail
+          FILE="tools/bbya-music-manager/app/src/main/java/com/acc/bbyamusic/OAuthSyncActivity.java"
+          GRADLE="tools/bbya-music-manager/app/build.gradle"
+          sed -i 's/openid profile asset:read asset:write universe-messaging-service:publish/openid asset:read asset:write universe-messaging-service:publish/' "$FILE"
+          sed -i 's/appendQueryParameter("prompt", "login consent")/appendQueryParameter("prompt", "consent select_account")/' "$FILE"
+          sed -i 's/versionCode 11/versionCode 13/' "$GRADLE"
+          sed -i "s/versionName '0.3.10-underground-sync-pilot'/versionName '0.3.12-underground-sync-pilot'/" "$GRADLE"
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path("tools/bbya-music-manager/app/src/main/java/com/acc/bbyamusic/OAuthSyncActivity.java")
+          s = p.read_text()
+
+          if 'import android.media.MediaMetadataRetriever;' not in s:
+              s = s.replace('import android.net.Uri;\n', 'import android.net.Uri;\nimport android.media.MediaMetadataRetriever;\n', 1)
+
+          s = s.replace('syncButton.setOnClickListener(v -> syncUnderground());', 'syncButton.setOnClickListener(v -> syncUndergroundWithRefresh());', 1)
+
+          old_ui = (
+              '    private void refreshUi() {\n'
+              '        String username = prefs.getString("oauth_username", "");\n'
+              '        long expiresAt = prefs.getLong("oauth_expires_at", 0L);\n'
+              '        boolean valid = !prefs.getString("oauth_access_token", "").isEmpty() && System.currentTimeMillis() < expiresAt;\n'
+              '        accountText.setText(valid ? "Roblox: " + (username.isEmpty() ? "terhubung" : username) : "Roblox: belum terhubung / sesi habis");\n'
+              '        loginButton.setText(valid ? "LOGIN ULANG / GANTI AKUN" : "LOGIN ROBLOX");\n'
+              '        syncButton.setEnabled(valid && !busy);\n'
+              '        loginButton.setEnabled(!busy);\n'
+              '        libraryButton.setEnabled(!busy);\n'
+              '        if (!busy) statusText.setText("Status: " + prefs.getString("oauth_last_status", valid ? "siap sync" : "login diperlukan"));\n'
+              '    }'
+          )
+          new_ui = (
+              '    private void refreshUi() {\n'
+              '        String username = prefs.getString("oauth_username", "");\n'
+              '        long expiresAt = prefs.getLong("oauth_expires_at", 0L);\n'
+              '        boolean valid = !prefs.getString("oauth_access_token", "").isEmpty() && System.currentTimeMillis() < expiresAt;\n'
+              '        boolean canRefresh = !prefs.getString("oauth_refresh_token", "").isEmpty();\n'
+              '        String who = username.isEmpty() ? "Roblox User" : username;\n'
+              '        if (valid) accountText.setText("Roblox: " + who);\n'
+              '        else if (canRefresh) accountText.setText("Roblox: " + who + " • sesi diperbarui otomatis");\n'
+              '        else accountText.setText("Roblox: belum terhubung / login diperlukan");\n'
+              '        loginButton.setText((valid || canRefresh) ? "LOGIN ULANG / GANTI AKUN" : "LOGIN ROBLOX");\n'
+              '        syncButton.setEnabled((valid || canRefresh) && !busy);\n'
+              '        loginButton.setEnabled(!busy);\n'
+              '        libraryButton.setEnabled(!busy);\n'
+              '        String fallback = valid ? "siap sync" : (canRefresh ? "siap sync • sesi diperbarui otomatis" : "login diperlukan");\n'
+              '        if (!busy) statusText.setText("Status: " + prefs.getString("oauth_last_status", fallback));\n'
+              '    }'
+          )
+          if old_ui in s:
+              s = s.replace(old_ui, new_ui, 1)
+
+          old_save = (
+              '                JSONObject json = new JSONObject(response.body);\n'
+              '                String access = json.optString("access_token", "");\n'
+              '                if (access.isEmpty()) throw new Exception("access_token kosong");\n'
+              '                int expires = Math.max(60, json.optInt("expires_in", 899));\n'
+              '                prefs.edit()\n'
+              '                        .putString("oauth_access_token", access)\n'
+              '                        .putLong("oauth_expires_at", System.currentTimeMillis() + expires * 1000L - 30000L)\n'
+              '                        .remove("oauth_pkce_verifier")\n'
+              '                        .remove("oauth_state")\n'
+              '                        .apply();'
+          )
+          new_save = (
+              '                JSONObject json = new JSONObject(response.body);\n'
+              '                String access = json.optString("access_token", "");\n'
+              '                String refresh = json.optString("refresh_token", "");\n'
+              '                if (access.isEmpty()) throw new Exception("access_token kosong");\n'
+              '                int expires = Math.max(60, json.optInt("expires_in", 899));\n'
+              '                SharedPreferences.Editor editor = prefs.edit()\n'
+              '                        .putString("oauth_access_token", access)\n'
+              '                        .putLong("oauth_expires_at", System.currentTimeMillis() + expires * 1000L - 30000L)\n'
+              '                        .remove("oauth_pkce_verifier")\n'
+              '                        .remove("oauth_state");\n'
+              '                if (!refresh.isEmpty()) editor.putString("oauth_refresh_token", refresh);\n'
+              '                editor.apply();'
+          )
+          if old_save in s:
+              s = s.replace(old_save, new_save, 1)
+
+          anchor = '    private void loadUserInfo(String accessToken) throws Exception {'
+          if 'private void syncUndergroundWithRefresh()' not in s and anchor in s:
+              methods = (
+                  '    private void syncUndergroundWithRefresh() {\n'
+                  '        if (busy) return;\n'
+                  '        String access = prefs.getString("oauth_access_token", "");\n'
+                  '        long expiresAt = prefs.getLong("oauth_expires_at", 0L);\n'
+                  '        if (!access.isEmpty() && System.currentTimeMillis() < expiresAt) {\n'
+                  '            syncUnderground();\n'
+                  '            return;\n'
+                  '        }\n'
+                  '        String refresh = prefs.getString("oauth_refresh_token", "");\n'
+                  '        if (refresh.isEmpty()) {\n'
+                  '            refreshUi();\n'
+                  '            toast("Login Roblox dulu");\n'
+                  '            return;\n'
+                  '        }\n'
+                  '        setBusy(true, "Memperbarui sesi Roblox...");\n'
+                  '        new Thread(() -> {\n'
+                  '            try {\n'
+                  '                refreshAccessToken(refresh);\n'
+                  '                prefs.edit().putString("oauth_last_status", "Sesi Roblox diperbarui otomatis. Memulai sync...").apply();\n'
+                  '                runOnUiThread(() -> {\n'
+                  '                    setBusy(false, null);\n'
+                  '                    syncUnderground();\n'
+                  '                });\n'
+                  '            } catch (Exception e) {\n'
+                  '                prefs.edit().remove("oauth_access_token").remove("oauth_expires_at").remove("oauth_refresh_token")\n'
+                  '                        .putString("oauth_last_status", "Sesi Roblox perlu login ulang: " + compact(e.getMessage())).apply();\n'
+                  '                setStatusFromThread("Sesi Roblox perlu login ulang: " + compact(e.getMessage()));\n'
+                  '                setBusyFromThread(false, null);\n'
+                  '            }\n'
+                  '        }).start();\n'
+                  '    }\n\n'
+                  '    private void refreshAccessToken(String refreshToken) throws Exception {\n'
+                  '        String form = formEncode(new String[][]{\n'
+                  '                {"grant_type", "refresh_token"},\n'
+                  '                {"client_id", CLIENT_ID},\n'
+                  '                {"refresh_token", refreshToken}\n'
+                  '        });\n'
+                  '        HttpResponse response = request("POST", TOKEN_URL, null, "application/x-www-form-urlencoded", form.getBytes(StandardCharsets.UTF_8));\n'
+                  '        if (response.code < 200 || response.code >= 300) throw new Exception("Refresh HTTP " + response.code + ": " + compact(response.body));\n'
+                  '        JSONObject json = new JSONObject(response.body);\n'
+                  '        String access = json.optString("access_token", "");\n'
+                  '        String nextRefresh = json.optString("refresh_token", "");\n'
+                  '        if (access.isEmpty()) throw new Exception("access_token refresh kosong");\n'
+                  '        int expires = Math.max(60, json.optInt("expires_in", 899));\n'
+                  '        SharedPreferences.Editor editor = prefs.edit().putString("oauth_access_token", access)\n'
+                  '                .putLong("oauth_expires_at", System.currentTimeMillis() + expires * 1000L - 30000L);\n'
+                  '        if (!nextRefresh.isEmpty()) editor.putString("oauth_refresh_token", nextRefresh);\n'
+                  '        editor.apply();\n'
+                  '    }\n\n'
+              )
+              s = s.replace(anchor, methods + anchor, 1)
+
+          s = s.replace('JSONObject creator = new JSONObject();\n        creator.put("userId", userId);', 'JSONObject creator = CreatorResolver.resolveUniverseCreator(UNIVERSE_ID, userId);', 1)
+
+          create_call = 'HttpResponse create = request("POST", ASSET_CREATE_URL, accessToken, "multipart/form-data; boundary=" + boundary, body.toByteArray());'
+          if 'Upload ke Roblox: ' not in s and create_call in s:
+              s = s.replace(create_call, 'setStatusFromThread("Upload ke Roblox: " + title + " ...");\n        ' + create_call, 1)
+
+          operation_id = 'String operationId = operationPath.substring("operations/".length());'
+          if 'Roblox menerima file. Memproses:' not in s and operation_id in s:
+              s = s.replace(operation_id, operation_id + '\n        setStatusFromThread("Roblox menerima file. Memproses: " + title);', 1)
+
+          poll_loop = 'for (int attempt = 1; attempt <= 36; attempt++) {\n            Thread.sleep(5000L);'
+          if 'Roblox processing:' not in s and poll_loop in s:
+              s = s.replace(poll_loop, 'for (int attempt = 1; attempt <= 36; attempt++) {\n            setStatusFromThread("Roblox processing: " + title + " (" + attempt + "/36)");\n            Thread.sleep(5000L);', 1)
+
+          poll_call = 'HttpResponse poll = request("GET", ASSET_OPERATION_URL + urlEncode(operationId), accessToken, null, null);'
+          if 'processing timeout sementara' not in s and poll_call in s:
+              s = s.replace(poll_call, 'HttpResponse poll;\n            try {\n                poll = request("GET", ASSET_OPERATION_URL + urlEncode(operationId), accessToken, null, null);\n            } catch (java.net.SocketTimeoutException timeout) {\n                setStatusFromThread("Roblox processing timeout sementara: " + title + " • lanjut cek");\n                continue;\n            }', 1)
+
+          return_line = 'boolean approved = "MODERATION_STATE_APPROVED".equals(moderation) || "APPROVED".equals(moderation);\n            return new UploadResult(assetId, moderation, approved);'
+          if 'Roblox selesai:' not in s and return_line in s:
+              s = s.replace(return_line, 'boolean approved = "MODERATION_STATE_APPROVED".equals(moderation) || "APPROVED".equals(moderation);\n            setStatusFromThread("Roblox selesai: " + title + " • " + moderation);\n            return new UploadResult(assetId, moderation, approved);', 1)
+
+          if 'int skippedTooLong = 0;' not in s:
+              s = s.replace('int synced = 0;\n                int pending = 0;', 'int synced = 0;\n                int pending = 0;\n                int skippedTooLong = 0;', 1)
+
+          duration_anchor = 'String assetId = track.optString("robloxAssetId", "");\n                    if (assetId.isEmpty()) {'
+          if 'SKIPPED_TOO_LONG' not in s and duration_anchor in s:
+              s = s.replace(duration_anchor, 'String assetId = track.optString("robloxAssetId", "");\n                    long durationMs = getAudioDurationMs(track.optString("localPath", ""));\n                    if (durationMs >= 7L * 60L * 1000L) {\n                        track.put("uploadState", "TOO_LONG");\n                        track.put("syncState", "SKIPPED_TOO_LONG");\n                        skippedTooLong++;\n                        persistCatalog(catalog);\n                        setStatusFromThread("Dilewati >=7 menit: " + track.optString("title", "Track") + " • " + formatDuration(durationMs));\n                        continue;\n                    }\n                    if (assetId.isEmpty()) {', 1)
+
+          upload_line = 'UploadResult upload = uploadAudio(access, userId, track);'
+          if 'UPLOAD_TIMEOUT' not in s and upload_line in s:
+              s = s.replace(upload_line, 'UploadResult upload;\n                        try {\n                            upload = uploadAudio(access, userId, track);\n                        } catch (java.net.SocketTimeoutException timeout) {\n                            track.put("uploadState", "UPLOAD_TIMEOUT");\n                            track.put("syncState", "WAITING_RETRY");\n                            pending++;\n                            persistCatalog(catalog);\n                            setStatusFromThread("Timeout upload: " + track.optString("title", "Track") + " • lanjut track berikutnya");\n                            continue;\n                        } catch (Exception uploadError) {\n                            track.put("uploadState", "UPLOAD_ERROR");\n                            track.put("syncState", "WAITING_RETRY");\n                            pending++;\n                            persistCatalog(catalog);\n                            setStatusFromThread("Upload gagal: " + track.optString("title", "Track") + " • " + compact(uploadError.getMessage()) + " • lanjut");\n                            continue;\n                        }', 1)
+
+          publish_line = 'publishDelta(access, delta);'
+          if 'MESSAGE_TIMEOUT' not in s and publish_line in s:
+              s = s.replace(publish_line, 'try {\n                        setStatusFromThread("Mengirim ke Underground: " + track.optString("title", "Track"));\n                        publishDelta(access, delta);\n                    } catch (java.net.SocketTimeoutException timeout) {\n                        track.put("syncState", "MESSAGE_TIMEOUT");\n                        pending++;\n                        persistCatalog(catalog);\n                        setStatusFromThread("Timeout kirim playlist: " + track.optString("title", "Track") + " • lanjut");\n                        continue;\n                    } catch (Exception messageError) {\n                        track.put("syncState", "MESSAGE_ERROR");\n                        pending++;\n                        persistCatalog(catalog);\n                        setStatusFromThread("Kirim playlist gagal: " + track.optString("title", "Track") + " • " + compact(messageError.getMessage()) + " • lanjut");\n                        continue;\n                    }', 1)
+
+          old_msg = 'String msg = pending == 0\n                        ? "SYNCED ✓ " + synced + " lagu Underground dikirim ke Roblox."\n                        : "Sync sebagian: " + synced + " siap, " + pending + " masih menunggu Roblox/moderasi.";'
+          if old_msg in s:
+              s = s.replace(old_msg, 'String msg;\n                if (pending == 0 && skippedTooLong == 0) {\n                    msg = "SYNCED ✓ " + synced + " lagu Underground dikirim ke Roblox.";\n                } else {\n                    msg = "Sync selesai: " + synced + " siap, " + pending + " menunggu/retry, " + skippedTooLong + " dilewati karena >=7 menit.";\n                }', 1)
+
+          method_anchor = '    private void publishDelta(String accessToken, JSONObject delta) throws Exception {'
+          if 'private long getAudioDurationMs(' not in s and method_anchor in s:
+              duration_methods = '    private long getAudioDurationMs(String path) {\n        if (path == null || path.isEmpty()) return 0L;\n        MediaMetadataRetriever retriever = new MediaMetadataRetriever();\n        try {\n            retriever.setDataSource(path);\n            String raw = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION);\n            return raw == null || raw.isEmpty() ? 0L : Long.parseLong(raw);\n        } catch (Exception ignored) {\n            return 0L;\n        } finally {\n            try { retriever.release(); } catch (Exception ignored) {}\n        }\n    }\n\n    private String formatDuration(long durationMs) {\n        long totalSeconds = Math.max(0L, durationMs / 1000L);\n        return String.format(Locale.US, "%d:%02d", totalSeconds / 60L, totalSeconds % 60L);\n    }\n\n'
+              s = s.replace(method_anchor, duration_methods + method_anchor, 1)
+
+          s = s.replace('connection.setConnectTimeout(20000);', 'connection.setConnectTimeout(30000);')
+          s = s.replace('connection.setReadTimeout(45000);', 'connection.setReadTimeout(240000);')
+          p.write_text(s)
+          PY
+
+          grep -q 'openid asset:read asset:write universe-messaging-service:publish' "$FILE"
+          grep -q 'appendQueryParameter("prompt", "consent select_account")' "$FILE"
+          grep -q 'syncUndergroundWithRefresh' "$FILE"
+          grep -q 'oauth_refresh_token' "$FILE"
+          grep -q 'grant_type", "refresh_token' "$FILE"
+          grep -q 'CreatorResolver.resolveUniverseCreator(UNIVERSE_ID, userId)' "$FILE"
+          grep -q 'Roblox processing:' "$FILE"
+          grep -q 'SKIPPED_TOO_LONG' "$FILE"
+          grep -q 'UPLOAD_TIMEOUT' "$FILE"
+          grep -q 'MESSAGE_TIMEOUT' "$FILE"
+          grep -q 'setReadTimeout(240000)' "$FILE"
+          grep -q "versionCode 13" "$GRADLE"
+          grep -q "versionName '0.3.12-underground-sync-pilot'" "$GRADLE"
+
+      - name: Setup Java
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Restore explicit BBYA signing key
+        id: signing-cache
+        uses: actions/cache@v4
+        with:
+          path: .ci-signing/bbya-debug.keystore
+          key: bbya-music-explicit-signing-v2
+
+      - name: Create explicit BBYA signing key
+        if: steps.signing-cache.outputs.cache-hit != 'true'
+        shell: bash
+        run: |
+          mkdir -p .ci-signing
+          keytool -genkeypair -v \
+            -keystore .ci-signing/bbya-debug.keystore \
+            -storepass android \
+            -alias androiddebugkey \
+            -keypass android \
+            -keyalg RSA \
+            -keysize 2048 \
+            -validity 10000 \
+            -dname "CN=BBYA Music Dev,O=AM STUDIO,C=ID"
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install Android SDK 36
+        run: sdkmanager "platforms;android-36" "build-tools;36.0.0" "platform-tools"
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.11.1'
+
+      - name: Build BBYA Music Manager
+        working-directory: tools/bbya-music-manager
+        env:
+          BBYA_KEYSTORE_PATH: ${{ github.workspace }}/.ci-signing/bbya-debug.keystore
+        run: gradle assembleDebug --stacktrace
+
+      - name: Verify APK signing certificate
+        shell: bash
+        run: |
+          set -euo pipefail
+          KEYSTORE="${GITHUB_WORKSPACE}/.ci-signing/bbya-debug.keystore"
+          APK="tools/bbya-music-manager/app/build/outputs/apk/debug/app-debug.apk"
+          KEY_SHA=$(keytool -exportcert -alias androiddebugkey -keystore "$KEYSTORE" -storepass android | sha256sum | awk '{print $1}')
+          APK_SHA=$("${ANDROID_HOME}/build-tools/36.0.0/apksigner" verify --print-certs "$APK" | sed -n 's/^Signer #1 certificate SHA-256 digest: //p' | tr '[:upper:]' '[:lower:]' | head -n1)
+          echo "Keystore cert SHA256: ${KEY_SHA}"
+          echo "APK signer SHA256: ${APK_SHA}"
+          test -n "$APK_SHA"
+          test "$KEY_SHA" = "$APK_SHA"
+
+      - name: Prepare APK
+        run: |
+          mkdir -p dist
+          cp tools/bbya-music-manager/app/build/outputs/apk/debug/app-debug.apk dist/BBYA-Music-Manager-v0.3.12.apk
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: BBYA-Music-Manager-v0.3.12
+          path: dist/BBYA-Music-Manager-v0.3.12.apk
+          if-no-files-found: error
+          retention-days: 30
