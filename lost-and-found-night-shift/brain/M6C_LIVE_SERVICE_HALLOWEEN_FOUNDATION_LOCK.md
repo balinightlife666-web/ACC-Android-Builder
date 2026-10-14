@@ -1,6 +1,6 @@
-# LOST & FOUND: NIGHT SHIFT — M6-C LIVE SERVICE / HALLOWEEN FOUNDATION LOCK v1.3
+# LOST & FOUND: NIGHT SHIFT — M6-C LIVE SERVICE / HALLOWEEN FOUNDATION LOCK v1.4
 
-Date: 2026-10-02  
+Date: 2026-10-14  
 Status: **FOUNDATION LIVE v69 / ACTIVATION PREP SOURCE-ONLY**
 
 ## Purpose
@@ -116,6 +116,8 @@ Source-only safeguards:
 - live-service activation fails closed if any expected collectible is missing, has the wrong event/edition, remains drop-locked, or lacks an explicit approved drop chance;
 - activation also fails closed if any expected event case is missing, has no positive approved selection weight, remains case-drop locked, or points outside the registered seasonal pool;
 - replicated state exposes `ActivationReady` and `GuardReason` for runtime diagnostics;
+- pre-activation audit also exposes `PreparedEventId`, `PreparedReady`, and `PreparedGuardReason`, allowing HW26 readiness checks while the event remains disabled;
+- Collection uses its existing subtitle line to surface active event identity/edition only when the server state is active; inactive layout stays unchanged;
 - these safeguards do not alter the current disabled event state or the v69 live receipt.
 
 ## Remaining pre-launch gates
@@ -123,7 +125,7 @@ Source-only safeguards:
 2. Approve Halloween event start/end window.
 3. Approve event-case selection weight/frequency.
 4. Approve seasonal drop behavior and any mint caps.
-5. Add clear HW26 edition presentation to Collection card/serial UI.
+5. HW26 edition presentation in Collection card/serial UI: **DONE IN SOURCE**.
 6. Static/regression QC.
 7. Publish through the locked LOST FOUND issue route and verify exact receipt.
 8. Android runtime/event QC before calling Halloween LIVE.
