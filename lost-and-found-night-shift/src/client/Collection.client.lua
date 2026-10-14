@@ -16,6 +16,7 @@ for _, entry in ipairs(HalloweenContent.Collectibles) do
 end
 local remotes = ReplicatedStorage:WaitForChild("LostAndFoundRemotes")
 local collectionUpdate = remotes:WaitForChild("CollectionUpdate")
+local liveServiceState = ReplicatedStorage:WaitForChild("LostAndFoundLiveServiceState")
 
 local playerGui = player:WaitForChild("PlayerGui")
 local gui = Instance.new("ScreenGui")
@@ -102,8 +103,29 @@ popupConstraint.Parent = popup
 local title = label(popup, UDim2.new(1, -56, 0, 32), UDim2.fromOffset(12, 6), 14, Enum.Font.GothamBold, Color3.fromRGB(255, 192, 86))
 title.Text = "LOST PROPERTY COLLECTION"
 
-local subtitle = label(popup, UDim2.new(1, -24, 0, 18), UDim2.fromOffset(12, 34), 10, Enum.Font.GothamMedium, Color3.fromRGB(151, 164, 181))
-subtitle.Text = "Swipe cards • each owned item carries a unique serial"
+local DEFAULT_SUBTITLE = "Swipe cards • each owned item carries a unique serial"
+local DEFAULT_SUBTITLE_COLOR = Color3.fromRGB(151, 164, 181)
+local EVENT_SUBTITLE_COLOR = Color3.fromRGB(239, 148, 65)
+
+local subtitle = label(popup, UDim2.new(1, -24, 0, 18), UDim2.fromOffset(12, 34), 10, Enum.Font.GothamMedium, DEFAULT_SUBTITLE_COLOR)
+subtitle.Text = DEFAULT_SUBTITLE
+
+local function refreshSeasonSubtitle()
+    local active = liveServiceState:GetAttribute("Active") == true
+    local eventName = tostring(liveServiceState:GetAttribute("EventName") or "")
+    local editionToken = tostring(liveServiceState:GetAttribute("EditionToken") or "")
+
+    if active and eventName ~= "" and editionToken ~= "" then
+        subtitle.Text = string.upper(eventName) .. " • " .. editionToken .. " • SEASONAL COLLECTION ACTIVE"
+        subtitle.TextColor3 = EVENT_SUBTITLE_COLOR
+    else
+        subtitle.Text = DEFAULT_SUBTITLE
+        subtitle.TextColor3 = DEFAULT_SUBTITLE_COLOR
+    end
+end
+
+liveServiceState:GetAttributeChangedSignal("Revision"):Connect(refreshSeasonSubtitle)
+refreshSeasonSubtitle()
 
 local close = Instance.new("TextButton")
 close.Size = UDim2.fromOffset(30, 30)
