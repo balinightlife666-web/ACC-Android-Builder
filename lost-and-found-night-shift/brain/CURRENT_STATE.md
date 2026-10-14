@@ -1,6 +1,6 @@
 # LOST & FOUND: NIGHT SHIFT — CURRENT STATE
 
-Updated: 2026-10-02
+Updated: 2026-10-14
 
 ## Identity / infrastructure
 - Universe ID: `10745354451`
@@ -76,6 +76,8 @@ Current event state:
 - source after v69 now registers seasonal definitions before starting live-service state.
 - source after v69 now has a fail-closed activation preflight: collectible/event/edition/drop-chance/case-weight mismatches force replicated event state inactive.
 - diagnostic attributes `ActivationReady` and `GuardReason` are source-ready for runtime verification.
+- pre-activation diagnostics now also expose `PreparedEventId`, `PreparedReady`, and `PreparedGuardReason`, so HW26 configuration can be audited while the event itself is still OFF.
+- Collection reuses its existing subtitle line for active seasonal status; when Halloween is truly active it shows `HALLOWEEN 2026 • HW26 • SEASONAL COLLECTION ACTIVE`, while inactive UI remains unchanged.
 - these post-v69 activation-safety changes are **NOT PUBLISHED**; deploy receipt still points to v69 source `cc4fbdbb64024fed29f995f069adc5b1baaca260`.
 
 v69 is now LIVE_PUBLISHED by explicit Arda instruction. Android runtime QC is still required before Halloween activation.
