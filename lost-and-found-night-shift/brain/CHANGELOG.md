@@ -113,3 +113,11 @@
 - Added replicated diagnostics `ActivationReady` and `GuardReason`.
 - Halloween 2026 remains disabled; HW26 drops and case weights remain locked. No Credits/XP/base drop/canon/trading changes were made.
 - These changes are source-only and have not replaced v69 on Roblox.
+
+## 2026-10-14 — M6-C readiness audit + active seasonal presentation SOURCE ONLY
+- Added pre-activation HW26 configuration audit that runs even while the event is disabled.
+- Replicated diagnostics now include `PreparedEventId`, `PreparedReady`, and `PreparedGuardReason`.
+- The readiness audit checks seasonal collectible registration, event/edition metadata, explicit drop approval, case registration, positive case weights, case drop approval, and pool membership before activation.
+- Collection now reuses its existing subtitle line to show the active seasonal identity/edition only when server event state is active; inactive UI remains unchanged.
+- Halloween remains disabled with no runtime window applied, seasonal drops locked, and event-case weights unset.
+- Roblox v69 remains the latest receipt-verified live baseline; these changes are source-only and not published.
