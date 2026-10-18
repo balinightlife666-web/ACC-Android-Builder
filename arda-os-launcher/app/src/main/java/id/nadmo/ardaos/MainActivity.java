@@ -314,6 +314,7 @@ public class MainActivity extends Activity {
         addCompactNode(stack, "NOTE      >", "note", CYAN, false);
         addCompactNode(stack, "FB        >", "fb", CYAN, false);
         addCompactNode(stack, "IG        >", "ig", MAGENTA, false);
+        addCompactNode(stack, "TIKTOK    >", "tiktok", CYAN, false);
 
         commandZone.addView(stack, new LinearLayout.LayoutParams(dp(176), -2));
         root.addView(commandZone);
@@ -522,6 +523,12 @@ public class MainActivity extends Activity {
                     ok = l.contains("instagram") || p.contains("instagram");
                     break;
 
+                case "tiktok":
+                    ok = p.equals("com.zhiliaoapp.musically")
+                            || p.equals("com.ss.android.ugc.trill")
+                            || l.equals("tiktok") || l.startsWith("tiktok ");
+                    break;
+
                 case "note":
                     ok = l.equals("notes")
                             || l.equals("note")
@@ -565,6 +572,7 @@ public class MainActivity extends Activity {
             case "wa": title = "PILIH WHATSAPP"; break;
             case "fb": title = "PILIH FACEBOOK"; break;
             case "ig": title = "PILIH INSTAGRAM"; break;
+            case "tiktok": title = "PILIH TIKTOK"; break;
             case "note": title = "PILIH NOTES"; break;
             default: title = "PILIH TARGET";
         }
