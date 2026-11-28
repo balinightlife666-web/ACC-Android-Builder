@@ -121,3 +121,8 @@
 - Collection now reuses its existing subtitle line to show the active seasonal identity/edition only when server event state is active; inactive UI remains unchanged.
 - Halloween remains disabled with no runtime window applied, seasonal drops locked, and event-case weights unset.
 - Roblox v69 remains the latest receipt-verified live baseline; these changes are source-only and not published.
+
+## 2026-11-28 — M6-C Christmas preparation (source only)
+- Added dormant XMAS26 content, guarded lobby decor and dual seasonal registration.
+- Runtime selection and seasonal drops use validated active event; no drop after event expiry.
+- No publish; v69 receipt unchanged. Dates and balancing remain unapproved.

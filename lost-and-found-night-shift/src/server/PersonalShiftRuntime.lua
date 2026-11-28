@@ -8,7 +8,7 @@ local CaseRegistry = require(shared:WaitForChild("CaseRegistry"))
 local CollectionRegistry = require(shared:WaitForChild("CollectionRegistry"))
 local CollectionPreviewFactory = require(shared:WaitForChild("CollectionPreviewFactory"))
 local StationSkinRegistry = require(shared:WaitForChild("StationSkinRegistry"))
-local LiveServiceEventRegistry = require(shared:WaitForChild("LiveServiceEventRegistry"))
+local LiveServiceEventService = require(script.Parent:WaitForChild("LiveServiceEventService"))
 
 local PersonalStationWorld = require(script.Parent:WaitForChild("PersonalStationWorld"))
 local LegacyWorldBuilder = require(script.Parent:WaitForChild("WorldBuilder"))
@@ -194,7 +194,7 @@ function PersonalShiftRuntime.Start()
             end
         end
 
-        local activeEvent = LiveServiceEventRegistry.GetActive(os.time())
+        local activeEvent = LiveServiceEventService.GetActive(os.time())
         local activeEventId = activeEvent and activeEvent.id or nil
         local visibleOrder = CollectionRegistry.VisibleOrder(activeEventId, found, ownedCounts)
         local count = 0
@@ -603,7 +603,7 @@ function PersonalShiftRuntime.Start()
         if completed >= 9 then table.insert(pool, CaseRegistry.Get(9)) end
         if completed >= 10 then table.insert(pool, CaseRegistry.Get(10)) end
 
-        local activeEvent = LiveServiceEventRegistry.GetActive(os.time())
+        local activeEvent = LiveServiceEventService.GetActive(os.time())
         if activeEvent then
             for _, caseData in ipairs(CaseRegistry.GetEventCases(activeEvent.id, true)) do
                 table.insert(pool, caseData)
@@ -679,6 +679,13 @@ function PersonalShiftRuntime.Start()
         local entry = CollectionRegistry.Get(collectionId)
         if not entry or grade ~= "PERFECT" then return nil, "NOT_ELIGIBLE" end
         if entry.dropEnabled == false then return nil, "DROP_LOCKED" end
+        if entry.eventId then
+            local event = LiveServiceEventService.GetActive(os.time())
+            if not event or event.id ~= entry.eventId then return nil, "EVENT_INACTIVE" end
+            if not state.activeCase or state.activeCase.eventId ~= event.id or state.activeCase.dropEnabled ~= true then
+                return nil, "EVENT_CASE_DROP_LOCKED"
+            end
+        end
 
         local chance = tonumber(entry.dropChance)
         if chance == nil then chance = tonumber(DROP_CHANCE[entry.rarity]) or 0 end

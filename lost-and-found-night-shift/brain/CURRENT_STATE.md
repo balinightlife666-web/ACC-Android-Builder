@@ -1,6 +1,6 @@
 # LOST & FOUND: NIGHT SHIFT — CURRENT STATE
 
-Updated: 2026-10-14
+Updated: 2026-11-28
 
 ## Identity / infrastructure
 - Universe ID: `10745354451`
@@ -154,3 +154,6 @@ Status: **SOURCE-ONLY / NOT APPLIED TO RUNTIME**
 - Runtime registry remains disabled.
 - Runtime event-case weights remain unset.
 - Runtime seasonal drops remain disabled.
+
+## M6-C Christmas preparation — 2026-11-28
+SOURCE ONLY / NOT PUBLISHED. See `brain/M6C_CHRISTMAS_2026_PREP.md`. Four dormant XMAS26 collectibles and three dormant cases, dual-pack registration/preview, gated lobby decor, validated runtime selection and seasonal drop expiry guard. Both events remain disabled. Halloween candidate has elapsed; next focus Christmas preparation. v69 Android runtime gate remains pending; no activation or balance approval implied.

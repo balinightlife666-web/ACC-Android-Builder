@@ -116,8 +116,10 @@ local function validateEventConfiguration(event)
 end
 
 local function auditPreparedEvent()
-    for _, eventId in ipairs(LiveServiceEventRegistry.Order or {}) do
-        local event = LiveServiceEventRegistry.Get(eventId)
+    -- Prefer the latest prepared seasonal pack (current order is chronological).
+    local order = LiveServiceEventRegistry.Order or {}
+    for index = #order, 1, -1 do
+        local event = LiveServiceEventRegistry.Get(order[index])
         local pool = event and event.collectionPool
         local hooks = event and event.caseHookIds
         if event and ((type(pool) == "table" and #pool > 0) or (type(hooks) == "table" and #hooks > 0)) then
@@ -193,6 +195,15 @@ end
 function LiveServiceEventService.Audit(eventId)
     local event = LiveServiceEventRegistry.Get(eventId)
     return validateEventConfiguration(event)
+end
+
+-- Runtime callers must use the same fail-closed validation as replicated state.
+function LiveServiceEventService.GetActive(now)
+    local event = LiveServiceEventRegistry.GetActive(now)
+    if not event then return nil end
+    local ready = validateEventConfiguration(event)
+    if not ready then return nil end
+    return event
 end
 
 function LiveServiceEventService.Refresh(now)

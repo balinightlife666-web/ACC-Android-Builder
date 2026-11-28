@@ -43,8 +43,17 @@ LiveServiceEventRegistry.Events = {
         endsAt = nil,
         stationSkinId = "CHRISTMAS_2026",
         environmentProfile = "CHRISTMAS",
-        collectionPool = {},
-        caseHookIds = {},
+        collectionPool = {
+            "xmas26_noel_hardcase",
+            "xmas26_winter_bear",
+            "xmas26_frost_parcel",
+            "xmas26_crimson_backpack",
+        },
+        caseHookIds = {
+            "LF-XMAS26-001",
+            "LF-XMAS26-002",
+            "LF-XMAS26-003",
+        },
     },
 }
 

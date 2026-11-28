@@ -4,15 +4,20 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local player = Players.LocalPlayer
 local shared = ReplicatedStorage:WaitForChild("LostAndFoundShared")
 local PreviewFactory = require(shared:WaitForChild("CollectionPreviewFactory"))
-local HalloweenContent = require(shared:WaitForChild("M6CHalloweenContent"))
+local SeasonalPacks = {
+    require(shared:WaitForChild("M6CHalloweenContent")),
+    require(shared:WaitForChild("M6CChristmasContent")),
+}
 
-for _, entry in ipairs(HalloweenContent.Collectibles) do
-    PreviewFactory.RegisterVariant(entry.id, {
-        base = entry.visual and entry.visual.base or entry.baseItemId,
-        color = entry.visual and entry.visual.color or Color3.fromRGB(90, 96, 108),
-        rarity = entry.rarity,
-        accent = entry.visual and entry.visual.accent or nil,
-    })
+for _, content in ipairs(SeasonalPacks) do
+    for _, entry in ipairs(content.Collectibles) do
+        PreviewFactory.RegisterVariant(entry.id, {
+            base = entry.visual and entry.visual.base or entry.baseItemId,
+            color = entry.visual and entry.visual.color or Color3.fromRGB(90, 96, 108),
+            rarity = entry.rarity,
+            accent = entry.visual and entry.visual.accent or nil,
+        })
+    end
 end
 local remotes = ReplicatedStorage:WaitForChild("LostAndFoundRemotes")
 local collectionUpdate = remotes:WaitForChild("CollectionUpdate")
