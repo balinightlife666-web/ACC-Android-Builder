@@ -17,6 +17,7 @@ public class CodeStreamView extends View {
             "root@arda:~$ mount --cyberdeck /nadmo",
             "WA_INSTANCE_DETECTED  CHANNEL_READY",
             "IG_MEDIA_LINK::ONLINE  FB_SOCIAL::SYNC",
+            "CHROME_NODE::READY  EMAIL_CHANNEL::READY",
             "kernel.trace -> permissions:home/profile",
             "0xA9 NODE 149  HANDSHAKE ACCEPTED",
             "SYS_CLOCK SYNCHRONIZED  PROFILE_MAP OK",
@@ -30,7 +31,7 @@ public class CodeStreamView extends View {
             "social.route -> facebook://active",
             "notes.mount -> local_log_channel",
             "SYSTEM CACHE WARM  TOUCH_FEEDBACK ON",
-            "CYBERDECK HUD v0.6.2  COMPACT MODE"
+            "CYBERDECK HUD v0.6.3  POLISHED MODE"
     };
 
     private float offset = 0f;
