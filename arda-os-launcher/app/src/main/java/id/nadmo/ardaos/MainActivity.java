@@ -330,13 +330,19 @@ public class MainActivity extends Activity {
         rowCLp.setMargins(0, dp(5), 0, 0);
         stack.addView(rowC, rowCLp);
 
-        Button tiktok = cyberButton("TIKTOK          >", false, CYAN);
-        tiktok.setSingleLine(true);
-        tiktok.setGravity(Gravity.CENTER_VERTICAL);
-        tiktok.setOnClickListener(v -> launchTarget("tiktok"));
-        LinearLayout.LayoutParams ttLp = new LinearLayout.LayoutParams(-1, dp(34));
-        ttLp.setMargins(0, dp(5), 0, 0);
-        stack.addView(tiktok, ttLp);
+        LinearLayout rowD = new LinearLayout(this);
+        addMiniNode(rowD, "AI GALLERY", "gallery", MAGENTA);
+        addMiniNode(rowD, "CAMERA", "camera", CYAN);
+        LinearLayout.LayoutParams rowDLp = new LinearLayout.LayoutParams(-1, dp(35));
+        rowDLp.setMargins(0, dp(5), 0, 0);
+        stack.addView(rowD, rowDLp);
+
+        LinearLayout rowE = new LinearLayout(this);
+        addMiniNode(rowE, "XARENA", "xarena", MAGENTA);
+        addMiniNode(rowE, "TIKTOK", "tiktok", CYAN);
+        LinearLayout.LayoutParams rowELp = new LinearLayout.LayoutParams(-1, dp(35));
+        rowELp.setMargins(0, dp(5), 0, 0);
+        stack.addView(rowE, rowELp);
 
         commandZone.addView(stack, new LinearLayout.LayoutParams(dp(196), -2));
         root.addView(commandZone);
@@ -356,7 +362,7 @@ public class MainActivity extends Activity {
         bottom.addView(apps, new LinearLayout.LayoutParams(dp(126), dp(40)));
         root.addView(bottom);
 
-        TextView footer = text("v0.6.3  •  POLISHED HUD  •  8 FASTLINKS", 7, MUTED, false);
+        TextView footer = text("v0.6.4  •  POLISHED HUD  •  MEDIA + GAME NODES", 7, MUTED, false);
         footer.setGravity(Gravity.CENTER);
         footer.setPadding(0, dp(5), 0, 0);
         root.addView(footer);
@@ -580,6 +586,26 @@ public class MainActivity extends Activity {
                             || p.contains("mail");
                     break;
 
+                case "gallery":
+                    ok = l.contains("ai gallery")
+                            || l.equals("gallery")
+                            || l.contains("gallery")
+                            || p.contains("gallery");
+                    break;
+
+                case "camera":
+                    ok = l.equals("camera")
+                            || l.startsWith("camera ")
+                            || p.contains("camera");
+                    break;
+
+                case "xarena":
+                    ok = l.contains("xarena")
+                            || l.contains("x arena")
+                            || p.contains("xarena")
+                            || (l.contains("game") && p.contains("transsion"));
+                    break;
+
                 case "note":
                     ok = l.equals("notes")
                             || l.equals("note")
@@ -626,6 +652,9 @@ public class MainActivity extends Activity {
             case "tiktok": title = "PILIH TIKTOK"; break;
             case "chrome": title = "PILIH CHROME"; break;
             case "email": title = "PILIH EMAIL"; break;
+            case "gallery": title = "PILIH AI GALLERY"; break;
+            case "camera": title = "PILIH CAMERA"; break;
+            case "xarena": title = "PILIH XARENA"; break;
             case "note": title = "PILIH NOTES"; break;
             default: title = "PILIH TARGET";
         }
@@ -787,6 +816,9 @@ public class MainActivity extends Activity {
         if (presetQuery.equals("tiktok")) presetQuery = "tiktok";
         if (presetQuery.equals("chrome")) presetQuery = "chrome";
         if (presetQuery.equals("email")) presetQuery = "mail";
+        if (presetQuery.equals("gallery")) presetQuery = "gallery";
+        if (presetQuery.equals("camera")) presetQuery = "camera";
+        if (presetQuery.equals("xarena")) presetQuery = "xarena";
         if (presetQuery.equals("note")) presetQuery = "note";
         if (presetQuery.equals("acc")) presetQuery = "acc";
 
