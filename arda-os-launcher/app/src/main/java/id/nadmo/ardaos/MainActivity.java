@@ -283,7 +283,7 @@ public class MainActivity extends Activity {
             root.addView(setup, slp);
         }
 
-        TextView section = text("FASTLINK // PRIMARY NODES", 8, MUTED, true);
+        TextView section = text("FASTLINK // PRIMARY + COMMS", 8, MUTED, true);
         section.setPadding(dp(2), dp(8), 0, dp(4));
         root.addView(section);
 
@@ -309,14 +309,36 @@ public class MainActivity extends Activity {
         stack.setOrientation(LinearLayout.VERTICAL);
         stack.setGravity(Gravity.END);
 
-        addCompactNode(stack, "ACC OS X   >", "acc", CYAN, true);
-        addCompactNode(stack, "WA        >", "wa", MAGENTA, false);
-        addCompactNode(stack, "NOTE      >", "note", CYAN, false);
-        addCompactNode(stack, "FB        >", "fb", CYAN, false);
-        addCompactNode(stack, "IG        >", "ig", MAGENTA, false);
-        addCompactNode(stack, "TIKTOK    >", "tiktok", CYAN, false);
+        addCompactNode(stack, "ACC OS X        >", "acc", CYAN, true);
 
-        commandZone.addView(stack, new LinearLayout.LayoutParams(dp(176), -2));
+        LinearLayout rowA = new LinearLayout(this);
+        addMiniNode(rowA, "WA", "wa", MAGENTA);
+        addMiniNode(rowA, "NOTE", "note", CYAN);
+        stack.addView(rowA, new LinearLayout.LayoutParams(-1, dp(35)));
+
+        LinearLayout rowB = new LinearLayout(this);
+        addMiniNode(rowB, "FB", "fb", CYAN);
+        addMiniNode(rowB, "IG", "ig", MAGENTA);
+        LinearLayout.LayoutParams rowBLp = new LinearLayout.LayoutParams(-1, dp(35));
+        rowBLp.setMargins(0, dp(5), 0, 0);
+        stack.addView(rowB, rowBLp);
+
+        LinearLayout rowC = new LinearLayout(this);
+        addMiniNode(rowC, "CHROME", "chrome", CYAN);
+        addMiniNode(rowC, "EMAIL", "email", MAGENTA);
+        LinearLayout.LayoutParams rowCLp = new LinearLayout.LayoutParams(-1, dp(35));
+        rowCLp.setMargins(0, dp(5), 0, 0);
+        stack.addView(rowC, rowCLp);
+
+        Button tiktok = cyberButton("TIKTOK          >", false, CYAN);
+        tiktok.setSingleLine(true);
+        tiktok.setGravity(Gravity.CENTER_VERTICAL);
+        tiktok.setOnClickListener(v -> launchTarget("tiktok"));
+        LinearLayout.LayoutParams ttLp = new LinearLayout.LayoutParams(-1, dp(34));
+        ttLp.setMargins(0, dp(5), 0, 0);
+        stack.addView(tiktok, ttLp);
+
+        commandZone.addView(stack, new LinearLayout.LayoutParams(dp(196), -2));
         root.addView(commandZone);
 
         View spacer = new View(this);
@@ -334,7 +356,7 @@ public class MainActivity extends Activity {
         bottom.addView(apps, new LinearLayout.LayoutParams(dp(126), dp(40)));
         root.addView(bottom);
 
-        TextView footer = text("v0.6.2  •  COMPACT HUD  •  CODESTREAM", 7, MUTED, false);
+        TextView footer = text("v0.6.3  •  POLISHED HUD  •  8 FASTLINKS", 7, MUTED, false);
         footer.setGravity(Gravity.CENTER);
         footer.setPadding(0, dp(5), 0, 0);
         root.addView(footer);
@@ -420,6 +442,19 @@ public class MainActivity extends Activity {
         LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(-1, dp(primary ? 42 : 36));
         lp.setMargins(0, 0, 0, dp(5));
         parent.addView(b, lp);
+    }
+
+    private void addMiniNode(LinearLayout row, String label, String target, int accent) {
+        Button b = cyberButton(label + "  >", false, accent);
+        b.setGravity(Gravity.CENTER_VERTICAL);
+        b.setSingleLine(true);
+        b.setTextSize(9);
+        b.setPadding(dp(8), 0, dp(6), 0);
+        b.setOnClickListener(v -> launchTarget(target));
+
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0, -1, 1);
+        lp.setMargins(dp(2), 0, dp(2), 0);
+        row.addView(b, lp);
     }
 
     private List<AppEntry> getAllApps() {
@@ -529,6 +564,22 @@ public class MainActivity extends Activity {
                             || l.equals("tiktok") || l.startsWith("tiktok ");
                     break;
 
+                case "chrome":
+                    ok = p.equals("com.android.chrome")
+                            || p.contains("chrome")
+                            || l.equals("chrome")
+                            || l.startsWith("chrome ");
+                    break;
+
+                case "email":
+                    ok = p.equals("com.google.android.gm")
+                            || l.contains("gmail")
+                            || l.equals("email")
+                            || l.startsWith("email ")
+                            || l.contains("outlook")
+                            || p.contains("mail");
+                    break;
+
                 case "note":
                     ok = l.equals("notes")
                             || l.equals("note")
@@ -573,6 +624,8 @@ public class MainActivity extends Activity {
             case "fb": title = "PILIH FACEBOOK"; break;
             case "ig": title = "PILIH INSTAGRAM"; break;
             case "tiktok": title = "PILIH TIKTOK"; break;
+            case "chrome": title = "PILIH CHROME"; break;
+            case "email": title = "PILIH EMAIL"; break;
             case "note": title = "PILIH NOTES"; break;
             default: title = "PILIH TARGET";
         }
@@ -731,6 +784,9 @@ public class MainActivity extends Activity {
         if (presetQuery.equals("wa")) presetQuery = "whatsapp";
         if (presetQuery.equals("fb")) presetQuery = "facebook";
         if (presetQuery.equals("ig")) presetQuery = "instagram";
+        if (presetQuery.equals("tiktok")) presetQuery = "tiktok";
+        if (presetQuery.equals("chrome")) presetQuery = "chrome";
+        if (presetQuery.equals("email")) presetQuery = "mail";
         if (presetQuery.equals("note")) presetQuery = "note";
         if (presetQuery.equals("acc")) presetQuery = "acc";
 
